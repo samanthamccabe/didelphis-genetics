@@ -1,22 +1,18 @@
 package org.didelphis.genetics.alignment.common;
 
-import org.didelphis.common.io.ClassPathFileHandler;
-import org.didelphis.common.io.DiskFileHandler;
-import org.didelphis.common.io.FileHandler;
-import org.didelphis.common.language.enums.FormatterMode;
-import org.didelphis.common.language.exceptions.ParseException;
-import org.didelphis.common.language.phonetic.SequenceFactory;
-import org.didelphis.common.language.phonetic.model.doubles.DoubleFeatureMapping;
-import org.didelphis.common.language.phonetic.segments.Segment;
-import org.didelphis.common.language.phonetic.sequences.BasicSequence;
-import org.didelphis.common.language.phonetic.sequences.Sequence;
-import org.didelphis.common.structures.tables.ColumnTable;
-import org.didelphis.common.structures.tables.DataTable;
-import org.didelphis.common.structures.tables.Table;
-import org.didelphis.common.structures.tuples.Tuple;
 import org.didelphis.genetics.alignment.Expression;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
 import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.io.DiskFileHandler;
+import org.didelphis.io.FileHandler;
+import org.didelphis.language.parsing.ParseException;
+import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.BasicSequence;
+import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.tables.ColumnTable;
+import org.didelphis.structures.tables.Table;
+import org.didelphis.structures.tuples.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +31,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 6/6/2015
  */
 public final class Utilities {
@@ -48,15 +44,6 @@ public final class Utilities {
 	public static final Pattern PATTERN = Pattern.compile("\n|\r?\n");
 
 	private Utilities() {
-	}
-
-	public static SequenceFactory<Double> loadFactoryFromClassPath(String path,
-			FormatterMode formatterMode) {
-		DoubleFeatureMapping mapping =
-				DoubleFeatureMapping.load(path, ClassPathFileHandler.INSTANCE,
-						formatterMode);
-
-		return new SequenceFactory<>(mapping, formatterMode);
 	}
 
 	public static ColumnTable<String> loadTableFromFile(File file)
@@ -91,7 +78,8 @@ public final class Utilities {
 					map.get(header).add(cell);
 				}
 			}
-			return new DataTable<>(map);
+			return null;
+//			return new DataTable<>(map);
 		}
 		throw new ParseException("Unable to read table, file was empty",
 				file.getCanonicalPath());
@@ -108,8 +96,8 @@ public final class Utilities {
 	 *
 	 * @return a new DataTable representing the columns with cognate data
 	 */
-	public static ColumnTable<Sequence<Double>> getPhoneticData(File file,
-			Collection<String> keys, SequenceFactory<Double> factory,
+	public static <T> ColumnTable<Sequence<T>> getPhoneticData(File file,
+			Collection<String> keys, SequenceFactory<T> factory,
 			Iterable<Expression> clex) throws IOException {
 
 		ColumnTable<String> table = loadTableFromFile(file);
@@ -118,10 +106,10 @@ public final class Utilities {
 			keys = table.getKeys();
 		}
 
-		Map<String, List<Sequence<Double>>> map = new LinkedHashMap<>();
+		Map<String, List<Sequence<T>>> map = new LinkedHashMap<>();
 		for (String key : keys) {
 			Collection<String> column = table.getColumn(key);
-			List<Sequence<Double>> list = new ArrayList<>(column.size());
+			List<Sequence<T>> list = new ArrayList<>(column.size());
 
 			for (String string : column) {
 				// Scrub inputs
@@ -137,12 +125,13 @@ public final class Utilities {
 					list.add(factory.getSequence(s));
 				} catch (IndexOutOfBoundsException e) {
 					LOGGER.error("Failed to parse sequence {}", s, e);
-					list.add(factory.getNewSequence());
+					list.add(factory.getSequence(""));
 				}
 			}
 			map.put(key, list);
 		}
-		return new DataTable<>(map);
+//		return new DataTable<>(map);
+		return null;
 	}
 
 	public static String formatStrings(Iterable<String> strings) {
@@ -170,56 +159,42 @@ public final class Utilities {
 		return sb.toString();
 	}
 
-	public static Map<String, EnvironmentMap> computeEnvironments(
-			SequenceFactory<Double> factory,
-			ColumnTable<Sequence<Double>> data) {
-		Map<String, EnvironmentMap> environments = new HashMap<>();
+	public static <T> Map<String, EnvironmentMap<T>> computeEnvironments(
+			SequenceFactory<T> factory,
+			ColumnTable<Sequence<T>> data) {
+		Map<String, EnvironmentMap<T>> environments = new HashMap<>();
 		for (String key : data.getKeys()) {
-			List<Sequence<Double>> column = data.getColumn(key);
-			EnvironmentMap env = new EnvironmentMap(column, factory);
+			List<Sequence<T>> column = data.getColumn(key);
+			EnvironmentMap<T> env = new EnvironmentMap<>(column, factory);
 			environments.put(key, env);
 		}
 		return environments;
 	}
 
-	public static void getTupleDistances(Comparator<Segment<Double>> comparator,
-			Segment<Double> gap,
-			Iterable<Tuple<Sequence<Double>, Sequence<Double>>> tuples,
+	public static <T> void getTupleDistances(Comparator<T, Double> comparator,
+			Sequence<T> gap,
+			Iterable<Tuple<Sequence<T>, Sequence<T>>> tuples,
 			Table<Double> distancesRight, Table<Double> distancesLeft) {
 		int i = 0;
-		for (Tuple<Sequence<Double>, Sequence<Double>> t1 : tuples) {
+		for (Tuple<Sequence<T>, Sequence<T>> t1 : tuples) {
 			int j = 0;
-			for (Tuple<Sequence<Double>, Sequence<Double>> t2 : tuples) {
+			for (Tuple<Sequence<T>, Sequence<T>> t2 : tuples) {
 
 				if (distancesLeft.get(i, j) == null) {
-					Sequence<Double> a = new BasicSequence<>(
+					Sequence<T> a = new BasicSequence<>(
 							t1.getLeft()).getReverseSequence();
-					Sequence<Double> b = new BasicSequence<>(
+					Sequence<T> b = new BasicSequence<>(
 							t2.getLeft()).getReverseSequence();
 
-					double d = 0.0;
-					if (!a.isEmpty() && !b.isEmpty()) {
-						d += comparator.apply(a.getFirst(), b.getFirst());
-					} else if (a.isEmpty() && !b.isEmpty()) {
-						d += comparator.apply(gap, b.getFirst());
-					} else if (b.isEmpty() && !a.isEmpty()) {
-						d += comparator.apply(a.getFirst(), gap);
-					}
+					double d = getD(comparator, gap, a, b);
 					distancesLeft.set(i, j, d);
 				}
 
 				if (distancesRight.get(i, j) == null) {
-					Sequence<Double> a = t1.getRight();
-					Sequence<Double> b = t2.getRight();
+					Sequence<T> a = t1.getRight();
+					Sequence<T> b = t2.getRight();
 
-					double d = 0.0;
-					if (!a.isEmpty() && !b.isEmpty()) {
-						d += comparator.apply(a.getFirst(), b.getFirst());
-					} else if (a.isEmpty() && !b.isEmpty()) {
-						d += comparator.apply(gap, b.getFirst());
-					} else if (b.isEmpty() && !a.isEmpty()) {
-						d += comparator.apply(a.getFirst(), gap);
-					}
+					double d = getD(comparator, gap, a, b);
 					distancesRight.set(i, j, d);
 				}
 
@@ -229,15 +204,27 @@ public final class Utilities {
 		}
 	}
 
-	public static Map<String, Map<Segment<Double>, Integer>> computeSegmentCounts(
-			ColumnTable<Sequence<Double>> data) {
+	private static <T> double getD(Comparator<T, Double> comparator, Sequence<T> gap, Sequence<T> a, Sequence<T> b) {
+		double d = 0.0;
+		if (!(a.isEmpty() || b.isEmpty())) {
+			d += comparator.apply(a, b, 0,0);
+		} else if (a.isEmpty() && !b.isEmpty()) {
+			d += comparator.apply(gap, b, 0, 0);
+		} else if (!a.isEmpty()) {
+			d += comparator.apply(a, gap, 0, 0);
+		}
+		return d;
+	}
 
-		Map<String, Map<Segment<Double>, Integer>> map = new HashMap<>();
+	public static <T> Map<String, Map<Segment<T>, Integer>> computeSegmentCounts(
+			ColumnTable<Sequence<T>> data) {
+
+		Map<String, Map<Segment<T>, Integer>> map = new HashMap<>();
 
 		for (String key : data.getKeys()) {
-			Map<Segment<Double>, Integer> counts = new HashMap<>();
-			for (Sequence<Double> sequence : data.getColumn(key)) {
-				for (Segment<Double> segment : sequence) {
+			Map<Segment<T>, Integer> counts = new HashMap<>();
+			for (Sequence<T> sequence : data.getColumn(key)) {
+				for (Segment<T> segment : sequence) {
 					if (counts.containsKey(segment)) {
 						Integer integer = counts.get(segment);
 						counts.put(segment, integer + 1);

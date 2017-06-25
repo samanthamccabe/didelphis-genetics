@@ -1,12 +1,12 @@
 package org.didelphis.genetic.data.generation;
 
-import org.didelphis.common.io.DiskFileHandler;
-import org.didelphis.common.io.FileHandler;
-import org.didelphis.common.structures.maps.GeneralMultiMap;
-import org.didelphis.common.structures.maps.GeneralTwoKeyMultiMap;
-import org.didelphis.common.structures.maps.interfaces.MultiMap;
-import org.didelphis.common.structures.maps.interfaces.TwoKeyMultiMap;
-import org.didelphis.common.structures.tuples.Tuple;
+import org.didelphis.io.DiskFileHandler;
+import org.didelphis.io.FileHandler;
+import org.didelphis.structures.maps.GeneralMultiMap;
+import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
+import org.didelphis.structures.maps.interfaces.MultiMap;
+import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
+import org.didelphis.structures.tuples.Tuple;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;

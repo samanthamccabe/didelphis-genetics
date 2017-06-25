@@ -1,15 +1,15 @@
 package org.didelphis.genetics.alignment.reconstruction;
 
-import org.didelphis.common.language.phonetic.features.FeatureArray;
-import org.didelphis.common.structures.tables.RectangularTable;
-import org.didelphis.common.structures.tables.Table;
+import org.didelphis.language.phonetic.features.FeatureArray;
+import org.didelphis.structures.tables.RectangularTable;
+import org.didelphis.structures.tables.Table;
 import org.didelphis.genetics.alignment.correspondences.ContextSet;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 4/9/2016
  */
 public class SingleLayerReconstructor implements Reconstructor {
@@ -36,8 +36,8 @@ public class SingleLayerReconstructor implements Reconstructor {
 	}
 
 	@Override
-	public FeatureArray<Double> evaluate(FeatureArray<Double> left,
-			FeatureArray<Double> right, ContextSet contextSet) {
+	public FeatureArray<Integer> evaluate(FeatureArray<Integer> left,
+			FeatureArray<Integer> right, ContextSet contextSet) {
 		return null;
 	}
 }

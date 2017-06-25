@@ -17,7 +17,6 @@
     <properties>
         <didelphis-genetics.version>0.1.0-SNAPSHOT</didelphis-genetics.version>
         <didelphis-common.version>0.1.0-SNAPSHOT</didelphis-common.version>
-        <junit-jupiter.version>5.0.0-M3</junit-jupiter.version>
         <nd4j-common.version>0.8.0</nd4j-common.version>
     </properties>
 

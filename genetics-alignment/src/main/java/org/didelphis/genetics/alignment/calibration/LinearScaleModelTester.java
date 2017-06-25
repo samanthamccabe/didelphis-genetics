@@ -1,12 +1,17 @@
 package org.didelphis.genetics.alignment.calibration;
 
-import org.didelphis.common.language.enums.FormatterMode;
-import org.didelphis.common.language.phonetic.SequenceFactory;
-import org.didelphis.common.language.phonetic.segments.Segment;
-import org.didelphis.common.language.phonetic.sequences.Sequence;
-import org.didelphis.common.structures.tables.ColumnTable;
+import org.didelphis.io.ClassPathFileHandler;
+import org.didelphis.language.parsing.FormatterMode;
+import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.features.FeatureType;
+import org.didelphis.language.phonetic.features.IntegerFeature;
+import org.didelphis.language.phonetic.model.FeatureMapping;
+import org.didelphis.language.phonetic.model.FeatureModelLoader;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.single.SingleAlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.SingleAlignmentAlgorithm;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
@@ -27,14 +32,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 6/6/2015
  */
 public final class LinearScaleModelTester extends BaseModelTester {
 
 	private static final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 
-	protected LinearScaleModelTester(SequenceFactory<Double> factoryParam) {
+	protected LinearScaleModelTester(SequenceFactory<Integer> factoryParam) {
 		super(factoryParam);
 	}
 
@@ -43,10 +48,18 @@ public final class LinearScaleModelTester extends BaseModelTester {
 
 		// LOAD MODEL 
 		// ================================================================================
-		FormatterMode formatterMode = FormatterMode.INTELLIGENT;
-		SequenceFactory<Double> factory =
-				Utilities.loadFactoryFromClassPath("reduced.model",
-						formatterMode);
+
+		String path = "AT_hybrid_reduced.model";
+
+		FeatureType<Integer> featureType = IntegerFeature.INSTANCE;
+
+		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
+				featureType, ClassPathFileHandler.INSTANCE, path);
+
+		FeatureMapping<Integer> mapping = loader.getFeatureMapping();
+
+		SequenceFactory<Integer> factory = new SequenceFactory<>(
+				mapping, FormatterMode.INTELLIGENT);
 
 		BaseModelTester runner = new LinearScaleModelTester(factory);
 
@@ -54,7 +67,7 @@ public final class LinearScaleModelTester extends BaseModelTester {
 		Collections.addAll(keyList, "CHE", "ING", "BCB");
 
 		File nakhDataFile = new File("../data/nakh.tsv");
-		ColumnTable<Sequence<Double>> nakhData =
+		ColumnTable<Sequence<Integer>> nakhData =
 				Utilities.getPhoneticData(nakhDataFile, keyList, factory, null);
 
 		// LOAD CONSTRAINTS 
@@ -69,7 +82,7 @@ public final class LinearScaleModelTester extends BaseModelTester {
 		// SET UP PARAMETERS 
 		// =========================================================================
 
-		Segment<Double> gap = factory.getSegment("_");
+		Sequence<Integer> gap = factory.getSequence("_");
 
 		// RUN ALGORITHM 
 		// =============================================================================
@@ -113,9 +126,9 @@ public final class LinearScaleModelTester extends BaseModelTester {
 				weights.add(v * i);
 			}
 
-			Comparator<Segment<Double>> segmentComparator =
-					new LinearWeightComparator(weights, n);
-			Comparator<Sequence<Double>> sequenceComparator =
+			Comparator<Integer, Double> segmentComparator =
+					new LinearWeightComparator(featureType,weights);
+			Comparator<Integer, Double> sequenceComparator =
 					new SequenceComparator(segmentComparator);
 
 			//			GapPenalty gapPenalty = new ConvexGapPenalty(gap, a,

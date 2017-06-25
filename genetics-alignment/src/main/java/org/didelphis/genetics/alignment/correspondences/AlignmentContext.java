@@ -1,33 +1,30 @@
 package org.didelphis.genetics.alignment.correspondences;
 
-import org.didelphis.common.language.phonetic.sequences.Sequence;
+import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.genetics.alignment.Alignment;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 8/17/2015
  */
 
-public class AlignmentContext {
-
-	private final Alignment<Double> ante;
-	private final Alignment<Double> post;
-
-	public AlignmentContext(Alignment<Double> a, Alignment<Double> b) {
-		ante = a;
-		post = b;
+public class AlignmentContext extends Tuple<Alignment<Integer>,Alignment<Integer>> {
+	
+	private static final int HASH_ID = 0x732a970b;
+	
+	public AlignmentContext(Alignment<Integer> a, Alignment<Integer> b) {
+		super(a,b);
 	}
 
 	@Override
 	public int hashCode() {
-		int hash = 11;
-		hash *= 31 + ante.hashCode();
-		hash *= 31 + post.hashCode();
-		return hash;
+		return HASH_ID ^ super.hashCode();
 	}
 
 	@Override
@@ -38,17 +35,17 @@ public class AlignmentContext {
 		if (!(object instanceof AlignmentContext)) {
 			return false;
 		}
-		AlignmentContext context = (AlignmentContext) object;
-		return ante.equals(context.ante) && post.equals(context.post);
+		return super.equals(object);
 	}
 
+	@NotNull
 	@Override
 	public String toString() {
 
 		StringBuilder sb = new StringBuilder();
 
-		Collection<CharSequence> anteSequence = ante.buildPrettyAlignments();
-		Collection<CharSequence> postSequence = post.buildPrettyAlignments();
+		Collection<CharSequence> anteSequence = getLeft().buildPrettyAlignments();
+		Collection<CharSequence> postSequence = getRight().buildPrettyAlignments();
 
 		for (int i = 0; i < anteSequence.size(); i++) {
 			sb.append(anteSequence);
@@ -59,18 +56,10 @@ public class AlignmentContext {
 		return sb.toString();
 	}
 
-	public Alignment<? extends Number> getAnte() {
-		return ante;
-	}
-
-	public Alignment<? extends Number> getPost() {
-		return post;
-	}
-
 	private static List<String> getStringList(
-			Collection<Sequence<? extends Number>> sequences) {
+			Collection<Sequence<Integer>> sequences) {
 		List<String> strings = new ArrayList<>(sequences.size());
-		for (Sequence<? extends Number> sequence : sequences) {
+		for (Sequence<Integer> sequence : sequences) {
 			strings.add(sequence.toString());
 		}
 		return strings;

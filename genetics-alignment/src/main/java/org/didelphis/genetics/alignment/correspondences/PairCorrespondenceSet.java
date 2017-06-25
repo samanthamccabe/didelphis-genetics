@@ -1,14 +1,15 @@
 package org.didelphis.genetics.alignment.correspondences;
 
-import org.didelphis.common.structures.maps.GeneralTwoKeyMultiMap;
+import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 4/10/2016
  */
 public class PairCorrespondenceSet<T>
 		extends GeneralTwoKeyMultiMap<T, T, ContextPair<T>> {
 
 	public PairCorrespondenceSet() {
+		
 	}
 }

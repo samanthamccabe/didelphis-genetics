@@ -4,12 +4,12 @@ package org.didelphis.genetics.alignment.constraints;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 5/3/2015
  */
-public interface Constraint {
+public interface Constraint<T> {
 
-	double evaluate(AlignmentAlgorithm algorithm);
+	double evaluate(AlignmentAlgorithm<T> algorithm);
 
 	String getName();
 

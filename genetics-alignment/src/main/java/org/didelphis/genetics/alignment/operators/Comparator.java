@@ -1,11 +1,13 @@
 package org.didelphis.genetics.alignment.operators;
 
-import java.util.function.BiFunction;
+import org.didelphis.language.phonetic.sequences.Sequence;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 5/22/15
  */
 @FunctionalInterface
-public interface Comparator<T> extends BiFunction<T, T, Double> {
+public interface Comparator<T, V> {
+
+	V apply(Sequence<T> left, Sequence<T> right, int l, int r);
 }

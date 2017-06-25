@@ -1,15 +1,15 @@
 package org.didelphis.genetics.alignment.reconstruction;
 
-import org.didelphis.common.language.phonetic.features.FeatureArray;
+import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.genetics.alignment.correspondences.ContextSet;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 4/8/2016
  */
 @FunctionalInterface
 public interface Reconstructor {
 
-	FeatureArray<Double> evaluate(FeatureArray<Double> left,
-			FeatureArray<Double> right, ContextSet contextSet);
+	FeatureArray<Integer> evaluate(FeatureArray<Integer> left,
+			FeatureArray<Integer> right, ContextSet contextSet);
 }

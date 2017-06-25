@@ -1,6 +1,6 @@
 package org.didelphis.genetics.alignment.correspondences;
 
-import org.didelphis.common.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.genetics.alignment.Alignment;
 
 import java.util.HashMap;
@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 6/8/2015
  */
 public class CorrespondenceSet<T> {
@@ -19,8 +19,8 @@ public class CorrespondenceSet<T> {
 		countMap = new HashMap<>();
 	}
 
-	public void addContext(List<T> list, Alignment<Double> preContext,
-			Alignment<Double> postContext) {
+	public void addContext(List<T> list, Alignment<Integer> preContext,
+			Alignment<Integer> postContext) {
 		ContextSet contextSet;
 		if (countMap.containsKey(list)) {
 			contextSet = countMap.get(list);
@@ -47,13 +47,13 @@ public class CorrespondenceSet<T> {
 	}
 
 
-	public ContextSet remove(List<Segment<? extends Number>> list) {
+	public ContextSet remove(List<Segment<?>> list) {
 		return countMap.remove(list);
 	}
 
-	public void addAlignment(Alignment<? extends Number> alignment) {
+	public void addAlignment(Alignment<?> alignment) {
 
-		if (alignment.getNumberRows() == 0) {
+		if (alignment.rows() == 0) {
 			return;
 		}
 

@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 6/9/2015
  */
 public class ContextSet {
@@ -19,7 +19,7 @@ public class ContextSet {
 		environments = new HashSet<>();
 	}
 
-	public void addContext(Alignment<Double> ante, Alignment<Double> post) {
+	public void addContext(Alignment<Integer> ante, Alignment<Integer> post) {
 		environments.add(new AlignmentContext(ante, post));
 	}
 

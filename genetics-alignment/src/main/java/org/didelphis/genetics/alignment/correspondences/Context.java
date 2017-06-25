@@ -1,7 +1,7 @@
 package org.didelphis.genetics.alignment.correspondences;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 4/10/2016
  */
 public class Context<T> {

@@ -1,12 +1,17 @@
 package org.didelphis.genetics.alignment.calibration;
 
-import org.didelphis.common.language.enums.FormatterMode;
-import org.didelphis.common.language.phonetic.SequenceFactory;
-import org.didelphis.common.language.phonetic.model.interfaces.FeatureSpecification;
-import org.didelphis.common.language.phonetic.segments.Segment;
-import org.didelphis.common.language.phonetic.sequences.Sequence;
+import org.didelphis.io.ClassPathFileHandler;
+import org.didelphis.language.parsing.FormatterMode;
+import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.features.FeatureType;
+import org.didelphis.language.phonetic.features.IntegerFeature;
+import org.didelphis.language.phonetic.model.FeatureMapping;
+import org.didelphis.language.phonetic.model.FeatureModelLoader;
+import org.didelphis.language.phonetic.model.FeatureSpecification;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.single.SingleAlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.SingleAlignmentAlgorithm;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.constraints.Constraint;
 import org.didelphis.genetics.alignment.constraints.LexiconConstraint;
@@ -30,14 +35,14 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 5/6/2015
  */
 public final class RandomModelTester extends BaseModelTester {
 
 	private static final Pattern SPACE = Pattern.compile("\\s+");
 
-	public RandomModelTester(SequenceFactory<Double> factoryParam) {
+	public RandomModelTester(SequenceFactory<Integer> factoryParam) {
 		super(factoryParam);
 	}
 
@@ -45,9 +50,15 @@ public final class RandomModelTester extends BaseModelTester {
 
 		String path = "AT_hybrid_reduced.model";
 
-		SequenceFactory<Double> factory =
-				Utilities.loadFactoryFromClassPath(path,
-						FormatterMode.INTELLIGENT);
+		FeatureType<Integer> featureType = IntegerFeature.INSTANCE;
+
+		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
+				featureType, ClassPathFileHandler.INSTANCE, path);
+
+		FeatureMapping<Integer> mapping = loader.getFeatureMapping();
+
+		SequenceFactory<Integer> factory = new SequenceFactory<>(
+				mapping, FormatterMode.INTELLIGENT);
 
 		Map<String, String> constraintPaths = new HashMap<>();
 		constraintPaths.put("CHE_BCB.std", "CHE_BCB.lex");
@@ -68,9 +79,8 @@ public final class RandomModelTester extends BaseModelTester {
 		double max = 14.0;
 		int bMax = 10;
 
-		FeatureSpecification featureModel =
-				factory.getFeatureMapping().getFeatureModel();
-		int features = featureModel.size();
+		FeatureSpecification spec = factory.getFeatureMapping().getFeatureModel().getSpecification();
+		int features = spec.size();
 
 		String suffix = "max(" + max + ")_n(" + n + ").csv";
 		String pathname = trainingPath + path + suffix;
@@ -82,7 +92,7 @@ public final class RandomModelTester extends BaseModelTester {
 		Collection<String> labels = new ArrayList<>(5 + features);
 		labels.add("F");
 		labels.add("A");
-		labels.addAll(featureModel.getFeatureNames());
+		labels.addAll(spec.getFeatureNames());
 		writer.write(Utilities.formatStrings(labels));
 		writer.write("\n");
 
@@ -101,13 +111,13 @@ public final class RandomModelTester extends BaseModelTester {
 			double a = (Math.random() * aMax);
 			//			double b = (Math.random() * 20) - 10;
 
-			Comparator<Segment<Double>> segmentComparator =
-					new LinearWeightComparator(weights);
-			Comparator<Sequence<Double>> sequenceComparator =
+			Comparator<Integer, Double> segmentComparator =
+					new LinearWeightComparator(featureType,weights);
+			Comparator<Integer, Double> sequenceComparator =
 					new SequenceComparator(segmentComparator);
 
 			GapPenalty gapPenalty =
-					new ConstantGapPenalty(factory.getSegment("_"), a);
+					new ConstantGapPenalty(factory.getSequence("_"), a);
 
 			AlignmentAlgorithm algorithm =
 					new SingleAlignmentAlgorithm(sequenceComparator, gapPenalty,

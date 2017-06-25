@@ -1,20 +1,21 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
-import org.didelphis.common.language.phonetic.model.interfaces.FeatureSpecification;
-import org.didelphis.common.language.phonetic.segments.Segment;
-import org.didelphis.common.language.phonetic.sequences.Sequence;
+import org.didelphis.language.phonetic.model.FeatureSpecification;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.Sequence;
 
 import java.util.List;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 6/3/2015
  */
-public abstract class AbstractGapPenalty implements GapPenalty {
+public abstract class AbstractGapPenalty<N>
+		implements GapPenalty<N> {
 
-	private final Segment<Double> gap;
+	private final Sequence<N> gap;
 
-	protected AbstractGapPenalty(Segment<Double> gap) {
+	protected AbstractGapPenalty(Sequence<N> gap) {
 		this.gap = gap;
 	}
 
@@ -24,16 +25,16 @@ public abstract class AbstractGapPenalty implements GapPenalty {
 	}
 
 	@Override
-	public Segment<Double> getGapSegment() {
+	public Sequence<N> getGap() {
 		return gap;
 	}
 
-	protected int countGaps(List<Sequence<Double>> sequences) {
+	protected int countGaps(List<Sequence<N>> sequences) {
 
 		int size = sequences.size();
-		Sequence<Double> sequence = sequences.get(size - 1);
+		Sequence<N> sequence = sequences.get(size - 1);
 		if (!sequence.isEmpty()) {
-			Segment<Double> tail = sequence.get(0);
+			Segment<N> tail = sequence.get(0);
 			if (tail.equals(gap)) {
 				int length = 1;
 				for (int i = size - 2; i >= 0; i--) {

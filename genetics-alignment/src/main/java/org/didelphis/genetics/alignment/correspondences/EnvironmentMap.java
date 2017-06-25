@@ -1,43 +1,34 @@
 package org.didelphis.genetics.alignment.correspondences;
 
-import org.didelphis.common.language.enums.FormatterMode;
-import org.didelphis.common.language.phonetic.SequenceFactory;
-import org.didelphis.common.language.phonetic.model.empty.EmptyFeatureMapping;
-import org.didelphis.common.language.phonetic.model.interfaces.FeatureModel;
-import org.didelphis.common.language.phonetic.segments.Segment;
-import org.didelphis.common.language.phonetic.sequences.BasicSequence;
-import org.didelphis.common.language.phonetic.sequences.Sequence;
-import org.didelphis.common.structures.tuples.Tuple;
+import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.model.FeatureModel;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.BasicSequence;
+import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.tuples.Tuple;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 8/31/2015
  */
-public class EnvironmentMap {
-	private final Map<Segment<Double>, Environment> environments;
-	private final SequenceFactory<Double> factory;
+public class EnvironmentMap<T> {
+	private final Map<Segment<T>, Environment<T>> environments;
+	private final SequenceFactory<T> factory;
 
-	public EnvironmentMap() {
-		environments = new HashMap<>();
-		factory = new SequenceFactory<>(EmptyFeatureMapping.DOUBLE,
-				FormatterMode.NONE);
-	}
-
-	public EnvironmentMap(Iterable<Sequence<Double>> column,
-			SequenceFactory<Double> factoryParam) {
+	public EnvironmentMap(Iterable<Sequence<T>> column,
+			SequenceFactory<T> factoryParam) {
 		environments = new TreeMap<>();
 		factory = factoryParam;
 
 		// Populate data structure
-		for (Sequence<Double> sequence : column) {
-			Sequence<Double> head = factory.getNewSequence();
-			Sequence<Double> tail = new BasicSequence<>(sequence);
+		for (Sequence<T> sequence : column) {
+			Sequence<T> head = factory.getSequence("");
+			Sequence<T> tail = new BasicSequence<>(sequence);
 			while (!tail.isEmpty()) {
-				Segment<Double> segment = tail.remove(0);
+				Segment<T> segment = tail.remove(0);
 				// segment is defensively copied inside
 				add(segment, head, tail);
 				head.add(segment);
@@ -45,20 +36,19 @@ public class EnvironmentMap {
 		}
 	}
 
-	public Environment get(Segment<? extends Number> s) {
+	public Environment<T> get(Segment<T> s) {
 		return environments.get(s);
 	}
 
-	public final void add(Segment<Double> segment, Sequence<Double> head,
-			Sequence<Double> tail) {
-		Tuple<Sequence<Double>, Sequence<Double>> tuple =
-				new Tuple<>(new BasicSequence<>(head),
-						new BasicSequence<>(tail));
+	public final void add(Segment<T> segment, Sequence<T> head, Sequence<T> tail) {
+		BasicSequence<T> nHead = new BasicSequence<>(head);
+		BasicSequence<T> nTail = new BasicSequence<>(tail);
+		Tuple<Sequence<T>, Sequence<T>> tuple = new Tuple<>(nHead, nTail);
 		if (environments.containsKey(segment)) {
-			Environment tuples = environments.get(segment);
+			Environment<T> tuples = environments.get(segment);
 			tuples.add(tuple);
 		} else {
-			Environment tuples = new Environment(factory);
+			Environment<T> tuples = new Environment<>(factory);
 			tuples.add(tuple);
 			environments.put(segment, tuples);
 		}
@@ -70,22 +60,22 @@ public class EnvironmentMap {
 	 *
 	 * @return
 	 */
-	public EnvironmentMap buildAbstraction() {
-		EnvironmentMap abstraction = new EnvironmentMap();
+	public EnvironmentMap<T> buildAbstraction() {
+//		EnvironmentMap<T> abstraction = new EnvironmentMap<>();
 
-		FeatureModel<? extends Number> featureModel =
+		FeatureModel<T> featureModel =
 				factory.getFeatureMapping().getFeatureModel();
 
 		//		int n = featureModel.getNumberOfFeatures();
 
-		for (Map.Entry<Segment<Double>, Environment> entry : environments.entrySet()) {
+		for (Map.Entry<Segment<T>, Environment<T>> entry : environments.entrySet()) {
 			entry.getKey();
-			for (Tuple<Sequence<Double>, Sequence<Double>> tuple : entry.getValue()) {
+			for (Tuple<Sequence<T>, Sequence<T>> tuple : entry.getValue()) {
 			}
 		}
 
-
-		return abstraction;
+//		return abstraction;
+		return null;
 	}
 
 	@Override

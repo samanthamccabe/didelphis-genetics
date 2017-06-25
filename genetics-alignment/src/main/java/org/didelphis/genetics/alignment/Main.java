@@ -1,13 +1,20 @@
 package org.didelphis.genetics.alignment;
 
-import org.didelphis.common.language.enums.FormatterMode;
-import org.didelphis.common.language.phonetic.SequenceFactory;
-import org.didelphis.common.language.phonetic.segments.Segment;
-import org.didelphis.common.language.phonetic.sequences.Sequence;
-import org.didelphis.common.structures.tables.ColumnTable;
-import org.didelphis.common.structures.tables.DataTable;
+import org.didelphis.io.ClassPathFileHandler;
+import org.didelphis.language.parsing.FormatterMode;
+import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.features.FeatureType;
+import org.didelphis.language.phonetic.features.IntegerFeature;
+import org.didelphis.language.phonetic.model.FeatureMapping;
+import org.didelphis.language.phonetic.model.FeatureModelLoader;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.maps.GeneralMultiMap;
+import org.didelphis.structures.maps.interfaces.MultiMap;
+import org.didelphis.structures.tables.ColumnTable;
+import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.single.SingleAlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.SingleAlignmentAlgorithm;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.correspondences.Context;
 import org.didelphis.genetics.alignment.correspondences.ContextPair;
@@ -46,21 +53,25 @@ public final class Main {
 	}
 
 	public static void main(String[] args) throws IOException {
-		// =====================================================================
-		// LOAD ALIGNMENT ENGINE
-		// =====================================================================
 		FormatterMode mode = FormatterMode.INTELLIGENT;
 
 		String path = "AT_hybrid_reduced.model";
 		//		String path = "AT_hybrid.model";
 
-		SequenceFactory<Double> factory =
-				Utilities.loadFactoryFromClassPath(path, mode);
+		FeatureType<Integer> type = IntegerFeature.INSTANCE;
+		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
+				type, ClassPathFileHandler.INSTANCE, path);
 
-		Segment<Double> gap = factory.getSegment("░");
-		GapPenalty gapPenalty = new ConvexGapPenalty(gap, 0, 10);
+		FeatureMapping<Integer> mapping = loader.getFeatureMapping();
 
-		@SuppressWarnings("MagicNumber") double[] array = {
+		SequenceFactory<Integer> factory = new SequenceFactory<>(
+				mapping, FormatterMode.INTELLIGENT);
+
+		Sequence<Integer> gap = factory.getSequence("░");
+		GapPenalty<Integer> gapPenalty = new ConvexGapPenalty<>(gap, 0, 10);
+
+		@SuppressWarnings("MagicNumber")
+		double[] array = {
 				2.0, // obs
 				3.0, // lat
 				7.0, // nas
@@ -77,244 +88,233 @@ public final class Main {
 				1.0  // lng
 		};
 		List<Double> weights = getDoublesList(array);
-		Comparator<Segment<Double>> segComparator =
-				new LinearWeightComparator(weights, 0);
+		Comparator<Integer, Double> segComparator =
+				new LinearWeightComparator<>(type,weights);
 
-		//		Comparator<Segment> segComparator = new NdArrayComparator
-		// (array);
+		Comparator<Integer, Double> sequenceComparator =
+				new SequenceComparator<>(segComparator);
 
-		Comparator<Sequence<Double>> sequenceComparator =
-				new SequenceComparator(segComparator);
+		AlignmentAlgorithm<Integer> algorithm = new SingleAlignmentAlgorithm<>(
+				sequenceComparator, gapPenalty, 1, factory);
 
-		//		MultipleAlignmentAlgorithm algorithm =
-		//				new GlobalAlignmentAlgorithm(gapPenalty, 1, 
-		// sequenceComparator);
-		//		AlignmentEngine engine = new AlignmentEngine(factory, 
-		// algorithm);
-
-		AlignmentAlgorithm algorithm =
-				new SingleAlignmentAlgorithm(sequenceComparator, gapPenalty, 1,
-						factory);
-
-		// =====================================================================
-		// LOAD LEXICON
-		// =====================================================================
-		LOGGER.info("trial\ttime[µs]");
 		Map<File, List<String>> files = new HashMap<>();
-		int tests = 1;
-		for (int z = 1; z <= tests; z++) {
-			long startTime = System.nanoTime();
 
-			files.put(new File("../data/nakh.tsv"),
-					getList("CHE", "ING", "BCB"));
+		files.put(new File("../data/nakh.tsv"),
+				getList("CHE", "ING", "BCB"));
 //			files.put(new File("../data/avar-andi.tsv"),
 //					getList("AVA", "AVC", "AND", "AKV", "CHM"));
 
-			for (Map.Entry<File, List<String>> languageEntry : files.entrySet()) {
-				File tableFile = languageEntry.getKey();
-				List<String> keyList = languageEntry.getValue();
+		for (Map.Entry<File, List<String>> languageEntry : files.entrySet()) {
+			File tableFile = languageEntry.getKey();
+			List<String> keyList = languageEntry.getValue();
 
-				Collection<Expression> clex = new ArrayList<>();
-				clex.add(new Expression("ṭ", "tʼ"));
-				clex.add(new Expression("ḳ", "kʼ"));
-				clex.add(new Expression("ʠ", "qʼ"));
+			Collection<Expression> clex = new ArrayList<>();
+			clex.add(new Expression("ṭ", "tʼ"));
+			clex.add(new Expression("ḳ", "kʼ"));
+			clex.add(new Expression("ʠ", "qʼ"));
 
-				clex.add(new Expression("š", "ʃ"));
-				clex.add(new Expression("I", "ˤ"));
-				clex.add(new Expression("ċ", "tsʼ"));
-				clex.add(new Expression("ḉ", "tʃʼ"));
-				clex.add(new Expression("č", "tʃ"));
-				clex.add(new Expression("ǯ", "dʒ"));
-				clex.add(new Expression("c", "ts"));
-				clex.add(new Expression("ʒ|ӡ", "dz"));
+			clex.add(new Expression("š", "ʃ"));
+			clex.add(new Expression("I", "ˤ"));
+			clex.add(new Expression("ċ", "tsʼ"));
+			clex.add(new Expression("ḉ", "tʃʼ"));
+			clex.add(new Expression("č", "tʃ"));
+			clex.add(new Expression("ǯ", "dʒ"));
+			clex.add(new Expression("c", "ts"));
+			clex.add(new Expression("ʒ|ӡ", "dz"));
 
-				clex.add(new Expression("ӓ", "æ"));
-				clex.add(new Expression("ü", "y"));
-				clex.add(new Expression(":", "ː"));
+			clex.add(new Expression("ӓ", "æ"));
+			clex.add(new Expression("ü", "y"));
+			clex.add(new Expression(":", "ː"));
 
-				clex.add(new Expression(
-						"\\([^\\)]*\\)|\\[[^\\]]*\\]|\\{[^\\}]*\\}", ""));
-				clex.add(new Expression("\\(|\\)|\\[|\\]|\\{|\\}", ""));
-				clex.add(new Expression("\\d*\\s+.*", ""));
-				clex.add(new Expression("[,/].*", ""));
-				clex.add(new Expression("-|=|\u035C|\u0361|\\*", ""));
+			clex.add(new Expression(
+					"\\([^\\)]*\\)|\\[[^\\]]*\\]|\\{[^\\}]*\\}", ""));
+			clex.add(new Expression("\\(|\\)|\\[|\\]|\\{|\\}", ""));
+			clex.add(new Expression("\\d*\\s+.*", ""));
+			clex.add(new Expression("[,/].*", ""));
+			clex.add(new Expression("-|=|\u035C|\u0361|\\*", ""));
 
-				ColumnTable<Sequence<Double>> data =
-						Utilities.getPhoneticData(tableFile, keyList, factory,
-								clex);
+			ColumnTable<Sequence<Integer>> data = Utilities.getPhoneticData(
+					tableFile, keyList, factory, clex);
 
-				// =====================================================================
-				// RUN ALIGNMENT
-				// =====================================================================
-				Map<String, List<Alignment<Double>>> alignmentMap =
-						new HashMap<>();
-				for (int i = 0; i < keyList.size(); i++) {
-					String k1 = keyList.get(i);
-					List<Sequence<Double>> d1 = data.getColumn(k1);
-					for (int j = 0; j < i; j++) {
-						String k2 = keyList.get(j);
-						List<Sequence<Double>> d2 = data.getColumn(k2);
+			MultiMap<String, Alignment<Integer>> alignmentMap =
+					align(algorithm, keyList, data);
 
-						Map<String, List<Sequence<Double>>> map =
-								new HashMap<>();
-						map.put(k1, d1);
-						map.put(k2, d2);
+			Map<String, PairCorrespondenceSet<Segment<Integer>>> contexts =
+					buildContexts(factory, gap, alignmentMap);
 
-						ColumnTable<Sequence<Double>> subTable =
-								new DataTable<>(map);
-
-						List<Alignment<Double>> alignments =
-								algorithm.align(subTable);
-						alignmentMap.put(k1 + '-' + k2, alignments);
-					}
-				}
-
-				// =====================================================================
-				// ACCUMULATE CORRESPONDENCES
-				// =====================================================================
-				Map<String, PairCorrespondenceSet<Segment<Double>>> contexts =
-						new HashMap<>();
-				for (Map.Entry<String, List<Alignment<Double>>> e : alignmentMap
-						.entrySet()) {
-
-					String key = e.getKey();
-
-					PairCorrespondenceSet<Segment<Double>> set =
-							new PairCorrespondenceSet<>();
-					for (Alignment<Double> alignment : e.getValue()) {
-						if (alignment.getNumberColumns() > 0) {
-							List<Sequence<Double>> left = alignment.getRow(0);
-							List<Sequence<Double>> right = alignment.getRow(1);
-
-							left.add(factory.getBorderSequence());
-							right.add(factory.getBorderSequence());
-
-							for (int i = 1;
-							     i < alignment.getNumberColumns() - 1; i++) {
-								Segment<Double> l = left.get(i).get(0);
-								Segment<Double> r = right.get(i).get(0);
-
-								if (!l.equals(r)) {
-									Segment<Double> lA = lookBack(left, i, gap);
-									Segment<Double> rA =
-											lookBack(right, i, gap);
-
-									Segment<Double> lP =
-											lookForward(left, i, gap);
-									Segment<Double> rP =
-											lookForward(right, i, gap);
-
-									ContextPair<Segment<Double>> pair =
-											new ContextPair<>(
-													new Context<>(lA, lP),
-													new Context<>(rA, rP));
-
-									set.add(l, r, pair);
-								}
-							}
-						}
-					}
-					contexts.put(key, set);
-				}
-
-
-				// =====================================================================
-				// OUTPUT RESULTS
-				// =====================================================================
-				String rootPath =
-						EXTENSION_PATTERN.matcher(tableFile.getCanonicalPath())
-								.replaceAll("/");
-
-				for (Map.Entry<String, List<Alignment<Double>>> e : alignmentMap
-						.entrySet()) {
-					String key = e.getKey();
-					StringBuilder sb = new StringBuilder();
-					sb.append(HYPHEN.matcher(key).replaceAll("\t"));
-					sb.append('\n');
-					for (Alignment<Double> lists : e.getValue()) {
-						Iterable<CharSequence> charSequences =
-								lists.buildPrettyAlignments();
-						for (CharSequence sequence : charSequences) {
-							String normal = Normalizer.normalize(sequence,
-									Normalizer.Form.NFC);
-							String str = normal.replace("#", "").trim();
-							sb.append(str);
-							sb.append('\t');
-						}
-						sb.append('\n');
-					}
-
-					File file = new File(
-							rootPath + "alignments_" + e.getKey() + ".csv");
-					//					FileUtils.write(file, sb);
-					// TODO:
-				}
-
-				// =====================================================================
-				// OUTPUT CONTEXT
-				// =====================================================================
-				for (Map.Entry<String, PairCorrespondenceSet<Segment<Double>>> entry : contexts
-						.entrySet()) {
-					String key = entry.getKey();
-
-					File file = new File(rootPath + "contexts_" + key + ".tab");
-
-					Writer writer = new BufferedWriter(new FileWriter(file));
-					writer.write("L_a\tLeft\tL_p\tR_a\tRight\tR_p\n");
-
-					entry.getValue().iterator().forEachRemaining(triple -> {
-						Segment<Double> left = triple.getFirstElement();
-						Segment<Double> right = triple.getSecondElement();
-						triple.getThirdElement().forEach(pair -> {
-							Context<Segment<Double>> lContext = pair.getLeft();
-							Context<Segment<Double>> rContext = pair.getRight();
-
-							Segment<Double> lA = lContext.getAnte();
-							Segment<Double> lP = lContext.getPost();
-							Segment<Double> rA = rContext.getAnte();
-							Segment<Double> rP = rContext.getPost();
-
-							try {
-								writer.write(lA.toString());
-								writer.write("\t");
-								writer.write(left.toString());
-								writer.write("\t");
-								writer.write(lP.toString());
-								writer.write("\t");
-								writer.write(rA.toString());
-								writer.write("\t");
-								writer.write(right.toString());
-								writer.write("\t");
-								writer.write(rP.toString());
-								writer.write("\n");
-							} catch (IOException e) {
-								LOGGER.error("Failed to write output", e);
-							}
-						});
-					});
-					writer.close();
-				}
-			}
-			long endTime = System.nanoTime();
-
-			LOGGER.info(z + "\t" + ((endTime - startTime) / 1000));
+			String rootPath = EXTENSION_PATTERN
+					.matcher(tableFile.getCanonicalPath())
+					.replaceAll("/");
+			writeAlignments(alignmentMap, rootPath);
+			writeContexts(contexts, rootPath);
 		}
 	}
 
-	private static Segment<Double> lookBack(List<Sequence<Double>> left, int i,
-			Segment<Double> gap) {
-		Segment<Double> a = left.get(i - 1).get(0);
+	private static void writeContexts(Map<String, PairCorrespondenceSet<Segment<Integer>>> contexts, String rootPath) throws IOException {
+		for (Map.Entry<String, PairCorrespondenceSet<Segment<Integer>>> entry : contexts
+				.entrySet()) {
+			String key = entry.getKey();
+
+			File file = new File(rootPath + "contexts_" + key + ".tab");
+
+			Writer writer = new BufferedWriter(new FileWriter(file));
+			writer.write("L_a\tLeft\tL_p\tR_a\tRight\tR_p\n");
+
+			entry.getValue().iterator().forEachRemaining(triple -> {
+				Segment<Integer> left = triple.getFirstElement();
+				Segment<Integer> right = triple.getSecondElement();
+				triple.getThirdElement().forEach(pair -> {
+					Context<Segment<Integer>> lContext = pair.getLeft();
+					Context<Segment<Integer>> rContext = pair.getRight();
+
+					Segment<Integer> lA = lContext.getAnte();
+					Segment<Integer> lP = lContext.getPost();
+					Segment<Integer> rA = rContext.getAnte();
+					Segment<Integer> rP = rContext.getPost();
+
+					try {
+						writer.write(lA.toString());
+						writer.write("\t");
+						writer.write(left.toString());
+						writer.write("\t");
+						writer.write(lP.toString());
+						writer.write("\t");
+						writer.write(rA.toString());
+						writer.write("\t");
+						writer.write(right.toString());
+						writer.write("\t");
+						writer.write(rP.toString());
+						writer.write("\n");
+					} catch (IOException e) {
+						LOGGER.error("Failed to write output", e);
+					}
+				});
+			});
+			writer.close();
+		}
+	}
+
+	private static void writeAlignments(
+			MultiMap<String, Alignment<Integer>> alignmentMap,
+			String rootPath
+	) {
+		for (Tuple<String, Collection<Alignment<Integer>>> e : alignmentMap) {
+			String key = e.getLeft();
+			StringBuilder sb = new StringBuilder();
+			sb.append(HYPHEN.matcher(key).replaceAll("\t"));
+			sb.append('\n');
+			for (Alignment<Integer> lists : e.getRight()) {
+				Iterable<CharSequence> charSequences =
+						lists.buildPrettyAlignments();
+				for (CharSequence sequence : charSequences) {
+					String normal = Normalizer.normalize(sequence,
+							Normalizer.Form.NFC);
+					String str = normal.replace("#", "").trim();
+					sb.append(str);
+					sb.append('\t');
+				}
+				sb.append('\n');
+			}
+
+			// TODO:
+//			File file = new File(rootPath + "alignments_" + e.getLeft() + ".csv");
+			//					FileUtils.write(file, sb);
+			// TODO:
+		}
+	}
+
+	private static Map<String, PairCorrespondenceSet<Segment<Integer>>> buildContexts(
+			SequenceFactory<Integer> factory, Sequence<Integer> gap, MultiMap<String, Alignment<Integer>> alignmentMap) {
+		Map<String, PairCorrespondenceSet<Segment<Integer>>> contexts =
+				new HashMap<>();
+		for (Tuple<String, Collection<Alignment<Integer>>> e : alignmentMap) {
+
+			String key = e.getLeft();
+
+			PairCorrespondenceSet<Segment<Integer>> set =
+					new PairCorrespondenceSet<>();
+			for (Alignment<Integer> alignment : e.getRight()) {
+				if (alignment.columns() > 0) {
+					List<Segment<Integer>> left = alignment.getRow(0);
+					List<Segment<Integer>> right = alignment.getRow(1);
+
+					left.add(factory.getBorderSegment());
+					right.add(factory.getBorderSegment());
+
+					for (int i = 1;
+					     i < alignment.columns() - 1; i++) {
+						Segment<Integer> l = left.get(i);
+						Segment<Integer> r = right.get(i);
+
+						if (!l.equals(r)) {
+							Segment<Integer> lA = lookBack(left, i, gap);
+							Segment<Integer> rA = lookBack(right, i, gap);
+
+							Segment<Integer> lP =
+									lookForward(left, i, gap);
+							Segment<Integer> rP =
+									lookForward(right, i, gap);
+
+							ContextPair<Segment<Integer>> pair =
+									new ContextPair<>(
+											new Context<>(lA, lP),
+											new Context<>(rA, rP));
+
+							set.add(l, r, pair);
+						}
+					}
+				}
+			}
+			contexts.put(key, set);
+		}
+		return contexts;
+	}
+
+	private static MultiMap<String, Alignment<Integer>> align(
+			AlignmentAlgorithm<Integer> algorithm,
+			List<String> keyList,
+			ColumnTable<Sequence<Integer>> data
+	) {
+		MultiMap<String, Alignment<Integer>> alignmentMap =
+				new GeneralMultiMap<>();
+		for (int i = 0; i < keyList.size(); i++) {
+			String k1 = keyList.get(i);
+			List<Sequence<Integer>> d1 = data.getColumn(k1);
+			for (int j = 0; j < i; j++) {
+				String k2 = keyList.get(j);
+				List<Sequence<Integer>> d2 = data.getColumn(k2);
+
+				Map<String, List<Sequence<Integer>>> map =
+						new HashMap<>();
+				map.put(k1, d1);
+				map.put(k2, d2);
+
+//				TODO:
+//				ColumnTable<Sequence<Integer>> subTable =
+//						new DataTable<>(map);
+//
+//				List<Alignment<Integer>> alignments =
+//						algorithm.align(subTable);
+//				alignmentMap.addAll(k1 + '-' + k2, alignments);
+			}
+		}
+		return alignmentMap;
+	}
+
+	private static Segment<Integer> lookBack(List<Segment<Integer>> left, int i,
+	                                        Sequence<Integer> gap) {
+		Segment<Integer> a = left.get(i - 1);
 		for (int j = 2; a.equals(gap) && (i - j) >= 0; j++) {
-			a = left.get(i - j).get(0);
+			a = left.get(i - j);
 		}
 		return a;
 	}
 
-	private static Segment<Double> lookForward(List<Sequence<Double>> left,
-			int i, Segment<Double> gap) {
-		Segment<Double> a = left.get(i + 1).get(0);
+	private static Segment<Integer> lookForward(List<Segment<Integer>> left,
+	                                           int i, Sequence<Integer> gap) {
+		Segment<Integer> a = left.get(i + 1);
 		for (int j = 2; a.equals(gap) && (i + j) < left.size(); j++) {
-			a = left.get(i + j).get(0);
+			a = left.get(i + j);
 		}
 		return a;
 	}
@@ -323,6 +323,7 @@ public final class Main {
 		return Arrays.stream(array).boxed().collect(Collectors.toList());
 	}
 
+	@Deprecated
 	private static List<String> getList(String... array) {
 		List<String> list = new ArrayList<>();
 		Collections.addAll(list, array);

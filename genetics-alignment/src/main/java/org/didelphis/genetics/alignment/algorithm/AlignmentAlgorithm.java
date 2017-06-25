@@ -1,19 +1,22 @@
 package org.didelphis.genetics.alignment.algorithm;
 
-
-import org.didelphis.common.language.phonetic.sequences.Sequence;
-import org.didelphis.common.structures.tables.ColumnTable;
+import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.genetics.alignment.Alignment;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 5/31/2015
  */
-public interface AlignmentAlgorithm {
+@FunctionalInterface
+public interface AlignmentAlgorithm<N> {
 
-	Alignment<Double> getAlignment(List<Sequence<Double>> sequences);
+	@NotNull
+	@Contract("null -> fail")
+	Alignment<N> getAlignment(@NotNull List<Sequence<N>> sequences);
 
-	List<Alignment<Double>> align(ColumnTable<Sequence<Double>> data);
 }

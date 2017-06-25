@@ -1,28 +1,29 @@
 package org.didelphis.genetics.alignment.operators.comparators;
 
-import org.didelphis.common.language.phonetic.segments.Segment;
-import org.didelphis.common.language.phonetic.sequences.Sequence;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.operators.Comparator;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 5/23/15
  */
-public class SequenceComparator implements Comparator<Sequence<Double>> {
+public class SequenceComparator<T> implements Comparator<T, Double> {
 
-	private final Comparator<Segment<Double>> comparator;
+	private final Comparator<T, Double> comparator;
 
-	public SequenceComparator(Comparator<Segment<Double>> comparatorParam) {
+	public SequenceComparator(Comparator<T, Double> comparatorParam) {
 		comparator = comparatorParam;
 	}
 
 	@Override
-	public Double apply(Sequence<Double> left, Sequence<Double> right) {
-		double score = left.stream()
+	public Double apply(Sequence<T> left, Sequence<T> right, int i, int j) {
+/*		double score = left.stream()
 				.mapToDouble(l -> right.stream()
-						.mapToDouble(r -> comparator.apply(l, r)).sum()).sum();
+						.mapToDouble(r -> comparator.apply(l, r, i, j)).sum()).sum();
 		// This is intended for use on relatively short subsequences, l <= 3
 		return score / (left.size() + right.size()) * left.size() *
-				right.size();
+				right.size();*/
+return Double.NaN;
 	}
 }

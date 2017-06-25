@@ -1,24 +1,25 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
 
-import org.didelphis.common.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.language.phonetic.sequences.Sequence;
 
 /**
- * Samantha Fiona Morrigan McCabe
+ * @author Samantha Fiona McCabe
  * Created: 6/3/2015
  */
-public class ConstantGapPenalty extends AbstractGapPenalty {
+public class ConstantGapPenalty<N> extends AbstractGapPenalty<N> {
 
 	private final double penalty;
 
-	public ConstantGapPenalty(Segment<Double> gap, double penalty) {
+	public ConstantGapPenalty(Sequence<N> gap, double penalty) {
 		super(gap);
 		this.penalty = penalty;
 	}
 
 	@Override
-	public double evaluate(Alignment<Double> alignment) {
+	public double evaluate(Alignment<N> alignment) {
 		return penalty;
 	}
 }
