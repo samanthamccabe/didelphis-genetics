@@ -1,5 +1,8 @@
 package org.didelphis.genetics.alignment.algorithm;
 
+import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
+import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.didelphis.io.ClassPathFileHandler;
 import org.didelphis.language.parsing.FormatterMode;
 import org.didelphis.language.phonetic.SequenceFactory;
@@ -7,18 +10,15 @@ import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.IntegerFeature;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.genetics.alignment.Alignment;
-import org.didelphis.genetics.alignment.common.Utilities;
-import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
-import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Created by samantha on 5/22/17.
@@ -40,7 +40,7 @@ class HirschbergsAlgorithmTest {
 		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
 				featureType, ClassPathFileHandler.INSTANCE, path);
 
-		factory = new SequenceFactory<Integer>(loader.getFeatureMapping(), FormatterMode.INTELLIGENT);
+		factory = new SequenceFactory<>(loader.getFeatureMapping(), MODE);
 
 		Sequence<Integer> gap = factory.getSequence("░");
 		penalty = new NullGapPenalty<>(gap);
@@ -66,12 +66,12 @@ class HirschbergsAlgorithmTest {
 		);
 
 		Alignment<Integer> alignment = algorithm.getAlignment(sequences);
-
 //		for (CharSequence sequence : alignment.buildPrettyAlignments()) {
 //			System.out.println(sequence);
 //		}
 		String table = alignment.getPrettyTable();
 		System.out.println(table);
+		assertEquals(6, alignment.columns());
 	}
 
 }

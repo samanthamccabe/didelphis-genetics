@@ -1,5 +1,6 @@
 package org.didelphis.genetics.alignment.calibration;
 
+import org.didelphis.genetics.alignment.common.StringTransformer;
 import org.didelphis.io.ClassPathFileHandler;
 import org.didelphis.language.parsing.FormatterMode;
 import org.didelphis.language.phonetic.SequenceFactory;
@@ -7,7 +8,6 @@ import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.IntegerFeature;
 import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
@@ -27,8 +27,7 @@ import java.io.Writer;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -63,12 +62,9 @@ public final class LinearScaleModelTester extends BaseModelTester {
 
 		BaseModelTester runner = new LinearScaleModelTester(factory);
 
-		Collection<String> keyList = new ArrayList<>();
-		Collections.addAll(keyList, "CHE", "ING", "BCB");
-
 		File nakhDataFile = new File("../data/nakh.tsv");
 		ColumnTable<Sequence<Integer>> nakhData =
-				Utilities.getPhoneticData(nakhDataFile, keyList, factory, null);
+				Utilities.getPhoneticData(nakhDataFile, factory, new StringTransformer(), "CHE", "ING", "BCB");
 
 		// LOAD CONSTRAINTS 
 		// ==========================================================================

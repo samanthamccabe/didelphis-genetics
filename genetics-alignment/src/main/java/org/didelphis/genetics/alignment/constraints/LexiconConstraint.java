@@ -1,9 +1,9 @@
 package org.didelphis.genetics.alignment.constraints;
 
+import org.didelphis.genetics.alignment.common.StringTransformer;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.model.FeatureMapping;
-import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.segments.StandardSegment;
 import org.didelphis.language.phonetic.sequences.Sequence;
@@ -15,8 +15,6 @@ import org.didelphis.genetics.alignment.common.Utilities;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -47,17 +45,16 @@ public class LexiconConstraint<T> implements Constraint<T> {
 
 	public static <T> Constraint<T> loadFromPaths(String humanPath, String lexiconPath,
 			SequenceFactory<T> factory) throws IOException {
-		return loadFromPaths(humanPath, lexiconPath, null, factory);
+		return loadFromPaths(humanPath, lexiconPath, factory);
 	}
 
 	public static <T> Constraint<T> loadFromPaths(String humanPath,
-			String lexiconPath, Collection<String> keys,
-			SequenceFactory<T> factory) throws IOException {
+			String lexiconPath, SequenceFactory<T> factory, String... keys) throws IOException {
 		AlignmentSet<T> alignments = AlignmentSet.loadFromFile(humanPath, factory);
 
 		ColumnTable<Sequence<T>> dataTable =
-				Utilities.getPhoneticData(new File(lexiconPath), keys, factory,
-						null);
+				Utilities.getPhoneticData(new File(lexiconPath), factory, new StringTransformer(),
+						keys);
 
 		String path = EXTENSION.matcher(lexiconPath).replaceAll("");
 		return new LexiconConstraint<T>(path, factory, dataTable, alignments);

@@ -5,7 +5,6 @@ import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.genetics.alignment.Alignment;
@@ -16,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  *
@@ -25,9 +23,12 @@ import java.util.Objects;
 public class HirschbergsAlgorithm<N>
 		extends AbstractAlignmentAlgorithm<N> {
 
+	private final NeedlemanWunschAlgorithm<N> nwAlgorithm;
+
 	public HirschbergsAlgorithm(Comparator<N, Double> comparator,
 			GapPenalty<N> gapPenalty, SequenceFactory<N> factory) {
 		super(comparator, gapPenalty, factory);
+		nwAlgorithm = new NeedlemanWunschAlgorithm<>(comparator, gapPenalty, factory);
 	}
 	
 	@NotNull
@@ -73,12 +74,10 @@ public class HirschbergsAlgorithm<N>
 				Z.add(aLeft);
 				W.addAll(gap);
 			}
-		} else if (n == 1 || m == 1) {
-//			Z.add(left.get(0));
-//			W.add(right.get(0));
-			Table<Double> table = needlemanWunsch(left, right);
-
-			table.toString();
+		} else if (m == 1 || n == 1) {
+			Alignment<N> alignment = nwAlgorithm.getAlignment(Arrays.asList(left, right));
+			Z.addAll(alignment.getRow(0));
+			W.addAll(alignment.getRow(1));
 		} else {
 			int xMid = m / 2;
 
@@ -130,38 +129,10 @@ public class HirschbergsAlgorithm<N>
 
 	@NotNull
 	private List<Double> NWScore(Sequence<N> left, Sequence<N> right) {
-		Table<Double> table = needlemanWunsch(left, right);
+		Table<Double> table = nwAlgorithm.align(left, right);
 		return table.getRow(table.rows()-1);
 	}
-
-	@NotNull
-	private
-	Table<Double> needlemanWunsch(Sequence<N> left, Sequence<N> right) {
-		int m = left.size();
-		int n = right.size();
-		Table<Double> table = new RectangularTable<>(0.0, m, n);
-
-		for (int j = 1; j < n; j++) {
-			double v = table.get(0, j - 1) + ins(right, j);
-			table.set(0, j, v);
-		}
-
-		for (int i = 1; i < m; i++) {
-			double v = table.get(i - 1, 0) + del(left, i);
-			table.set(i, 0, v);
-
-			for (int j = 1; j < n; j++) {
-				Double score = Arrays.asList(
-						table.get(i - 1, j - 1) + sub(left, right, i, j),
-						table.get(i - 1, j) + del(left, i),
-						table.get(i, j - 1) + ins(right, j)
-				).parallelStream().filter(Objects::nonNull).min(Double::compare).get();
-				table.set(i, j, score);
-			}
-		}
-		return table;
-	}
-
+	
 	private double ins(Sequence<N> sequence, int index) {
 		Sequence<N> gap = getGapPenalty().getGap();
 		return getComparator().apply(sequence, gap, index, 0);

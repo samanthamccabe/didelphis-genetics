@@ -6,6 +6,7 @@ import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,12 +24,12 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 	private final FeatureModel<T> featureModel;
 
 	public Alignment(FeatureModel<T> featureModel) {
-		super((Segment<T>) null, 0,0);
+		super((Segment<T>) null, 0, 0);
 		this.featureModel = featureModel;
 	}
 
 	public Alignment(int n, FeatureModel<T> featureModel) {
-		super((Segment<T>) null, n,0);
+		super((Segment<T>) null, n, 0);
 		this.featureModel = featureModel;
 	}
 
@@ -38,7 +39,7 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 	}
 
 	public Alignment(List<Sequence<T>> list, FeatureModel<T> featureModel) {
-		super(list, list.size(), list.isEmpty() ? 0 : list.get(0).size() );
+		super(list, list.size(), list.isEmpty() ? 0 : list.get(0).size());
 		this.featureModel = featureModel;
 	}
 
@@ -67,31 +68,30 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 
 		Collection<CharSequence> builders = new ArrayList<>(rows());
 
-		int n = rows();
+		int rows = rows();
+		int columns = columns();
 
-		List<Integer> maxima = new ArrayList<>(Collections.nCopies(n, 0));
+		List<Integer> maxima = new ArrayList<>(Collections.nCopies(columns, 0));
 
 		for (int j = 0; j < columns(); j++) {
-			for (int i = 0; i < n; i++) {
-				int v = maxima.get(i);
+			for (int i = 0; i < rows(); i++) {
+				int v = maxima.get(j);
 				String s = Objects.toString(get(i, j));
 				int size = getPrintableLength(s);
 				if (v < size) {
-					maxima.set(i, size);
+					maxima.set(j, size);
 				}
 			}
 		}
 
-		for (int j = 0; j < columns(); j++) {
-
+		for (int i = 0; i < rows; i++) {
 			StringBuilder builder = new StringBuilder();
-			for (int i = 0; i < n; i++) {
-				String s = Objects.toString(get(i,j));
-				int maximum = maxima.get(i);
+			for (int j = 0; j < columns; j++) {
+				Segment<T> segment = get(i, j);
+				String s = Objects.toString(segment);
+				int maximum = maxima.get(j);
 				int visible = getPrintableLength(s);
-
 				builder.append(s).append(' ');
-
 				while (maximum > visible) {
 					builder.append(' ');
 					visible++;
@@ -112,19 +112,19 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 		return featureModel.getSpecification();
 	}
 
-	private static int getPrintableLength(String l) {
-		int leftVisible = 0;
-		for (char c : l.toCharArray()) {
+	private static int getPrintableLength(String string) {
+		int visible = 0;
+		for (char c : string.toCharArray()) {
 			if (Character.getType(c) != Character.NON_SPACING_MARK) {
-				leftVisible++;
+				visible++;
 			}
 		}
-		return leftVisible;
+		return visible;
 	}
 
+	@NotNull
 	@Override
-	public
-	String toString() {
+	public String toString() {
 		return "Alignment{" + "featureModel=" + featureModel + "} " +
 				super.toString();
 	}

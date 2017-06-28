@@ -1,6 +1,5 @@
 package org.didelphis.genetics.alignment.common;
 
-import org.didelphis.genetics.alignment.Expression;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.io.DiskFileHandler;
@@ -11,8 +10,10 @@ import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.ColumnTable;
+import org.didelphis.structures.tables.DataTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +25,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -46,13 +48,13 @@ public final class Utilities {
 	private Utilities() {
 	}
 
+	@NotNull
 	public static ColumnTable<String> loadTableFromFile(File file)
 			throws IOException {
 
 		FileHandler diskFileHandler = new DiskFileHandler("UTF-8");
 		CharSequence charSequence =
 				diskFileHandler.read(file.getAbsolutePath());
-//		List<String> lines = Split.splitToList(charSequence.toString(), null);
 
 		List<String> lines = Arrays.stream(PATTERN.split(charSequence))
 						.collect(Collectors.toList());
@@ -63,23 +65,13 @@ public final class Utilities {
 
 			int numCol = headers.length;
 
-			Map<String, List<String>> map = new LinkedHashMap<>();
-			for (String header : headers) {
-				map.put(header, new ArrayList<>());
-			}
-
+			List<String> keys = Arrays.asList(headers);
+			List<List<String>> table = new ArrayList<>();
 			for (String line : lines) {
 				String[] cells = line.split("\t", -1);
-
-				for (int i = 0; i < numCol; i++) {
-					String header = headers[i];
-					String cell = cells[i];
-
-					map.get(header).add(cell);
-				}
+				table.add(Arrays.asList(cells).subList(0, numCol));
 			}
-			return null;
-//			return new DataTable<>(map);
+			return new DataTable<>(keys, table);
 		}
 		throw new ParseException("Unable to read table, file was empty",
 				file.getCanonicalPath());
@@ -90,48 +82,46 @@ public final class Utilities {
 	 * Sequence}-based one
 	 *
 	 * @param file the file to read data from
-	 * @param keys the columns to be selected for conversion
 	 * @param factory the factory needed to generate the {@link Sequence}s
-	 * @param clex
+	 * @param transformer
 	 *
+	 * @param keys the columns to be selected for conversion
 	 * @return a new DataTable representing the columns with cognate data
 	 */
 	public static <T> ColumnTable<Sequence<T>> getPhoneticData(File file,
-			Collection<String> keys, SequenceFactory<T> factory,
-			Iterable<Expression> clex) throws IOException {
+			SequenceFactory<T> factory, StringTransformer transformer,
+			String... keys) throws IOException {
 
 		ColumnTable<String> table = loadTableFromFile(file);
 
-		if (keys == null || keys.isEmpty()) {
-			keys = table.getKeys();
+		List<String> keyList = (keys.length >= 1)
+		                       ? Arrays.asList(keys)
+		                       : table.getKeys();
+
+		Collection<Integer> indices = new HashSet<>();
+		int k = 0;
+		for (String key : table.getKeys()) {
+			if (keyList.contains(key)) {
+				indices.add(k);
+			}
+			k++;
 		}
 
-		Map<String, List<Sequence<T>>> map = new LinkedHashMap<>();
-		for (String key : keys) {
-			Collection<String> column = table.getColumn(key);
-			List<Sequence<T>> list = new ArrayList<>(column.size());
-
-			for (String string : column) {
-				// Scrub inputs
-				String s = string;
-				if (clex != null) {
-					for (Expression expression : clex) {
-						s = expression.apply(s);
-					}
-				}
-
-				// Attempt conversion
-				try {
+		List<List<Sequence<T>>> lists = new ArrayList<>();
+		for (int i = 0; i < table.rows(); i++) {
+			List<Sequence<T>> list = new ArrayList<>();
+			for (int j = 0; j < table.columns(); j++) {
+				if (indices.contains(j)) {
+					String word = table.get(i, j);
+					String s = word == null ? "" : transformer.transform(word);
 					list.add(factory.getSequence(s));
-				} catch (IndexOutOfBoundsException e) {
-					LOGGER.error("Failed to parse sequence {}", s, e);
-					list.add(factory.getSequence(""));
 				}
 			}
-			map.put(key, list);
+			lists.add(list);
 		}
-//		return new DataTable<>(map);
-		return null;
+
+
+		return new DataTable<>(keyList, lists);
 	}
 
 	public static String formatStrings(Iterable<String> strings) {
