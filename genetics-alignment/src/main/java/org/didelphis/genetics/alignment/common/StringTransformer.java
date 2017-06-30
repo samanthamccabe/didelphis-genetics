@@ -3,6 +3,7 @@ package org.didelphis.genetics.alignment.common;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -11,7 +12,7 @@ import java.util.regex.Pattern;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-27
  */
-public class StringTransformer {
+public class StringTransformer implements Function<String, String> {
 
 	private static final Pattern OPERATOR = Pattern.compile("\\s>>\\s");
 	private static final Pattern NEWLINE = Pattern.compile("\r\n?|\n");
@@ -29,7 +30,8 @@ public class StringTransformer {
 		}
 	}
 
-	public String transform(String string) {
+	@Override
+	public String apply(String string) {
 		String transformed = string;
 		for (Expression expression : expressions) {
 			transformed = expression.apply(transformed);

@@ -27,7 +27,6 @@ import java.io.Writer;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -63,14 +62,14 @@ public final class LinearScaleModelTester extends BaseModelTester {
 		BaseModelTester runner = new LinearScaleModelTester(factory);
 
 		File nakhDataFile = new File("../data/nakh.tsv");
-		ColumnTable<Sequence<Integer>> nakhData =
-				Utilities.getPhoneticData(nakhDataFile, factory, new StringTransformer(), "CHE", "ING", "BCB");
+//		ColumnTable<Sequence<Integer>> nakhData =
+//				Utilities.toPhoneticTable(nakhDataFile, factory, new StringTransformer(), "CHE", "ING", "BCB");
 
 		// LOAD CONSTRAINTS 
 		// ==========================================================================
-		runner.loadLexicon(new File("../data/training/CHE_BCB.std"), nakhData);
-		runner.loadLexicon(new File("../data/training/CHE_ING.std"), nakhData);
-		runner.loadLexicon(new File("../data/training/ING_BCB.std"), nakhData);
+//		runner.loadLexicon(new File("../data/training/CHE_BCB.std"), nakhData);
+//		runner.loadLexicon(new File("../data/training/CHE_ING.std"), nakhData);
+//		runner.loadLexicon(new File("../data/training/ING_BCB.std"), nakhData);
 		//		constraints.add(LexiconConstraint.loadFromPaths("ASP_SKT.std",
 		// "ASP_SKT.lex", factory));
 

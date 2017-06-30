@@ -1,11 +1,13 @@
 package org.didelphis.genetics.alignment.common;
 
+import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.language.parsing.ParseException;
 import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
@@ -18,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -28,9 +29,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static java.util.Arrays.*;
 
 /**
  * @author Samantha Fiona McCabe
@@ -49,55 +52,56 @@ public final class Utilities {
 	}
 
 	@NotNull
-	public static ColumnTable<String> loadTableFromFile(File file)
-			throws IOException {
+	public static ColumnTable<String> loadTable(String path) {
+		return loadTable(path, Function.identity());
+	}
 
-		FileHandler diskFileHandler = new DiskFileHandler("UTF-8");
-		CharSequence charSequence =
-				diskFileHandler.read(file.getAbsolutePath());
+	@NotNull
+	public static ColumnTable<String> loadTable(String path,
+			Function<String, String> transformer) {
 
-		List<String> lines = Arrays.stream(PATTERN.split(charSequence))
-						.collect(Collectors.toList());
+		FileHandler handler = new DiskFileHandler("UTF-8");
+		CharSequence chars = handler.read(path);
 
+		List<String> lines = stream(PATTERN.split(chars))
+				.collect(Collectors.toList());
 		if (!lines.isEmpty()) {
-			
-			String[] headers = lines.remove(0).split("\t", -1);
-
-			int numCol = headers.length;
-
-			List<String> keys = Arrays.asList(headers);
+			List<String> keys = asList(lines.remove(0).split("\t", -1));
+			int numCol = keys.size();
 			List<List<String>> table = new ArrayList<>();
 			for (String line : lines) {
 				String[] cells = line.split("\t", -1);
-				table.add(Arrays.asList(cells).subList(0, numCol));
+				List<String> list = asList(cells).subList(0, numCol);
+				List<String> collected = list.stream()
+						.map(transformer)
+						.collect(Collectors.toList());
+				table.add(collected);
 			}
 			return new DataTable<>(keys, table);
 		}
-		throw new ParseException("Unable to read table, file was empty",
-				file.getCanonicalPath());
+		throw new ParseException("Unable to read table, file was empty", path);
 	}
 
 	/**
 	 * Converts some columns from a {@link String}-based table into a {@link
 	 * Sequence}-based one
 	 *
-	 * @param file the file to read data from
-	 * @param factory the factory needed to generate the {@link Sequence}s
-	 * @param transformer
-	 *
+	 * @param file the {@link File} to read data from
+	 * @param factory a {@link SequenceFactory}
+	 * @param transformer a {@link StringTransformer} to process the data and
+	 * clean or apply it.
 	 * @param keys the columns to be selected for conversion
 	 * @return a new DataTable representing the columns with cognate data
 	 */
-	public static <T> ColumnTable<Sequence<T>> getPhoneticData(File file,
-			SequenceFactory<T> factory, StringTransformer transformer,
-			String... keys) throws IOException {
-
-		ColumnTable<String> table = loadTableFromFile(file);
+	public static <T> ColumnTable<Sequence<T>> toPhoneticTable(
+			ColumnTable<String> table,
+			SequenceFactory<T> factory,
+			Function<String, String> transformer,
+			String... keys) {
 
 		List<String> keyList = (keys.length >= 1)
-		                       ? Arrays.asList(keys)
+		                       ? asList(keys)
 		                       : table.getKeys();
-
 		Collection<Integer> indices = new HashSet<>();
 		int k = 0;
 		for (String key : table.getKeys()) {
@@ -106,23 +110,31 @@ public final class Utilities {
 			}
 			k++;
 		}
-
 		List<List<Sequence<T>>> lists = new ArrayList<>();
 		for (int i = 0; i < table.rows(); i++) {
 			List<Sequence<T>> list = new ArrayList<>();
 			for (int j = 0; j < table.columns(); j++) {
 				if (indices.contains(j)) {
 					String word = table.get(i, j);
-					String s = word == null ? "" : transformer.transform(word);
+					String s = word == null ? "" : transformer.apply(word);
 					list.add(factory.getSequence(s));
 				}
 			}
 			lists.add(list);
 		}
-
-
 		return new DataTable<>(keyList, lists);
 	}
+
+	public static <T> List<Alignment<T>> toAlignments(
+			Table<Sequence<T>> table, FeatureModel<T> model) {
+		List<Alignment<T>> alignments = new ArrayList<>();
+		for (int i = 0; i < table.rows(); i++) {
+			List<Sequence<T>> row = table.getRow(i);
+			alignments.add(new Alignment<>(row, model));
+		}
+		return alignments;
+	}
+
 
 	public static String formatStrings(Iterable<String> strings) {
 		StringBuilder sb = new StringBuilder();

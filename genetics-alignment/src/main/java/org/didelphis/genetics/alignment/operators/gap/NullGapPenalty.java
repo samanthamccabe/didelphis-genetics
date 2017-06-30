@@ -1,6 +1,5 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 

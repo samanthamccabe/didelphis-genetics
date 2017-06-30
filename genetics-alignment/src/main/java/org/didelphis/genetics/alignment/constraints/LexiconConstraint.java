@@ -51,13 +51,13 @@ public class LexiconConstraint<T> implements Constraint<T> {
 	public static <T> Constraint<T> loadFromPaths(String humanPath,
 			String lexiconPath, SequenceFactory<T> factory, String... keys) throws IOException {
 		AlignmentSet<T> alignments = AlignmentSet.loadFromFile(humanPath, factory);
-
-		ColumnTable<Sequence<T>> dataTable =
-				Utilities.getPhoneticData(new File(lexiconPath), factory, new StringTransformer(),
-						keys);
+//
+//		ColumnTable<Sequence<T>> dataTable =
+//				Utilities.toPhoneticTable(lexiconPath, factory, new StringTransformer(),
+//						keys);
 
 		String path = EXTENSION.matcher(lexiconPath).replaceAll("");
-		return new LexiconConstraint<T>(path, factory, dataTable, alignments);
+		return new LexiconConstraint<T>(path, factory, null, alignments);
 	}
 
 	@Override

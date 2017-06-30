@@ -112,10 +112,11 @@ public final class Main {
 			File tableFile = languageEntry.getKey();
 			List<String> keyList = languageEntry.getValue();
 
-			ColumnTable<Sequence<Integer>> data = Utilities.getPhoneticData(
-					tableFile, factory, transformer,
-					keyList.toArray(new String[keyList.size()]));
+//			ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
+//					tableFile, factory, transformer,
+//					keyList.toArray(new String[keyList.size()]));
 
+			ColumnTable<Sequence<Integer>> data = null;
 			MultiMap<String, Alignment<Integer>> alignmentMap =
 					align(algorithm, keyList, data);
 

@@ -27,6 +27,7 @@
     <modules>
         <module>genetics-data-generation</module>
         <module>genetics-alignment</module>
+        <module>genetics-learning</module>
     </modules>
     
 </project>
