@@ -9,5 +9,5 @@ import org.didelphis.language.phonetic.sequences.Sequence;
 @FunctionalInterface
 public interface Comparator<T, V> {
 
-	V apply(Sequence<T> left, Sequence<T> right, int l, int r);
+	V apply(Sequence<T> left, Sequence<T> right, int i, int j);
 }

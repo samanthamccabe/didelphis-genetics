@@ -125,12 +125,12 @@ public final class Utilities {
 		return new DataTable<>(keyList, lists);
 	}
 
-	public static <T> List<Alignment<T>> toAlignments(
-			Table<Sequence<T>> table, FeatureModel<T> model) {
+	public static <T> List<Alignment<T>> toAlignments(Table<Sequence<T>> table,
+			SequenceFactory<T> factory) {
+		FeatureModel<T> featureModel = factory.getFeatureMapping().getFeatureModel();
 		List<Alignment<T>> alignments = new ArrayList<>();
 		for (int i = 0; i < table.rows(); i++) {
-			List<Sequence<T>> row = table.getRow(i);
-			alignments.add(new Alignment<>(row, model));
+			alignments.add(new Alignment<>(table.getRow(i), featureModel));
 		}
 		return alignments;
 	}

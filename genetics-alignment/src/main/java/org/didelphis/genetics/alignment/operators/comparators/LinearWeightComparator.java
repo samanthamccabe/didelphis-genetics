@@ -22,10 +22,10 @@ public class LinearWeightComparator<T> implements Comparator<T, Double> {
 	}
 
 	@Override
-	public Double apply(Sequence<T> left, Sequence<T> right, int l, int r) {
+	public Double apply(Sequence<T> left, Sequence<T> right, int l, int j) {
 		double score = 0.0;
 		FeatureArray<T> lFeatures = left.get(l).getFeatures();
-		FeatureArray<T> rFeatures = right.get(r).getFeatures();
+		FeatureArray<T> rFeatures = right.get(j).getFeatures();
 		for (int i = 0; i < weights.size(); i++) {
 			T lF = lFeatures.get(i);
 			T rF = rFeatures.get(i);

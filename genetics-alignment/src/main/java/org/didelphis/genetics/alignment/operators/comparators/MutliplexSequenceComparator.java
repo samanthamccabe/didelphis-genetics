@@ -23,7 +23,7 @@ public class MutliplexSequenceComparator<T>
 	}
 
 	@Override
-	public Double apply(Sequence<T> left, Sequence<T> right, int l, int r) {
+	public Double apply(Sequence<T> left, Sequence<T> right, int i, int j) {
 		double score = 0.0;
 		int index = 0;
 //		for (Segment<Integer> lF : left) {

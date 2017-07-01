@@ -25,10 +25,10 @@ public final class NdArrayComparator<T> implements Comparator<T, Double> {
 	}
 
 	@Override
-	public Double apply(Sequence<T> left, Sequence<T> right, int l, int r) {
+	public Double apply(Sequence<T> left, Sequence<T> right, int i, int j) {
 
-		INDArray lF = getNdFeatureArray(left.get(l));
-		INDArray rF = getNdFeatureArray(right.get(r));
+		INDArray lF = getNdFeatureArray(left.get(i));
+		INDArray rF = getNdFeatureArray(right.get(j));
 
 		INDArray dif = lF.sub(rF);
 		// in-place element-wise multiplication

@@ -4,6 +4,7 @@ import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Class AbstractAlignmentAlgorithm
@@ -24,15 +25,21 @@ public abstract class AbstractAlignmentAlgorithm<N>
 		this.factory = factory;
 	}
 
-	protected GapPenalty<N> getGapPenalty() {
+	@NotNull
+	@Override
+	public GapPenalty<N> getGapPenalty() {
 		return gapPenalty;
 	}
 
-	protected SequenceFactory<N> getFactory() {
+	@NotNull
+	@Override
+	public SequenceFactory<N> getFactory() {
 		return factory;
 	}
 
-	protected Comparator<N, Double> getComparator() {
+	@NotNull
+	@Override
+	public Comparator<N, Double> getComparator() {
 		return comparator;
 	}
 }

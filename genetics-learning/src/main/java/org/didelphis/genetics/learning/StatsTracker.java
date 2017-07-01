@@ -27,29 +27,33 @@ final class StatsTracker<G extends Gene<?, G>>
 		this.interval = interval;
 		this.writer = writer;
 		this.formatter = formatter;
+
+		try {
+			writer.write("Generation\t'Maximum Fitness'\t'Mean Fitness'\t'Minimum Fitness'\n");
+			writer.flush();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
 	public void accept(EvolutionResult<G, Double> result) {
+		try {
 		if (interval < 1 || result.getGeneration() % interval == 0) {
-
 			Double minimum = result.getWorstFitness();
 			Double maximum = result.getBestFitness();
 			Double average = result.getPopulation().parallelStream()
 					.collect(Collectors.averagingDouble(
 							Phenotype::getFitness));
-
-			StringBuilder sb = new StringBuilder();
-
-			sb.append(formatter.format(maximum)).append('\n');
-			sb.append(formatter.format(average)).append('\n');
-			sb.append(formatter.format(minimum)).append('\n');
-
-			try {
-				writer.write(sb.toString());
-			} catch (IOException e) {
-				e.printStackTrace();
+				writer.write(result.getGeneration()+"\t");
+				writer.write(formatter.format(maximum)+ '\t');
+				writer.write(formatter.format(average)+ '\t');
+				writer.write(formatter.format(minimum)+ '\t');
+				writer.write('\n');
+				writer.flush();
 			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }

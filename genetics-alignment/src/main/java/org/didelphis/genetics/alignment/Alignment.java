@@ -13,13 +13,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Created by samantha on 1/9/17.
  */
 public class Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
+
+	@Deprecated
+	private double score = Double.NaN;
 
 	private final FeatureModel<T> featureModel;
 
@@ -67,16 +69,15 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 	public Collection<CharSequence> buildPrettyAlignments() {
 
 		Collection<CharSequence> builders = new ArrayList<>(rows());
-
 		int rows = rows();
 		int columns = columns();
 
 		List<Integer> maxima = new ArrayList<>(Collections.nCopies(columns, 0));
-
 		for (int j = 0; j < columns(); j++) {
 			for (int i = 0; i < rows(); i++) {
 				int v = maxima.get(j);
-				String s = Objects.toString(get(i, j));
+				Segment<T> segment = get(i, j);
+				String s = segment == null ? "null" : segment.getSymbol();
 				int size = getPrintableLength(s);
 				if (v < size) {
 					maxima.set(j, size);
@@ -88,7 +89,7 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 			StringBuilder builder = new StringBuilder();
 			for (int j = 0; j < columns; j++) {
 				Segment<T> segment = get(i, j);
-				String s = Objects.toString(segment);
+				String s = segment == null ? "null" : segment.getSymbol();
 				int maximum = maxima.get(j);
 				int visible = getPrintableLength(s);
 				builder.append(s).append(' ');
@@ -112,6 +113,16 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 		return featureModel.getSpecification();
 	}
 
+	@Deprecated
+	public double getScore() {
+		return score;
+	}
+
+	@Deprecated
+	public void setScore(double score) {
+		this.score = score;
+	}
+
 	private static int getPrintableLength(String string) {
 		int visible = 0;
 		for (char c : string.toCharArray()) {
@@ -125,7 +136,6 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 	@NotNull
 	@Override
 	public String toString() {
-		return "Alignment{" + "featureModel=" + featureModel + "} " +
-				super.toString();
+		return getPrettyTable().replaceAll("\n", "\t");
 	}
 }

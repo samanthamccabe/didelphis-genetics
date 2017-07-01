@@ -22,11 +22,8 @@ import java.util.TreeMap;
  * @author Samantha Fiona McCabe
  * Created: 4/12/2016
  */
-public class SingleAlignmentAlgorithm<T> implements AlignmentAlgorithm<T> {
+public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
-	private final Comparator<T, Double> comparator;
-
-	private final GapPenalty<T> gapPenalty;
 	private final Segment<T> boundary;
 	private final FeatureModel<T> model;
 
@@ -34,12 +31,12 @@ public class SingleAlignmentAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 	public SingleAlignmentAlgorithm(Comparator<T, Double> comparator,
 			GapPenalty<T> gapPenalty, int arity, SequenceFactory<T> factory) {
-		this.arity = arity;
-		this.comparator = comparator;
-		this.gapPenalty = gapPenalty;
+		super(comparator, gapPenalty, factory);
 
 		model = factory.getFeatureMapping().getFeatureModel();
 		boundary = factory.getSegment("#");
+
+		this.arity = arity;
 	}
 
 	@NotNull
@@ -127,8 +124,7 @@ public class SingleAlignmentAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 	@Override
 	public String toString() {
-		return "SingleAlignmentAlgorithm{" + "comparator=" + comparator +
-				", gapPenalty=" + gapPenalty + ", boundary=" + boundary +
+		return "SingleAlignmentAlgorithm{" + super.toString()+ ", boundary=" + boundary +
 				", model=" + model + ", arity=" + arity + '}';
 	}
 
@@ -137,7 +133,7 @@ public class SingleAlignmentAlgorithm<T> implements AlignmentAlgorithm<T> {
 		// We could probably just use the current segments and not need indices
 		// matrix isn't needed
 
-		Sequence<T> g = new BasicSequence<>(gapPenalty.getGap());
+		Sequence<T> g = new BasicSequence<>(getGapPenalty().getGap());
 
 		// Length-1 sequences
 		Sequence<T> l = new BasicSequence<>(left.get(i));
@@ -160,7 +156,7 @@ public class SingleAlignmentAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 		NavigableMap<Double, Alignment<T>> candidates = new TreeMap<>();
 
-		Sequence<T> gap = new BasicSequence<>(gapPenalty.getGap());
+		Sequence<T> gap = new BasicSequence<>(getGapPenalty().getGap());
 
 		for (int g = 0; g <= arity; g++) {
 			for (int h = 0; h <= arity; h++) {
@@ -200,7 +196,7 @@ public class SingleAlignmentAlgorithm<T> implements AlignmentAlgorithm<T> {
 			Sequence<T> a, Sequence<T> b, int i, int j, int g,
 			int h) {
 
-		Sequence<T> gap = new BasicSequence<>(gapPenalty.getGap());
+		Sequence<T> gap = new BasicSequence<>(getGapPenalty().getGap());
 
 		List<Sequence<T>> sequenceList = new ArrayList<>();
 		int ixL = i - g;
@@ -239,6 +235,6 @@ public class SingleAlignmentAlgorithm<T> implements AlignmentAlgorithm<T> {
 //			Sequence<T> b = alignment.getRow(1).get(i);
 //			score += comparator.apply(a, b);
 //		}
-		return score + gapPenalty.evaluate(alignment);
+		return score + getGapPenalty().evaluate(alignment);
 	}
 }
