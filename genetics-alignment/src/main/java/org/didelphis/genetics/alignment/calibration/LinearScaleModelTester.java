@@ -121,9 +121,9 @@ public final class LinearScaleModelTester extends BaseModelTester {
 				weights.add(v * i);
 			}
 
-			Comparator<Integer, Double> segmentComparator =
+			Comparator<Integer> segmentComparator =
 					new LinearWeightComparator(featureType,weights);
-			Comparator<Integer, Double> sequenceComparator =
+			Comparator<Integer> sequenceComparator =
 					new SequenceComparator(segmentComparator);
 
 			//			GapPenalty gapPenalty = new ConvexGapPenalty(gap, a,

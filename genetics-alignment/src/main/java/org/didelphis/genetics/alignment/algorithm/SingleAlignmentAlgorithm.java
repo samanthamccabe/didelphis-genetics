@@ -1,11 +1,11 @@
 package org.didelphis.genetics.alignment.algorithm;
 
+import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.genetics.alignment.Alignment;
@@ -29,9 +29,9 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 	private final int arity;
 
-	public SingleAlignmentAlgorithm(Comparator<T, Double> comparator,
+	public SingleAlignmentAlgorithm(Comparator<T> comparator,
 			GapPenalty<T> gapPenalty, int arity, SequenceFactory<T> factory) {
-		super(comparator, gapPenalty, factory);
+		super(comparator, Optimization.MIN, gapPenalty, factory);
 
 		model = factory.getFeatureMapping().getFeatureModel();
 		boundary = factory.getSegment("#");
@@ -41,7 +41,7 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 	@NotNull
 	@Override
-	public Alignment<T> getAlignment(@NotNull List<Sequence<T>> sequences) {
+	public AlignmentResult<T> getAlignment(@NotNull List<Sequence<T>> sequences) {
 
 		Sequence<T> left = sequences.get(0);
 		Sequence<T> right = sequences.get(1);
@@ -82,10 +82,11 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 //				matrix.set(i, j, min(matrix, left, right, i, j));
 //			}
 //		}
-		return matrix.get(m - 1, n - 1);
+		Alignment<T> alignment = matrix.get(m - 1, n - 1);
+		return new AlignmentResult<>(left, right, null,alignment);
 	}
 
-	public List<Alignment<T>> align(ColumnTable<Sequence<T>> data) {
+/*	public List<Alignment<T>> align(ColumnTable<Sequence<T>> data) {
 
 		List<String> keys = data.getKeys();
 
@@ -112,7 +113,7 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 					list.add(left);
 					list.add(right);
 
-					alignment = getAlignment(list);
+					alignment = getAlignments(list);
 				} else {
 					alignment = emptyAlignment;
 				}
@@ -120,7 +121,7 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 			}
 			return alignments;
 		}
-	}
+	}*/
 
 	@Override
 	public String toString() {

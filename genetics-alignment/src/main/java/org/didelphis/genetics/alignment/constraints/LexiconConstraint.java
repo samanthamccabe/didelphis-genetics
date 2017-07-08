@@ -64,8 +64,8 @@ public class LexiconConstraint<T> implements Constraint<T> {
 	public double evaluate(AlignmentAlgorithm<T> algorithm) {
 
 		Alignment<T> blank = new Alignment<>(factory.getFeatureMapping().getFeatureModel());
-//		List<Alignment<T>> alignments = algorithm.getAlignment(data);
-//		Alignment<T> alignments = algorithm.getAlignment(Collections.emptyList());
+//		List<Alignment<T>> alignments = algorithm.getAlignments(data);
+//		Alignment<T> alignments = algorithm.getAlignments(Collections.emptyList());
 
 		double sum = 0.0;
 

@@ -111,9 +111,9 @@ public final class RandomModelTester extends BaseModelTester {
 			double a = (Math.random() * aMax);
 			//			double b = (Math.random() * 20) - 10;
 
-			Comparator<Integer, Double> segmentComparator =
+			Comparator<Integer> segmentComparator =
 					new LinearWeightComparator(featureType,weights);
-			Comparator<Integer, Double> sequenceComparator =
+			Comparator<Integer> sequenceComparator =
 					new SequenceComparator(segmentComparator);
 
 			GapPenalty gapPenalty =

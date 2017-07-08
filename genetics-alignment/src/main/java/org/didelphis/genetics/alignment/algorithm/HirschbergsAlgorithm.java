@@ -1,5 +1,6 @@
 package org.didelphis.genetics.alignment.algorithm;
 
+import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
@@ -25,15 +26,16 @@ public class HirschbergsAlgorithm<N>
 
 	private final NeedlemanWunschAlgorithm<N> nwAlgorithm;
 
-	public HirschbergsAlgorithm(Comparator<N, Double> comparator,
+	public HirschbergsAlgorithm(Comparator<N> comparator,
 			GapPenalty<N> gapPenalty, SequenceFactory<N> factory) {
-		super(comparator, gapPenalty, factory);
-		nwAlgorithm = new NeedlemanWunschAlgorithm<>(comparator, gapPenalty, factory);
+		super(comparator, Optimization.MIN, gapPenalty, factory);
+		nwAlgorithm = new NeedlemanWunschAlgorithm<>(comparator,
+				Optimization.MIN, gapPenalty, factory);
 	}
 	
 	@NotNull
 	@Override
-	public Alignment<N> getAlignment(@NotNull List<Sequence<N>> sequences) {
+	public AlignmentResult<N> getAlignment(@NotNull List<Sequence<N>> sequences) {
 		
 		if (sequences.size() != 2) {
 			throw new IllegalArgumentException(getClass().getCanonicalName() +
@@ -47,9 +49,10 @@ public class HirschbergsAlgorithm<N>
 
 		FeatureModel<N> model = getFactory().getFeatureMapping().getFeatureModel();
 
-		return new Alignment<>(
-				new BasicSequence<>(t.getLeft(), model),
-				new BasicSequence<>(t.getRight(), model));
+//		return new Alignment<>(
+//				new BasicSequence<>(t.getLeft(), model),
+//				new BasicSequence<>(t.getRight(), model));
+		return null; // TODO:
 	}
 	
 	private Tuple<Sequence<N>, Sequence<N>> hirschberg(
@@ -75,9 +78,15 @@ public class HirschbergsAlgorithm<N>
 				W.addAll(gap);
 			}
 		} else if (m == 1 || n == 1) {
-			Alignment<N> alignment = nwAlgorithm.getAlignment(Arrays.asList(left, right));
-			Z.addAll(alignment.getRow(0));
-			W.addAll(alignment.getRow(1));
+			AlignmentResult<N> alignmentResult = nwAlgorithm.getAlignment(Arrays.asList(left, right));
+			List<Alignment<N>> alignments = alignmentResult.getAlignments();
+
+			if (!alignments.isEmpty()) {
+				Alignment<N> alignment = alignments.get(0);
+				Z.addAll(alignment.getRow(0));
+				W.addAll(alignment.getRow(1));
+			}
+
 		} else {
 			int xMid = m / 2;
 

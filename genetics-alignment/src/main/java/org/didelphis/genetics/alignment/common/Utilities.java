@@ -25,6 +25,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -82,6 +83,13 @@ public final class Utilities {
 		throw new ParseException("Unable to read table, file was empty", path);
 	}
 
+	public static <T> ColumnTable<Sequence<T>> toPhoneticTable(
+			ColumnTable<String> table,
+			SequenceFactory<T> factory,
+			Function<String, String> transformer) {
+		return toPhoneticTable(table, factory, transformer, Collections.emptyList());
+	}
+
 	/**
 	 * Converts some columns from a {@link String}-based table into a {@link
 	 * Sequence}-based one
@@ -97,11 +105,8 @@ public final class Utilities {
 			ColumnTable<String> table,
 			SequenceFactory<T> factory,
 			Function<String, String> transformer,
-			String... keys) {
-
-		List<String> keyList = (keys.length >= 1)
-		                       ? asList(keys)
-		                       : table.getKeys();
+			List<String> keys) {
+		List<String> keyList = (keys.isEmpty()) ? table.getKeys() : keys;
 		Collection<Integer> indices = new HashSet<>();
 		int k = 0;
 		for (String key : table.getKeys()) {
@@ -173,7 +178,7 @@ public final class Utilities {
 		return environments;
 	}
 
-	public static <T> void getTupleDistances(Comparator<T, Double> comparator,
+	public static <T> void getTupleDistances(Comparator<T> comparator,
 			Sequence<T> gap,
 			Iterable<Tuple<Sequence<T>, Sequence<T>>> tuples,
 			Table<Double> distancesRight, Table<Double> distancesLeft) {
@@ -206,7 +211,7 @@ public final class Utilities {
 		}
 	}
 
-	private static <T> double getD(Comparator<T, Double> comparator, Sequence<T> gap, Sequence<T> a, Sequence<T> b) {
+	private static <T> double getD(Comparator<T> comparator, Sequence<T> gap, Sequence<T> a, Sequence<T> b) {
 		double d = 0.0;
 		if (!(a.isEmpty() || b.isEmpty())) {
 			d += comparator.apply(a, b, 0,0);

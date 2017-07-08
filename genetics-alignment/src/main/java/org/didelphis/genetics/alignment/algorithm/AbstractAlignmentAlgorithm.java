@@ -1,7 +1,6 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.language.phonetic.SequenceFactory;
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.jetbrains.annotations.NotNull;
@@ -14,13 +13,16 @@ import org.jetbrains.annotations.NotNull;
 public abstract class AbstractAlignmentAlgorithm<N>
 		implements AlignmentAlgorithm<N> {
 
-	private final Comparator<N, Double> comparator;
+	private final Comparator<N> comparator;
+	private final Optimization optimization;
 	private final GapPenalty<N> gapPenalty;
 	private final SequenceFactory<N> factory;
 
-	protected AbstractAlignmentAlgorithm(Comparator<N, Double> comparator,
-			GapPenalty<N> gapPenalty, SequenceFactory<N> factory) {
+	protected AbstractAlignmentAlgorithm(Comparator<N> comparator,
+			Optimization optimization, GapPenalty<N> gapPenalty,
+			SequenceFactory<N> factory) {
 		this.comparator = comparator;
+		this.optimization = optimization;
 		this.gapPenalty = gapPenalty;
 		this.factory = factory;
 	}
@@ -39,7 +41,12 @@ public abstract class AbstractAlignmentAlgorithm<N>
 
 	@NotNull
 	@Override
-	public Comparator<N, Double> getComparator() {
+	public Comparator<N> getComparator() {
 		return comparator;
+	}
+
+	@Override
+	public Optimization getOptimization() {
+		return optimization;
 	}
 }

@@ -4,6 +4,7 @@ import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.operators.Comparator;
+import org.jetbrains.annotations.NotNull;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
@@ -13,7 +14,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Created by samantha on 8/4/16.
  */
-public final class NdArrayComparator<T> implements Comparator<T, Double> {
+public final class NdArrayComparator<T> implements Comparator<T> {
 
 	private static final transient Logger LOGGER =
 			getLogger(NdArrayComparator.class);
@@ -25,7 +26,7 @@ public final class NdArrayComparator<T> implements Comparator<T, Double> {
 	}
 
 	@Override
-	public Double apply(Sequence<T> left, Sequence<T> right, int i, int j) {
+	public double apply(@NotNull Sequence<T> left, @NotNull Sequence<T> right, int i, int j) {
 
 		INDArray lF = getNdFeatureArray(left.get(i));
 		INDArray rF = getNdFeatureArray(right.get(j));

@@ -1,6 +1,7 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.didelphis.io.ClassPathFileHandler;
@@ -65,10 +66,11 @@ class HirschbergsAlgorithmTest {
 				factory.getSequence("omber")
 		);
 
-		Alignment<Integer> alignment = algorithm.getAlignment(sequences);
+		AlignmentResult<Integer> alignmentResult = algorithm.getAlignment(sequences);
 //		for (CharSequence sequence : alignment.buildPrettyAlignments()) {
 //			System.out.println(sequence);
-//		}
+//
+		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
 		String table = alignment.getPrettyTable();
 		System.out.println(table);
 		assertEquals(6, alignment.columns());

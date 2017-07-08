@@ -1,6 +1,7 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
@@ -26,30 +27,36 @@ import java.util.Objects;
  */
 public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 
-	public NeedlemanWunschAlgorithm(Comparator<N, Double> comparator,
-			GapPenalty<N> gapPenalty, SequenceFactory<N> factory) {
-		super(comparator, gapPenalty, factory);
+	public NeedlemanWunschAlgorithm(Comparator<N> comparator,
+			Optimization optimization,
+			GapPenalty<N> gapPenalty,
+			SequenceFactory<N> factory) {
+		super(comparator, optimization, gapPenalty, factory);
 	}
 
 	@NotNull
 	@Override
-	public Alignment<N> getAlignment(@NotNull List<Sequence<N>> sequences) {
+	public AlignmentResult<N> getAlignment(@NotNull List<Sequence<N>> sequences) {
 		Sequence<N> left = sequences.get(0);
 		Sequence<N> right = sequences.get(1);
 		AlgorithmRunner runner = new AlgorithmRunner(left, right);
 		FeatureModel<N> model = getFactory().getFeatureMapping().getFeatureModel();
 		int startI = left.size() - 1;
 		int startJ = right.size() - 1;
-		Collection<Alignment<N>> alignments
-				= runner.trace(new Alignment<>(2, model), startI, startJ);
-		Alignment<N> alignment = alignments.iterator().next();
-		alignment.setScore(runner.table.get(startI, startJ));
-		return alignment;
+		List<Alignment<N>> alignments = runner.trace(
+				new BasicSequence<>(Collections.emptyList(), model),
+				new BasicSequence<>(Collections.emptyList(), model)
+				, startI, startJ);
+		return new AlignmentResult<>(left, right, runner.table, alignments);
 	}
 
 	public Table<Double> align(Sequence<N> left, Sequence<N> right) {
 		AlgorithmRunner runner = new AlgorithmRunner(left, right);
 		return runner.getTable();
+	}
+
+	private static boolean neq(double sub, double del) {
+		return !Objects.equals(sub, del);
 	}
 
 	private final class AlgorithmRunner {
@@ -70,6 +77,7 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 		}
 
 		private void align() {
+			Optimization optimization = getOptimization();
 			int m = left.size();
 			int n = right.size();
 			for (int j = 1; j < n; j++) {
@@ -80,9 +88,10 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 				double v = get(table, i - 1, 0) + del(left, i);
 				table.set(i, 0, v);
 				for (int j = 1; j < n; j++) {
-					Double score = buildCandidates(i, j).parallelStream()
-							.min(Double::compare)
-							.orElse(Double.POSITIVE_INFINITY);
+					Collection<Double> candidates = buildCandidates(i, j);
+					Double score = candidates.parallelStream()
+							.reduce(optimization)
+							.orElse(optimization.getDefaultValue());
 					table.set(i, j, score);
 				}
 			}
@@ -97,17 +106,21 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 			);
 		}
 
-		private Collection<Alignment<N>> trace(Alignment<N> alignment,
+		private List<Alignment<N>> trace(Sequence<N> w, Sequence<N> z,
 				int startI, int startJ) {
 
-			Sequence<N> W = new BasicSequence<>(alignment.getRow(0), model);
-			Sequence<N> Z = new BasicSequence<>(alignment.getRow(1), model);
+			if (startI < 0 || startJ < 0) {
+				return Collections.emptyList();
+			}
 
-			Collection<Alignment<N>> alignments = new ArrayList<>();
+			Sequence<N> W = new BasicSequence<>(w, model);
+			Sequence<N> Z = new BasicSequence<>(z, model);
+
+			List<Alignment<N>> alignments = new ArrayList<>();
 
 			int i = startI;
 			int j = startJ;
-			while (!(i == 0 && j == 0)) {
+			while (i>=0 && j >=0) {
 				double sub = get(table, i - 1, j - 1);
 				double del = get(table, i - 1, j);
 				double ins = get(table, i, j - 1);
@@ -115,15 +128,16 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 				Segment<N> lI = left.get(i);
 				Segment<N> rJ = right.get(j);
 
-				if (del < ins && del < sub) {
+//				if (del < ins && del < sub) {
+				if (op(del, ins, sub)) {
 					W.add(lI);
 					Z.add(gap);
 					i--;
-				} else if (ins < sub && ins < del) {
+				} else if (op(ins, sub, del)) {
 					W.add(gap);
 					Z.add(rJ);
 					j--;
-				} else if (sub < del && sub < ins) {
+				} else if (op(sub, del, ins)) {
 					W.add(lI);
 					Z.add(rJ);
 					i--;
@@ -133,24 +147,41 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 				// may not even be possible, but I leave it here anyway
 				else {
 					if (Objects.equals(sub, del) && Objects.equals(del, ins)) {
-						alignments.addAll(trace(alignment, i - 1, j - 1));
-						alignments.addAll(trace(alignment, i - 1, j));
-						alignments.addAll(trace(alignment, i, j - 1));
+						W.add(lI);
+						Z.add(rJ);
+						i--;
+						j--;
+//						alignments.addAll(trace(W, Z, i - 1, j - 1));
+//						alignments.addAll(trace(W, Z, i - 1, j));
+//						alignments.addAll(trace(W, Z, i, j - 1));
 					} else if (Objects.equals(sub, del)) {
-						alignments.addAll(trace(alignment, i - 1, j - 1));
-						alignments.addAll(trace(alignment, i - 1, j));
+						W.add(lI);
+						Z.add(rJ);
+						i--;
+						j--;
+//						alignments.addAll(trace(W, Z, i - 1, j - 1));
+//						alignments.addAll(trace(W, Z, i - 1, j));
 					} else if (Objects.equals(del, ins)) {
-						alignments.addAll(trace(alignment, i - 1, j));
-						alignments.addAll(trace(alignment, i, j - 1));
+						W.add(gap);
+						Z.add(rJ);
+						j--;
+//						alignments.addAll(trace(W, Z, i - 1, j));
+//						alignments.addAll(trace(W, Z, i, j - 1));
 					} else if (Objects.equals(ins, sub)) {
-						alignments.addAll(trace(alignment, i - 1, j - 1));
-						alignments.addAll(trace(alignment, i, j - 1));
+						W.add(lI);
+						Z.add(rJ);
+						i--;
+						j--;
+//						alignments.addAll(trace(W, Z, i - 1, j - 1));
+//						alignments.addAll(trace(W, Z, i, j - 1));
 					}
-					return alignments;
+//					return alignments;
 				}
 			}
 
+			if (i >= 0)
 			W.add(left.get(i));
+			if (j >= 0)
 			Z.add(right.get(j));
 
 			Collections.reverse(W);
@@ -160,12 +191,18 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 			return alignments;
 		}
 
+		private boolean op(double v1, double v2, double v3) {
+			Optimization op = getOptimization();
+			return op.test(v1, v2) && op.test(v1, v3);
+		}
+
 		private double get(Table<Double> table, int i, int j) {
+			Optimization op = getOptimization();
 			if (i < 0 || j < 0 || i >= table.rows() || j >= table.columns()) {
-				return Double.POSITIVE_INFINITY;
+				return op.getDefaultValue();
 			}
 			Double value = table.get(i, j);
-			return value == null ? Double.POSITIVE_INFINITY : value;
+			return value == null ? op.getDefaultValue() : value;
 		}
 
 		private double ins(Sequence<N> sequence, int index) {

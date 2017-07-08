@@ -1,6 +1,7 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.didelphis.io.ClassPathFileHandler;
@@ -52,39 +53,42 @@ class NeedlemanWunschAlgorithmTest {
 			FeatureArray<Integer> x = r.get(j).getFeatures();
 			IntToDoubleFunction func = k -> type.difference(z.get(k), x.get(k));
 			return IntStream.range(0, z.size()).mapToDouble(func).sum();
-		}, penalty, factory);
+		}, Optimization.MIN, penalty, factory);
 	}
 
 	@Test
 	void getAlignment_01() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.getSequence("amapar"),
-				factory.getSequence("omber")
+				factory.getSequence("#amapar"),
+				factory.getSequence("#omber")
 		);
-		Alignment<Integer> alignment = algorithm.getAlignment(sequences);
+		AlignmentResult<Integer> result = algorithm.getAlignment(sequences);
+		Alignment<Integer> alignment = result.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
-		assertEquals(6, alignment.columns(), message);
+		assertEquals(7, alignment.columns(), message);
 	}
 
 	@Test
 	void getAlignment_02() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.getSequence("amapar"),
-				factory.getSequence("kombera")
+				factory.getSequence("#amapar"),
+				factory.getSequence("#kombera")
 		);
-		Alignment<Integer> alignment = algorithm.getAlignment(sequences);
+		AlignmentResult<Integer> alignmentResult = algorithm.getAlignment(sequences);
+		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
-		assertEquals(8, alignment.columns(), message);
+		assertEquals(9, alignment.columns(), message);
 	}
 
 	@Test
 	void getAlignment_03() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.getSequence("ammapar"),
-				factory.getSequence("kamabra")
+				factory.getSequence("#ammapar"),
+				factory.getSequence("#kamabra")
 		);
-		Alignment<Integer> alignment = algorithm.getAlignment(sequences);
+		AlignmentResult<Integer> alignmentResult = algorithm.getAlignment(sequences);
+		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
-		assertEquals(9, alignment.columns(), message);
+		assertEquals(10, alignment.columns(), message);
 	}
 }
