@@ -67,4 +67,8 @@ public class AlignmentResult<T> {
 	public Sequence<T> getLeft() {
 		return left;
 	}
+
+	public double getScore() {
+		return table.get(table.rows()-1, table.columns() -1);
+	}
 }

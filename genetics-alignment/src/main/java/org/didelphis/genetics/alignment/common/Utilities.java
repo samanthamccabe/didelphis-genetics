@@ -3,6 +3,7 @@ package org.didelphis.genetics.alignment.common;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
 import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparator;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.language.parsing.ParseException;
@@ -11,19 +12,18 @@ import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.DataTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
+import org.didelphis.utilities.Split;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +34,8 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static java.util.Arrays.*;
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 
 /**
  * @author Samantha Fiona McCabe
@@ -45,9 +46,8 @@ public final class Utilities {
 	//
 	public static final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public static final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
-	private static final transient Logger LOGGER =
-			LoggerFactory.getLogger(Utilities.class);
-	public static final Pattern PATTERN = Pattern.compile("\n|\r?\n");
+
+	private static final Pattern PATTERN = Pattern.compile("\n|\r?\n");
 
 	private Utilities() {
 	}
@@ -58,14 +58,8 @@ public final class Utilities {
 	}
 
 	@NotNull
-	public static ColumnTable<String> loadTable(String path,
-			Function<String, String> transformer) {
-
-		FileHandler handler = new DiskFileHandler("UTF-8");
-		CharSequence chars = handler.read(path);
-
-		List<String> lines = stream(PATTERN.split(chars))
-				.collect(Collectors.toList());
+	public static ColumnTable<String> toTable(CharSequence payload, Function<String,String> transformer) {
+		List<String> lines = stream(PATTERN.split(payload)).collect(Collectors.toList());
 		if (!lines.isEmpty()) {
 			List<String> keys = asList(lines.remove(0).split("\t", -1));
 			int numCol = keys.size();
@@ -80,7 +74,21 @@ public final class Utilities {
 			}
 			return new DataTable<>(keys, table);
 		}
-		throw new ParseException("Unable to read table, file was empty", path);
+		throw new ParseException("Unable to read table, payload was empty", payload.toString());
+	}
+
+	@NotNull
+	public static ColumnTable<String> loadTable(String path,
+			Function<String, String> transformer) {
+		FileHandler handler = new DiskFileHandler("UTF-8");
+		CharSequence chars = handler.read(path);
+		if (chars.length() == 0) {
+			throw new ParseException("Unable to read table, file was empty",
+					path
+			);
+		} else {
+			return toTable(chars, transformer);
+		}
 	}
 
 	public static <T> ColumnTable<Sequence<T>> toPhoneticTable(
@@ -115,14 +123,20 @@ public final class Utilities {
 			}
 			k++;
 		}
+
+		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
 		List<List<Sequence<T>>> lists = new ArrayList<>();
 		for (int i = 0; i < table.rows(); i++) {
 			List<Sequence<T>> list = new ArrayList<>();
 			for (int j = 0; j < table.columns(); j++) {
 				if (indices.contains(j)) {
 					String word = table.get(i, j);
-					String s = word == null ? "" : transformer.apply(word);
-					list.add(factory.getSequence(s));
+					String s = transformer.apply(word);
+					Sequence<T> segments = new BasicSequence<>(model);
+					for (String s1 : s.split(" ")) {
+						segments.add(factory.getSegment(s1));
+					}
+					list.add(segments);
 				}
 			}
 			lists.add(list);
@@ -130,12 +144,29 @@ public final class Utilities {
 		return new DataTable<>(keyList, lists);
 	}
 
+	public static <T> Comparator<T> getMatrixComparator(FileHandler handler,
+			SequenceFactory<T> factory,
+			Function<String, String> transformer,
+			String matrixPath) {
+		SymmetricalTwoKeyMap<Segment<T>, Double> map = new SymmetricalTwoKeyMap<>();
+		for (String line : Split.splitLines(handler.read(matrixPath))) {
+			String[] matcher = line.split("\t");
+			String s1 = matcher[0];
+			String s2 = matcher[1];
+			map.put(factory.getSegment(s1 == null ? "" : transformer.apply(s1)),
+					factory.getSegment(s2 == null ? "" : transformer.apply(s2)),
+					Double.parseDouble(matcher[2]));
+		}
+		return new BrownEtAlComparator<>(map);
+	}
+
 	public static <T> List<Alignment<T>> toAlignments(Table<Sequence<T>> table,
 			SequenceFactory<T> factory) {
 		FeatureModel<T> featureModel = factory.getFeatureMapping().getFeatureModel();
 		List<Alignment<T>> alignments = new ArrayList<>();
 		for (int i = 0; i < table.rows(); i++) {
-			alignments.add(new Alignment<>(table.getRow(i), featureModel));
+			List<Sequence<T>> row = table.getRow(i);
+			alignments.add(new Alignment<>(row, featureModel));
 		}
 		return alignments;
 	}
@@ -186,25 +217,6 @@ public final class Utilities {
 		for (Tuple<Sequence<T>, Sequence<T>> t1 : tuples) {
 			int j = 0;
 			for (Tuple<Sequence<T>, Sequence<T>> t2 : tuples) {
-
-				if (distancesLeft.get(i, j) == null) {
-					Sequence<T> a = new BasicSequence<>(
-							t1.getLeft()).getReverseSequence();
-					Sequence<T> b = new BasicSequence<>(
-							t2.getLeft()).getReverseSequence();
-
-					double d = getD(comparator, gap, a, b);
-					distancesLeft.set(i, j, d);
-				}
-
-				if (distancesRight.get(i, j) == null) {
-					Sequence<T> a = t1.getRight();
-					Sequence<T> b = t2.getRight();
-
-					double d = getD(comparator, gap, a, b);
-					distancesRight.set(i, j, d);
-				}
-
 				j++;
 			}
 			i++;

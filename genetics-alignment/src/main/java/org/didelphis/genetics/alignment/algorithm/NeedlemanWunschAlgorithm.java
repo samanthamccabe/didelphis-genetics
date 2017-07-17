@@ -197,20 +197,17 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 		}
 
 		private double get(Table<Double> table, int i, int j) {
-			Optimization op = getOptimization();
-			if (i < 0 || j < 0 || i >= table.rows() || j >= table.columns()) {
-				return op.getDefaultValue();
-			}
-			Double value = table.get(i, j);
-			return value == null ? op.getDefaultValue() : value;
+			return (i < 0 || j < 0 || i >= table.rows() || j >= table.columns())
+					? getOptimization().getDefaultValue()
+					: table.get(i, j);
 		}
 
-		private double ins(Sequence<N> sequence, int index) {
-			return getComparator().apply(sequence, gap, index, 0);
+		private double ins(Sequence<N> right, int j) {
+			return getComparator().apply(gap, right, 0, j) + getGapPenalty().evaluate(0);
 		}
 
-		private double del(Sequence<N> sequence, int index) {
-			return getComparator().apply(sequence, gap, index, 0);
+		private double del(Sequence<N> left, int i) {
+			return getComparator().apply(left, gap, i, 0) + getGapPenalty().evaluate(0);
 		}
 
 		private double sub(Sequence<N> left, Sequence<N> right, int i, int j) {

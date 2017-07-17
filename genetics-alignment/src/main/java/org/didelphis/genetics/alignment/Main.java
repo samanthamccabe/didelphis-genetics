@@ -1,5 +1,9 @@
 package org.didelphis.genetics.alignment;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.Optimization;
@@ -28,7 +32,6 @@ import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tuples.Tuple;
-import org.didelphis.utilities.Split;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -46,6 +49,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -63,6 +67,7 @@ public final class Main {
 	private static final Pattern HYPHEN = compile("-");
 	private static final Pattern WHITESPACE = compile("(\n|\r\n?|\\s)+");
 	private static final Pattern HASH = compile("#", LITERAL);
+	private static final Pattern ZERO = compile("0");
 
 	private Main() {
 	}
@@ -89,29 +94,35 @@ public final class Main {
 
 		FeatureType<Integer> type = IntegerFeature.INSTANCE;
 
-		String path = "AT_hybrid_reduced.model";
-//		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
-//				type, handler, path);
-		FeatureModelLoader<Integer> loader = IntegerFeature.emptyLoader();
+//		String path = "AT_hybrid_reduced.model";
+		String path = "../data/ASJPcode.model";
+		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
+				type, handler, path);
+//		FeatureModelLoader<Integer> loader = IntegerFeature.emptyLoader();
 		FeatureMapping<Integer> mapping = loader.getFeatureMapping();
 
 		SequenceFactory<Integer> factory = new SequenceFactory<>(
 				mapping, FormatterMode.INTELLIGENT);
 
-		Sequence<Integer> gap = factory.getSequence("░");
+		String gapSymbol = "░";
+		Sequence<Integer> gap = factory.getSequence(gapSymbol);
 		GapPenalty<Integer> gapPenalty = new ConvexGapPenalty<>(gap, 0, 0);
 
 //		String weightsPath = "weights_14";
-//		Comparator<Integer> comparator = readWeightsComparator(type, handler, weightsPath);
+//		Comparator<Integer> comparator = readWeightsComparator(type, handler, null);
 
-		String matrixPath = "brown.utx";
-		Comparator<Integer> comparator = getMatrixComparator(handler, factory,
-				transformer, matrixPath);
+		Comparator<Integer> comparator = readWeightsComparator(type, handler,
+				"../data/ASJPcode.weights"
+		);
+
+		//		String matrixPath = "brown.utx";
+//		Comparator<Integer> comparator = getMatrixComparator(handler, factory,
+//				transformer, matrixPath);
 
 		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(
 				comparator, Optimization.MIN, gapPenalty, factory);
 
-		Map<File, List<String>> files = new HashMap<>();
+		Map<File, List<String>> files = new LinkedHashMap<>();
 
 		files.put(new File("out.sample_1k.txt"), asList("A", "B"));
 
@@ -121,33 +132,29 @@ public final class Main {
 			List<String> keyList = languageEntry.getValue();
 			ColumnTable<String> table = Utilities.loadTable(tableFile.getPath(),
 					bFunc);
+
 			ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
 					table, factory, transformer, keyList);
 			MultiMap<String, AlignmentResult<Integer>> alignmentMap =
 					align(algorithm, keyList, data);
 
+			List<Alignment<Integer>> standards = Utilities.toAlignments(
+					Utilities.toPhoneticTable(table, factory,
+							s -> ZERO.matcher(s).replaceAll(gapSymbol)
+					), factory);
+
 			String rootPath = EXTENSION_PATTERN
 					.matcher(tableFile.getCanonicalPath())
-					.replaceAll("/");
+					.replaceAll("/a/");
 			writeAlignments(rootPath, alignmentMap);
-		}
-	}
 
-	@NotNull
-	private static Comparator<Integer> getMatrixComparator(FileHandler handler,
-			SequenceFactory<Integer> factory,
-			StringTransformer transformer,
-			String matrixPath) {
-		SymmetricalTwoKeyMap<Segment<Integer>, Double> map = new SymmetricalTwoKeyMap<>();
-		for (String line : Split.splitLines(handler.read(matrixPath))) {
-			String[] matcher = line.split("\t");
-			String s1 = matcher[0];
-			String s2 = matcher[1];
-			map.put(factory.getSegment(s1 == null ? "" : transformer.apply(s1)),
-					factory.getSegment(s2 == null ? "" : transformer.apply(s2)),
-					Double.parseDouble(matcher[2]));
+			StringBuilder sb = new StringBuilder(standards.size() * 10);
+			for (Alignment<Integer> alignment : standards) {
+				alignment.removeColumn(0);
+				sb.append(alignment.toString()).append('\n');
+			}
+			handler.writeString(rootPath + "correct", sb);
 		}
-		return new BrownEtAlComparator<>(map);
 	}
 
 	@NotNull
@@ -155,7 +162,7 @@ public final class Main {
 			FeatureType<Integer> type, FileHandler handler, String path) {
 		CharSequence weightsPayload = handler.read(path);
 		List<Double> weights = new ArrayList<>();
-		for (String string : WHITESPACE.split(weightsPayload)) {
+		for (String string : WHITESPACE.split(weightsPayload, -1)) {
 			weights.add(Double.parseDouble(string));
 		}
 		return new LinearWeightComparator<>(
@@ -207,13 +214,14 @@ public final class Main {
 	}
 
 	private static <T> void writeAlignments(String rootPath,
-			Iterable<Tuple<String, Collection<AlignmentResult<T>>>> alignments
-	) {
+			Iterable<Tuple<String, Collection<AlignmentResult<T>>>> alignments) {
+		ObjectMapper objectMapper = new ObjectMapper();
 		for (Tuple<String, Collection<AlignmentResult<T>>> entry : alignments) {
 			String key = entry.getLeft();
-			StringBuilder sb = new StringBuilder();
-			sb.append(HYPHEN.matcher(key).replaceAll("\t"));
-			sb.append('\n');
+			StringBuilder sb1 = new StringBuilder();
+			StringBuilder sb2 = new StringBuilder();
+			sb1.append(HYPHEN.matcher(key).replaceAll("\t"));
+			sb1.append('\n');
 			for (AlignmentResult<T> result : entry.getRight()) {
 				Iterator<Alignment<T>> list = result.getAlignments().iterator();
 				Iterable<CharSequence> charSequences = list.hasNext()
@@ -223,22 +231,49 @@ public final class Main {
 					String normal = Normalizer.normalize(sequence, Form.NFC);
 					String str = HASH.matcher(normal)
 							.replaceAll(Matcher.quoteReplacement("")).trim();
-					sb.append(str);
-					sb.append('\t');
+					sb1.append(str);
+					sb1.append('\t');
 				}
-				sb.append('\n');
+				sb1.append('\n');
+
+				ObjectNode node = new ObjectNode(objectMapper.getNodeFactory());
+				node.put("left",result.getLeft().toString());
+				node.put("right",result.getRight().toString());
+				List<Object> objects = new ArrayList<>();
+				for (Alignment<T> alignment : result.getAlignments()) {
+					objects.add(alignment.getPrettyTable().split("\n"));
+				}
+				List<Object> table = new ArrayList<>();
+				Iterator<Collection<Double>> it = result.getTable().rowIterator();
+				while (it.hasNext()) {
+					table.add(it.next());
+				}
+				node.putPOJO("alignments",objects);
+				node.putPOJO("table", table);
+				try {
+					sb2.append(objectMapper.writeValueAsString(node));
+				} catch (JsonProcessingException e) {
+					e.printStackTrace();
+				}
 			}
 
-			File file = new File(rootPath + "alignments_" + entry.getLeft() + ".csv");
-			Path path = file.toPath();
+			File file1 = new File(rootPath + "alignments_" + key + ".csv");
+			File file2 = new File(rootPath + "alignments_" + key + ".json");
+			Path path = file1.toPath();
 			try {
 				Files.createDirectories(path.getParent());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
-			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-				writer.write(sb.toString());
+			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file1))) {
+				writer.write(sb1.toString());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file2))) {
+				writer.write(sb2.toString());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -298,11 +333,11 @@ public final class Main {
 			ColumnTable<Sequence<T>> data
 	) {
 		MultiMap<String, AlignmentResult<T>> alignmentMap =
-				new GeneralMultiMap<>();
+				new GeneralMultiMap<>(new LinkedHashMap<>(), ArrayList.class);
 		for (int i = 0; i < keyList.size(); i++) {
 			String k1 = keyList.get(i);
 			List<Sequence<T>> d1 = data.getColumn(k1);
-			for (int j = 0; j < i; j++) {
+			for (int j = 1; j < keyList.size() && j != i; j++) {
 				String k2 = keyList.get(j);
 				List<Sequence<T>> d2 = data.getColumn(k2);
 

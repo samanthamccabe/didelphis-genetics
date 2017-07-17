@@ -1,21 +1,23 @@
 package org.didelphis.genetics.learning;
 
+import org.didelphis.genetic.data.generation.BrownAlignmentGenerator;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.Optimization;
 import org.didelphis.genetics.alignment.common.StringTransformer;
-import org.didelphis.genetics.alignment.operators.SimpleComparator;
+import org.didelphis.genetics.alignment.common.Utilities;
+import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.ConstantGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.language.parsing.FormatterMode;
 import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.features.DoubleFeature;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
-import org.didelphis.language.phonetic.features.IntegerFeature;
 import org.didelphis.language.phonetic.features.StandardFeatureArray;
 import org.didelphis.language.phonetic.model.DefaultFeatureSpecification;
 import org.didelphis.language.phonetic.model.FeatureMapping;
@@ -25,17 +27,15 @@ import org.didelphis.language.phonetic.model.GeneralFeatureMapping;
 import org.didelphis.language.phonetic.model.GeneralFeatureModel;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.ColumnTable;
-import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 import org.jenetics.Chromosome;
+import org.jenetics.DoubleChromosome;
+import org.jenetics.DoubleGene;
+import org.jenetics.Gene;
 import org.jenetics.Genotype;
-import org.jenetics.IntegerChromosome;
-import org.jenetics.IntegerGene;
-import org.jenetics.Mutator;
 import org.jenetics.Phenotype;
-import org.jenetics.SinglePointCrossover;
-import org.jenetics.StochasticUniversalSelector;
 import org.jenetics.engine.Engine;
+import org.jenetics.engine.EvolutionResult;
 import org.jenetics.engine.EvolutionStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
@@ -53,7 +53,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -62,6 +64,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static org.didelphis.genetics.alignment.common.Utilities.loadTable;
 import static org.didelphis.genetics.alignment.common.Utilities.toAlignments;
 import static org.didelphis.genetics.alignment.common.Utilities.toPhoneticTable;
+import static org.didelphis.genetics.alignment.common.Utilities.toTable;
 import static org.jenetics.engine.EvolutionResult.toBestPhenotype;
 import static org.jenetics.engine.limit.bySteadyFitness;
 
@@ -71,108 +74,263 @@ import static org.jenetics.engine.limit.bySteadyFitness;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-28
  */
-public final class ModelGenerator {
+@SuppressWarnings({"unused",
+		"UseOfSystemOutOrSystemErr",
+		"TooBroadScope",
+		"FieldCanBeLocal"})
+public final class ModelGenerator<T> {
 	private static final Pattern SPACE = Pattern.compile("\\s+");
 	private static final String DATE_FORMAT = "yyyy-MM-dd/HH-mm-ss";
+	private static final Pattern EXTENSION = Pattern.compile("\\.[^.]+$");
+
+	private static final double CUTOFF = 1.0;
+	private static final Pattern COMPILE = Pattern.compile("⬚");
+	private static final UnaryOperator<String> DELETE_GAP
+			= s -> COMPILE.matcher(s).replaceAll("");
+	private static final int ITERATIONS = 200;
+	private static final String MATRIX_PATH = "brown.utx";
+	private static final Function<String, String> TRANSFORMER
+			= new StringTransformer("Ø >> ⬚\n^[^#] >> #$0");
+
+	private final FileHandler handler;
+	private final int features;
 	private final List<String> symbols;
 	private final List<String> modifiers;
-	private final ColumnTable<String> table;
+	private final BrownAlignmentGenerator alignmentGenerator;
+	private final FeatureType<T> featureType;
 
-	private ModelGenerator(List<String> symbols, List<String> modifiers,
-			ColumnTable<String> table) {
+	private ModelGenerator(FeatureType<T> featureType, FileHandler handler,
+			BrownAlignmentGenerator alignmentGenerator, int features,
+			List<String> symbols, List<String> modifiers
+	) {
+		this.featureType = featureType;
+		this.handler = handler;
+		this.features = features;
 		this.symbols = symbols;
 		this.modifiers = modifiers;
-		this.table = table;
+		//		this.table = table;
 
-		for (int i = 0; i < table.rows(); i++) {
-			for (int j = 0; j < table.columns(); j++) {
-				table.set(i,j, '#' +table.get(i,j));
-			}
-		}
+		//		for (int i = 0; i < table.rows(); i++) {
+		//			for (int j = 0; j < table.columns(); j++) {
+		//				table.set(i,j, '#' +table.get(i,j));
+		//			}
+		//		}
+
+		this.alignmentGenerator = alignmentGenerator;
 	}
 
 	public static void main(String[] args) throws IOException {
 
 		String dataPath = "/home/samantha/git/data/";
-		String symbolsPath = dataPath+"ASJP_Symbols";
+		String symbolsPath = dataPath + "ASJP_Symbols";
 
 		FileHandler handler = new DiskFileHandler("UTF-8");
 
 		String trainingPath = dataPath + "training/";
-		String dataSetName = "out.sample_1k.utx";
+		String dataSetName = "out.sample_1k.txt";
 
 		String timeStamp = new DateTime().toString(DATE_FORMAT);
 
-		String dataSetFolder = dataSetName.replaceAll("\\.[^.]+$", "/");
+		String dataSetFolder = EXTENSION.matcher(dataSetName).replaceAll("/");
 
-		Path logPath = new File(trainingPath + dataSetFolder + timeStamp + "-fitness.log").toPath();
+		Path logPath = new File(trainingPath + dataSetFolder + timeStamp +
+				"-fitness.log").toPath();
 
 		Files.createDirectories(logPath.getParent());
 		BufferedWriter logWriter = Files.newBufferedWriter(logPath, CREATE);
 
 		DecimalFormat formatter = new DecimalFormat("#.0000");
-		StatsTracker<IntegerGene> tracker = new StatsTracker<>(1, logWriter, formatter);
+		Consumer<EvolutionResult<?, Double>> tracker = new StatsTracker<>(1,
+				logWriter, formatter
+		);
 
-		Function<String, String> transformer = new StringTransformer("Ø >> ⬚");
-
-		String clean = transformer.apply(handler.read(symbolsPath).toString());
+		String clean = TRANSFORMER.apply(handler.read(symbolsPath).toString());
 		String[] split = clean.split("\n");
-		List<String> symbols   = Arrays.asList(SPACE.split(split[0]));
+		List<String> symbols = Arrays.asList(SPACE.split(split[0]));
 		List<String> modifiers = Arrays.asList(SPACE.split(split[1]));
-		ColumnTable<String> table = loadTable(trainingPath + dataSetName, transformer);
-		ModelGenerator generator = new ModelGenerator(symbols, modifiers, table);
+		ColumnTable<String> table = loadTable(trainingPath + dataSetName,
+				TRANSFORMER
+		);
+		int features = 15;
+
+		FeatureType<Double> featureType = DoubleFeature.INSTANCE;
+
+		String correspondenceDataPath
+				= "/home/samantha/Downloads/data/brown_correspondences.csv";
+
+		BrownAlignmentGenerator brownAlignmentGenerator
+				= new BrownAlignmentGenerator(correspondenceDataPath);
+		ModelGenerator<Double> generator = new ModelGenerator<>(featureType,
+				handler, brownAlignmentGenerator, features, symbols, modifiers
+		);
 
 		int numberOfSymbols = symbols.size() + modifiers.size();
-		int maximumFeatures = 30;
-		int minimumFeatures = 10;
 
+		Engine<DoubleGene, Double> engine = Engine.builder(generator::fitness,
+				DoubleChromosome.of(-50, 100)
+		).build();
+		/*
 		Engine<IntegerGene, Double> engine = Engine.builder(
 				generator::fitness,
-				IntegerChromosome.of(minimumFeatures, maximumFeatures),
-				IntegerChromosome.of(0, 1, numberOfSymbols*maximumFeatures),
-				IntegerChromosome.of(0,20, 1))
-				.populationSize(300)
+				IntegerChromosome.of(-50,100, 1)
+//				,
+//				IntegerChromosome.of(0, 1, numberOfSymbols * features)
+		)
+				.populationSize(200)
 				.selector(new StochasticUniversalSelector<>())
 				.alterers(
 						new Mutator<>(0.10),
 						new SinglePointCrossover<>(0.03)
 				)
 				.build();
-
+*/
 		EvolutionStatistics<Double, ?> stats = EvolutionStatistics.ofNumber();
-		Phenotype<IntegerGene, Double> best = engine.stream()
+		Phenotype<DoubleGene, Double> best = engine.stream()
 				.limit(bySteadyFitness(10))
 				.limit(100)
 				.peek(tracker)
 				.peek(stats)
 				.collect(toBestPhenotype());
 
+		logWriter.close();
+
 		System.out.println(stats);
 		System.out.println(best);
 
-		Genotype<IntegerGene> genotype = best.getGenotype();
+		Genotype<DoubleGene> genotype = best.getGenotype();
+		String outputPath = trainingPath + dataSetFolder + timeStamp;
+		generator.writeBestGenome(outputPath, table, featureType, genotype);
+	}
 
-		// *********************************************************************
-		FeatureType<Integer> featureType = IntegerFeature.INSTANCE;
+	private <G extends Gene<T, G>> void writeBestGenome(String outputPath,
+			ColumnTable<String> table, FeatureType<T> featureType,
+			Genotype<G> genotype
+	) {
 
-		SequenceFactory<Integer> factory = generator.toFactory(featureType, genotype);
-		AlignmentAlgorithm<Integer> algorithm
-				= toAlgorithm(featureType, factory, genotype);
+		SequenceFactory<T> factory = toFactory(featureType, genotype);
+		AlignmentAlgorithm<T> algorithm = toAlgorithm(featureType, factory,
+				genotype
+		);
 
 		//noinspection DynamicRegexReplaceableByCompiledPattern
-		ColumnTable<Sequence<Integer>> testWords
-				= toPhoneticTable(table, factory, s -> s.replaceAll("⬚", ""));
+		ColumnTable<Sequence<T>> testWords = toPhoneticTable(table, factory,
+				DELETE_GAP
+		);
 
-		List<Alignment<Integer>> testData = doAlignment(algorithm, testWords);
+		List<Alignment<T>> testData = doAlignment(algorithm, testWords);
 
-		String pathname = trainingPath + dataSetFolder + timeStamp;
-		writeAlignments(handler, testData, pathname);
-		writeMapping(handler, factory, pathname);
-		logWriter.close();
+		writeAlignments(handler, testData, outputPath);
+		writeMapping(handler, factory, outputPath);
+	}
+
+	private BrownAlignmentGenerator getAlignmentGenerator() {
+		return alignmentGenerator;
+	}
+
+	private <G extends Gene<T, G>> Double fitness(Genotype<G> genotype) {
+		SequenceFactory<T> factory = toFactory(featureType, genotype);
+		AlignmentAlgorithm<T> algorithm = toAlgorithm(featureType, factory,
+				genotype
+		);
+
+		BrownAlignmentGenerator alignmentGenerator = getAlignmentGenerator();
+
+		String generate = alignmentGenerator.generate(3, 10, ITERATIONS);
+
+		ColumnTable<String> table = toTable(generate, TRANSFORMER);
+		ColumnTable<Sequence<T>> testWords = toPhoneticTable(table, factory,
+				DELETE_GAP
+		);
+		List<Alignment<T>> trainData = toTrainingData(factory, table);
+		List<Alignment<T>> testsData = doAlignment(algorithm, testWords);
+		int correct = 0;
+		int tested = 0;
+		for (int i = 0; i < testWords.rows(); i++) {
+			if (Math.random() < CUTOFF) {
+				tested++;
+				Alignment<T> aT = trainData.get(i);
+				Alignment<T> aO = testsData.get(i);
+				if (aO.equals(aT)) {
+					correct++;
+				}
+			}
+		}
+		return correct / (double) tested;
+	}
+
+	@NotNull
+	private <G extends Gene<T, G>> SequenceFactory<T> toFactory(
+			FeatureType<T> featureType, Genotype<G> genotype
+	) {
+		/*
+		List<T> data = toFeatureBits(featureType, genotype);
+		int rows = data.size() / features;
+		Table<T> featureTable = new RectangularTable<>(rows, features, data);
+		FeatureModel<T> model = new GeneralFeatureModel<>(
+				featureType,
+				getSpecification(features),
+				Collections.emptyList(),
+				Collections.emptyMap());
+		FeatureMapping<T> mapping = toMapping(featureTable, model);
+		return new SequenceFactory<>(mapping, FormatterMode.INTELLIGENT);
+		*/
+
+		GeneralFeatureModel<T> model = new GeneralFeatureModel<>(featureType,
+				DefaultFeatureSpecification.EMPTY, Collections.emptyList(),
+				Collections.emptyMap()
+		);
+
+		GeneralFeatureMapping<T> mapping = new GeneralFeatureMapping<>(model,
+				Collections.emptyMap(), Collections.emptyMap()
+		);
+
+		return new SequenceFactory<>(mapping, FormatterMode.INTELLIGENT);
+	}
+
+	@NotNull
+	private FeatureMapping<T> toMapping(Table<T> featureTable,
+			FeatureModel<T> model
+	) {
+		Map<String, FeatureArray<T>> sMap = parseSymbols(featureTable, model);
+		Map<String, FeatureArray<T>> mMap = parseModifiers(featureTable, model);
+		return new GeneralFeatureMapping<>(model, sMap, mMap);
+	}
+
+	@NotNull
+	private <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseSymbols(
+			Table<T> table, FeatureModel<T> model
+	) {
+		Map<String, FeatureArray<T>> sMap = new HashMap<>(symbols.size());
+		for (int i = 0; i < symbols.size(); i++) {
+			List<T> row = table.getRow(i)
+					.subList(0, model.getSpecification().size());
+			sMap.put(symbols.get(i), new StandardFeatureArray<>(row, model));
+		}
+		return sMap;
+	}
+
+	@NotNull
+	private <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseModifiers(
+			Table<T> table, FeatureModel<T> model
+	) {
+		Map<String, FeatureArray<T>> mMap = new HashMap<>(modifiers.size());
+		int size = table.rows();
+		for (int i = symbols.size();
+		     i < symbols.size() + modifiers.size();
+		     i++) {
+			List<T> row = table.getRow(i)
+					.subList(0, model.getSpecification().size());
+			int index = i - symbols.size();
+			mMap.put(modifiers.get(index),
+					new StandardFeatureArray<>(row, model)
+			);
+		}
+		return mMap;
 	}
 
 	private static <T> void writeMapping(FileHandler handler,
-			SequenceFactory<T> factory, String pathname) {
+			SequenceFactory<T> factory, String pathname
+	) {
 		FeatureMapping<T> mapping = factory.getFeatureMapping();
 		Map<String, FeatureArray<T>> featureMap = mapping.getFeatureMap();
 		Map<String, FeatureArray<T>> modifierMap = mapping.getModifiers();
@@ -199,46 +357,21 @@ public final class ModelGenerator {
 	}
 
 	private static <T> void writeAlignments(FileHandler handler,
-			Iterable<Alignment<T>> testData, String pathName) {
+			Iterable<Alignment<T>> testData, String pathName
+	) {
 		Path outputPath = new File(pathName + "-alignment").toPath();
 		StringBuilder outputBuffer = new StringBuilder();
 		for (Alignment<T> testDatum : testData) {
 			String str = testDatum.toString();
-			outputBuffer.append(str).append(testDatum.getScore()).append('\n');
+			outputBuffer.append(str).append('\n');
 		}
 		handler.writeString(outputPath.toString(), outputBuffer);
 	}
 
-	private Double fitness(Genotype<IntegerGene> genotype) {
-		FeatureType<Integer> featureType = IntegerFeature.INSTANCE;
-
-		SequenceFactory<Integer> factory = toFactory(featureType, genotype);
-		AlignmentAlgorithm<Integer> algorithm = toAlgorithm(featureType, factory, genotype);
-
-		//noinspection DynamicRegexReplaceableByCompiledPattern
-		ColumnTable<Sequence<Integer>> testWords = toPhoneticTable(table, factory,
-				s -> s.replaceAll("⬚", ""));
-		List<Alignment<Integer>> trainData = toTrainingData(factory, table);
-		List<Alignment<Integer>> testsData = doAlignment(algorithm, testWords);
-		int correct = 0;
-		int tested  = 0;
-		for (int i = 0; i < testWords.rows(); i++) {
-			if (Math.random() < 0.1) {
-				tested++;
-				Alignment<Integer> aT = trainData.get(i);
-				Alignment<Integer> aO = testsData.get(i);
-				if (aO.equals(aT)) {
-					correct++;
-				}
-			}
-		}
-		return  correct / (double) tested;
-	}
-
 	@NotNull
 	private static <T> List<Alignment<T>> doAlignment(
-			AlignmentAlgorithm<T> algorithm,
-			Table<Sequence<T>> testWords) {
+			AlignmentAlgorithm<T> algorithm, Table<Sequence<T>> testWords
+	) {
 		List<Alignment<T>> testsData = new ArrayList<>(testWords.size());
 		for (int i = 0; i < testWords.rows(); i++) {
 			List<Sequence<T>> row = testWords.getRow(i);
@@ -250,84 +383,47 @@ public final class ModelGenerator {
 	}
 
 	private static <T> List<Alignment<T>> toTrainingData(
-			SequenceFactory<T> factory, ColumnTable<String> table) {
-		ColumnTable<Sequence<T>> raw = toPhoneticTable(table, factory, Function.identity());
+			SequenceFactory<T> factory, ColumnTable<String> table
+	) {
+		ColumnTable<Sequence<T>> raw = toPhoneticTable(table, factory,
+				Function.identity()
+		);
 		return toAlignments(raw, factory);
 	}
 
 	@NotNull
-	private <T> SequenceFactory<T> toFactory(FeatureType<T> featureType,
-			Genotype<IntegerGene> genotype) {
-		int n = genotype.getChromosome(0).getGene(0).getAllele();
-		List<T> data = toFeatureBits(featureType, genotype);
-		return toFactory(featureType, data, n);
-	}
-
-	@NotNull
-	private static <T> AlignmentAlgorithm<T> toAlgorithm(
+	private static <T, G extends Gene<T, G>> AlignmentAlgorithm<T> toAlgorithm(
 			FeatureType<T> featureType, SequenceFactory<T> factory,
-			Genotype<IntegerGene> genotype) {
-		SimpleComparator<T> comparator = new SimpleComparator<>(featureType,
-				i->1.0/Math.sqrt(i+2));
-		Integer allele = genotype.getChromosome(2).getGene(0).getAllele();
-		GapPenalty<T> penalty = new ConstantGapPenalty<>(factory.getSequence("⬚"), allele);
+			Genotype<G> genotype
+	) {
+		//		SimpleComparator<T> comparator = new SimpleComparator<>(featureType,
+		//				i->1.0/Math.sqrt(i+2));
+		Comparator<T> comparator = Utilities.getMatrixComparator(
+				new DiskFileHandler("UTF-8"), factory, Function.identity(),
+				MATRIX_PATH
+		);
+
+		Chromosome<G> chromosome = genotype.getChromosome(0);
+		double gap1 = featureType.doubleValue(
+				chromosome.getGene(0).getAllele());
+		//		Integer gap2 = chromosome.getGene(1).getAllele();
+		GapPenalty<T> penalty = new ConstantGapPenalty<>(
+				factory.getSequence("⬚"), gap1);
+		//		GapPenalty<T> penalty = new ConvexGapPenalty<>(factory.getSequence("⬚"), gap1, gap2);
 		return new NeedlemanWunschAlgorithm<>(comparator, Optimization.MIN,
-				penalty, factory);
+				penalty, factory
+		);
 	}
 
-	@NotNull
-	private <T> SequenceFactory<T> toFactory(FeatureType<T> featureType,
-			List<T> data, int n) {
-		int rows = data.size() / n;
-		Table<T> featureTable = new RectangularTable<>(rows, n, data);
-		FeatureModel<T> model = new GeneralFeatureModel<>(
-				featureType,
-				getSpecification(n),
-				Collections.emptyList(),
-				Collections.emptyMap());
-		FeatureMapping<T> mapping = toMapping(featureTable, model);
-		return new SequenceFactory<>(mapping, FormatterMode.INTELLIGENT);
-	}
-
-	@NotNull
-	private <T> FeatureMapping<T> toMapping(Table<T> featureTable,
-			FeatureModel<T> model) {
-		Map<String, FeatureArray<T>> sMap = parseSymbols(featureTable, model);
-		Map<String, FeatureArray<T>> mMap = parseModifiers(featureTable, model);
-		return new GeneralFeatureMapping<>(model, sMap, mMap);
-	}
-
-	private static <T> List<T> toFeatureBits(FeatureType<T> featureType,
-			Genotype<IntegerGene> genotype) {
-		Chromosome<IntegerGene> features = genotype.getChromosome(1);
+	private static <T, G extends Gene<T, G>> List<T> toFeatureBits(
+			FeatureType<T> featureType, Genotype<G> genotype
+	) {
+		Chromosome<G> features = genotype.getChromosome(0);
 		return features.stream()
 				// TODO: fix this
-				.map(integerGene -> featureType.parseValue(String.valueOf(integerGene.getAllele())) )
+				.map(integerGene -> featureType.parseValue(
+						String.valueOf(integerGene.getAllele())))
 				.collect(Collectors.toList());
-	}
-
-	@NotNull
-	private <T> Map<String, FeatureArray<T>> parseSymbols(
-			Table<T> table, FeatureModel<T> model) {
-		Map<String, FeatureArray<T>> sMap = new HashMap<>(symbols.size());
-		for (int i = 0; i < symbols.size(); i++) {
-			List<T> row = table.getRow(i).subList(0, model.getSpecification().size());
-			sMap.put(symbols.get(i), new StandardFeatureArray<>(row, model));
-		}
-		return sMap;
-	}
-
-	@NotNull
-	private <T> Map<String, FeatureArray<T>> parseModifiers(Table<T> table,
-			FeatureModel<T> model) {
-		Map<String, FeatureArray<T>> mMap = new HashMap<>(modifiers.size());
-		int size = table.rows();
-		for (int i = symbols.size(); i < symbols.size() + modifiers.size(); i++) {
-			List<T> row = table.getRow(i).subList(0, model.getSpecification().size());
-			int index = i - symbols.size();
-			mMap.put(modifiers.get(index), new StandardFeatureArray<>(row, model));
-		}
-		return mMap;
 	}
 
 	@NotNull

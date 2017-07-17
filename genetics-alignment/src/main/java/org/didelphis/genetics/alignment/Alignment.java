@@ -20,9 +20,6 @@ import java.util.List;
 public class Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
 
-	@Deprecated
-	private double score = Double.NaN;
-
 	private final FeatureModel<T> featureModel;
 
 	public Alignment(FeatureModel<T> featureModel) {
@@ -42,6 +39,13 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 
 	public Alignment(List<Sequence<T>> list, FeatureModel<T> featureModel) {
 		super(list, list.size(), list.isEmpty() ? 0 : list.get(0).size());
+
+		for (Sequence<T> sequence : list) {
+			if (sequence.size() != columns()) {
+				throw new IllegalArgumentException("Sequence "+sequence+" in " + list + " is not the correct number of elements.");
+			}
+		}
+
 		this.featureModel = featureModel;
 	}
 
@@ -77,7 +81,7 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 			for (int i = 0; i < rows(); i++) {
 				int v = maxima.get(j);
 				Segment<T> segment = get(i, j);
-				String s = segment == null ? "null" : segment.getSymbol();
+				String s = segment.getSymbol();
 				int size = getPrintableLength(s);
 				if (v < size) {
 					maxima.set(j, size);
@@ -111,16 +115,6 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 	@Override
 	public FeatureSpecification getSpecification() {
 		return featureModel.getSpecification();
-	}
-
-	@Deprecated
-	public double getScore() {
-		return score;
-	}
-
-	@Deprecated
-	public void setScore(double score) {
-		this.score = score;
 	}
 
 	private static int getPrintableLength(String string) {

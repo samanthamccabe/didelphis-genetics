@@ -6,17 +6,29 @@ import org.didelphis.structures.maps.GeneralMultiMap;
 import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
+import org.didelphis.structures.tuples.Triple;
 import org.didelphis.structures.tuples.Tuple;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Random;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import static java.lang.Math.*;
 
 /**
  * Created by samantha on 4/22/17.
@@ -27,7 +39,29 @@ public final class BrownAlignmentGenerator {
 	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
 	private static final Random RANDOM = new Random();
 
-	private BrownAlignmentGenerator() {
+	private final TwoKeyMultiMap<String, String, Correspondence> stkm;
+	private final NavigableMap<Double, Correspondence> treeMap;
+
+	public BrownAlignmentGenerator(String correspondencePath) {
+		stkm = loadMap(correspondencePath);
+		treeMap = new TreeMap<>();
+		double sum = StreamSupport.stream(stkm.spliterator(), true)
+				.mapToDouble(BrownAlignmentGenerator::sum)
+				.sum();
+
+		double last = 0.0;
+		for (Triple<String, String, Collection<Correspondence>> triple : stkm) {
+			Collection<Correspondence> collection = triple.getThirdElement();
+			for (Correspondence correspondence : collection) {
+				last = put(correspondence, sum, last);
+			}
+		}
+	}
+
+	public double put(Correspondence crs, double sum, double last) {
+		double percentage = crs.getPercentage() / sum + last;
+		treeMap.put(percentage, crs);
+		return percentage;
 	}
 
 	public static void main(String... args) {
@@ -36,32 +70,76 @@ public final class BrownAlignmentGenerator {
 		String dataFile = args[2];
 		String outputFile = args[3];
 
-		StringBuilder stringBuilder = new StringBuilder(maxIterations * 10);
 		CharSequence input = HANDLER.read(patternFile);
 		List<Tuple<String, String>> patterns = NEWLINE.splitAsStream(input)
 				.filter(predicate -> !predicate.isEmpty())
-				.map(line -> splitTuple(line))
+				.map(BrownAlignmentGenerator::splitTuple)
 				.collect(Collectors.toList());
 
-		TwoKeyMultiMap<String, String, Correspondence> map = loadMap(dataFile);
-		for (int i = 0; i < maxIterations; i++) {
+		//		TwoKeyMultiMap<String, String, Correspondence> map = loadMap(dataFile);
+		BrownAlignmentGenerator generator = new BrownAlignmentGenerator(dataFile);
+
+//		String string = generator.generate(patterns, maxIterations);
+		String string = generator.generate(3, 10, 1000);
+		try (Writer fileWriter = new BufferedWriter(
+				new FileWriter(outputFile))) {
+			fileWriter.write(string);
+		} catch (IOException ignored) {
+		}
+	}
+
+	public String generate(int min, int max, int iterations) {
+		StringBuilder stringBuilder = new StringBuilder(iterations * (min + max) / 2);
+
+		stringBuilder.append("A\tB\n");
+
+		for (int i = 0; i < iterations; i++) {
+			int n = toIntExact(round(random() * (max - min) + min));
+
+			StringBuilder left = new StringBuilder();
+			StringBuilder right = new StringBuilder();
+
+			for (int j = 0; j < n; j++) {
+				Entry<Double, Correspondence> entry = treeMap.floorEntry(random());
+				while (entry == null) {
+					entry = treeMap.floorEntry(random());
+				}
+				Correspondence value = entry.getValue();
+				left.append(value.getLeftSymbol()).append(' ');
+				right.append(value.getRightSymbol()).append(' ');
+			}
+			stringBuilder.append(left).append('\t').append(right).append('\n');
+		}
+		return stringBuilder.toString();
+	}
+
+	public String generate(List<Tuple<String, String>> patterns, int iterations) {
+
+		StringBuilder stringBuilder = new StringBuilder(iterations * 10);
+
+		stringBuilder.append("A\tB\n");
+
+		for (int i = 0; i < iterations; i++) {
 
 			Tuple<String, String> tuple = patterns.get(randomInt(patterns.size()));
-			
+
 			String tupleLeft = tuple.getLeft();
 			String tupleRight = tuple.getRight();
 
 			StringBuilder left = new StringBuilder();
 			StringBuilder right = new StringBuilder();
 
-			for (int j = 0; j < tupleLeft.length(); j++) {
+			int lengthL = tupleLeft.length();
+			int lengthR = tupleRight.length();
+
+			for (int j = 0; j < lengthL && j < lengthR; j++) {
 
 				String k1 = tupleLeft.substring(j, j + 1);
 				String k2 = tupleRight.substring(j, j + 1);
 
-				List<Correspondence> list = new ArrayList<>(map.get(k1, k2));
+				List<Correspondence> list = new ArrayList<>(stkm.get(k1, k2));
 				List<Double> percentages = list.stream()
-						.map(co -> co.getPercentage())
+						.map(Correspondence::getPercentage)
 						.collect(Collectors.toList());
 
 				int pIndex = rouletteSelect(percentages);
@@ -69,19 +147,26 @@ public final class BrownAlignmentGenerator {
 				Correspondence correspondence = list.get(pIndex);
 				String leftSymbol = correspondence.getLeftSymbol();
 				String rightSymbol = correspondence.getRightSymbol();
-				
-				left.append(leftSymbol);
-				right.append(rightSymbol);
+
+				left.append(leftSymbol).append(' ');
+				right.append(rightSymbol).append(' ');
 			}
 
 			stringBuilder.append(left).append('\t').append(right).append('\n');
 		}
+		return stringBuilder.toString();
+	}
 
-		try (Writer fileWriter = new BufferedWriter(
-				new FileWriter(outputFile))) {
-			fileWriter.write(stringBuilder.toString());
-		} catch (IOException ignored) {
-		}
+
+	private static double sum(Triple<?, ?, Collection<Correspondence>> t) {
+		return toDoubleStream(t).sum();
+	}
+
+	private static DoubleStream toDoubleStream(
+			@NotNull Triple<?, ?, Collection<Correspondence>> triple
+	) {
+		return triple.getThirdElement().parallelStream()
+				.mapToDouble(Correspondence::getPercentage);
 	}
 
 	private static Tuple<String, String> splitTuple(String line) {
@@ -112,7 +197,7 @@ public final class BrownAlignmentGenerator {
 	}
 
 	private static int randomInt(int size) {
-		return Math.abs(RANDOM.nextInt() % size);
+		return abs(RANDOM.nextInt() % size);
 	}
 
 	private static TwoKeyMultiMap<String, String, Correspondence> loadMap(
@@ -136,9 +221,7 @@ public final class BrownAlignmentGenerator {
 					int count = Integer.valueOf(strings[4]);
 					double percent = Double.valueOf(strings[5]);
 
-					if ((classLeft.equals("C") || classLeft.equals("V")) &&
-					    (classRight.equals("V") || classRight.equals("C")) &&
-					    count >= 10) {
+					if (checkVC(classLeft) && checkVC(classRight) && count >= 10) {
 						classToValue.add(classLeft, left);
 						classToValue.add(classRight, right);
 					}
@@ -159,5 +242,9 @@ public final class BrownAlignmentGenerator {
 			});
 		});
 		return map;
+	}
+
+	private static boolean checkVC(String classLeft) {
+		return classLeft.equals("C") || classLeft.equals("V");
 	}
 }

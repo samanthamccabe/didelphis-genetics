@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-28
  */
-final class StatsTracker<G extends Gene<?, G>>
-		implements Consumer<EvolutionResult<G, Double>> {
+final class StatsTracker<T>
+		implements Consumer<EvolutionResult<?, Double>> {
 
 	private final int interval;
 	private final BufferedWriter writer;
@@ -37,7 +37,7 @@ final class StatsTracker<G extends Gene<?, G>>
 	}
 
 	@Override
-	public void accept(EvolutionResult<G, Double> result) {
+	public void accept(EvolutionResult<?, Double> result) {
 		try {
 		if (interval < 1 || result.getGeneration() % interval == 0) {
 			Double minimum = result.getWorstFitness();

@@ -1,18 +1,16 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
-import org.didelphis.language.phonetic.SpecificationBearer;
-import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.language.phonetic.ModelBearer;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
 /**
  * @author Samantha Fiona McCabe
  * Created: 6/3/2015
  */
-public interface GapPenalty<N> extends SpecificationBearer {
+public interface GapPenalty<T> extends ModelBearer<T> {
 
-	double evaluate(Alignment<N> alignment);
+	double evaluate(int currentGapLength);
 
-	Sequence<N> getGap();
+	Sequence<T> getGap();
 
 }

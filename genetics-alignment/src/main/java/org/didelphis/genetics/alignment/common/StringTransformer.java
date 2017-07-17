@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
 /**
@@ -12,7 +13,7 @@ import java.util.regex.Pattern;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-27
  */
-public class StringTransformer implements Function<String, String> {
+public class StringTransformer implements UnaryOperator<String> {
 
 	private static final Pattern OPERATOR = Pattern.compile("\\s>>\\s");
 	private static final Pattern NEWLINE = Pattern.compile("\r\n?|\n");

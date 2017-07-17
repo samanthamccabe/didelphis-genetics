@@ -1,44 +1,25 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.genetics.alignment.Alignment;
-
-import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Samantha Fiona McCabe
  * Created: 6/4/15
  */
-public class ConvexGapPenalty<N> extends AbstractGapPenalty<N> {
+public class ConvexGapPenalty<T> extends AbstractGapPenalty<T> {
 
 	private final double openPenalty;
-	private final double extensionCoefficient;
+	private final double extensionPenalty;
 
-	public ConvexGapPenalty(Sequence<N> gap, double a, double b) {
+	public ConvexGapPenalty(@NotNull Sequence<T> gap, double openPenalty, double extensionPenalty) {
 		super(gap);
-		openPenalty = a;
-		extensionCoefficient = b;
+		this.openPenalty = openPenalty;
+		this.extensionPenalty = extensionPenalty;
 	}
 
 	@Override
-	public double evaluate(Alignment<N> alignment) {
-		int length = 0;
-
-//		TODO:
-//		for (List<Sequence<N>> sequences : alignment) {
-//			if (!sequences.isEmpty()) {
-//				length += countGaps(sequences);
-//			}
-//		}
-
-		if (length == 0) {
-			return 0.0;
-		} else if (length == 1) {
-			return openPenalty;
-		} else {
-			//noinspection NonReproducibleMathCall
-			return extensionCoefficient * Math.log(length);
-		}
+	public double evaluate(int currentGapLength) {
+		return currentGapLength==0 ? openPenalty : extensionPenalty;
 	}
 }

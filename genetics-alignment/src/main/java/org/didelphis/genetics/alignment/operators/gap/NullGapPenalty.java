@@ -2,6 +2,7 @@ package org.didelphis.genetics.alignment.operators.gap;
 
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Samantha Fiona McCabe
@@ -14,7 +15,7 @@ public class NullGapPenalty<N> extends AbstractGapPenalty<N> {
 	}
 
 	@Override
-	public double evaluate(Alignment<N> alignment) {
-		return 0.0;
+	public double evaluate(int currentGapLength) {
+		return 0;
 	}
 }

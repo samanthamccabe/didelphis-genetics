@@ -236,6 +236,6 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 //			Sequence<T> b = alignment.getRow(1).get(i);
 //			score += comparator.apply(a, b);
 //		}
-		return score + getGapPenalty().evaluate(alignment);
+		return score + getGapPenalty().evaluate(0); // todo
 	}
 }
