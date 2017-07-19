@@ -33,7 +33,10 @@ import org.jenetics.DoubleChromosome;
 import org.jenetics.DoubleGene;
 import org.jenetics.Gene;
 import org.jenetics.Genotype;
+import org.jenetics.Mutator;
 import org.jenetics.Phenotype;
+import org.jenetics.SinglePointCrossover;
+import org.jenetics.StochasticUniversalSelector;
 import org.jenetics.engine.Engine;
 import org.jenetics.engine.EvolutionResult;
 import org.jenetics.engine.EvolutionStatistics;
@@ -90,7 +93,7 @@ public final class ModelGenerator<T> {
 	private static final int ITERATIONS = 200;
 	private static final String MATRIX_PATH = "brown.utx";
 	private static final Function<String, String> TRANSFORMER
-			= new StringTransformer("Ø >> ⬚\n^[^#] >> #$0");
+			= new StringTransformer("Ø >> ⬚");
 
 	private final FileHandler handler;
 	private final int features;
@@ -148,9 +151,7 @@ public final class ModelGenerator<T> {
 		String[] split = clean.split("\n");
 		List<String> symbols = Arrays.asList(SPACE.split(split[0]));
 		List<String> modifiers = Arrays.asList(SPACE.split(split[1]));
-		ColumnTable<String> table = loadTable(trainingPath + dataSetName,
-				TRANSFORMER
-		);
+
 		int features = 15;
 
 		FeatureType<Double> featureType = DoubleFeature.INSTANCE;
@@ -168,7 +169,14 @@ public final class ModelGenerator<T> {
 
 		Engine<DoubleGene, Double> engine = Engine.builder(generator::fitness,
 				DoubleChromosome.of(-50, 100)
-		).build();
+		)
+				.populationSize(100)
+				.selector(new StochasticUniversalSelector<>())
+				.alterers(
+						new Mutator<>(0.10),
+						new SinglePointCrossover<>(0.03)
+				)
+				.build();
 		/*
 		Engine<IntegerGene, Double> engine = Engine.builder(
 				generator::fitness,
@@ -198,16 +206,18 @@ public final class ModelGenerator<T> {
 		System.out.println(best);
 
 		Genotype<DoubleGene> genotype = best.getGenotype();
+		String inputPath = trainingPath + dataSetName;
 		String outputPath = trainingPath + dataSetFolder + timeStamp;
-		generator.writeBestGenome(outputPath, table, featureType, genotype);
+		ColumnTable<String> table = loadTable(inputPath, TRANSFORMER);
+		generator.writeBestGenome(outputPath, table, genotype);
 	}
 
 	private <G extends Gene<T, G>> void writeBestGenome(String outputPath,
-			ColumnTable<String> table, FeatureType<T> featureType,
+			ColumnTable<String> table,
 			Genotype<G> genotype
 	) {
 
-		SequenceFactory<T> factory = toFactory(featureType, genotype);
+		SequenceFactory<T> factory = toFactory(genotype);
 		AlignmentAlgorithm<T> algorithm = toAlgorithm(featureType, factory,
 				genotype
 		);
@@ -228,7 +238,7 @@ public final class ModelGenerator<T> {
 	}
 
 	private <G extends Gene<T, G>> Double fitness(Genotype<G> genotype) {
-		SequenceFactory<T> factory = toFactory(featureType, genotype);
+		SequenceFactory<T> factory = toFactory(genotype);
 		AlignmentAlgorithm<T> algorithm = toAlgorithm(featureType, factory,
 				genotype
 		);
@@ -260,7 +270,7 @@ public final class ModelGenerator<T> {
 
 	@NotNull
 	private <G extends Gene<T, G>> SequenceFactory<T> toFactory(
-			FeatureType<T> featureType, Genotype<G> genotype
+			Genotype<G> genotype
 	) {
 		/*
 		List<T> data = toFeatureBits(featureType, genotype);
@@ -313,13 +323,13 @@ public final class ModelGenerator<T> {
 	private <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseModifiers(
 			Table<T> table, FeatureModel<T> model
 	) {
-		Map<String, FeatureArray<T>> mMap = new HashMap<>(modifiers.size());
+		int modelSize = model.getSpecification().size();
 		int size = table.rows();
-		for (int i = symbols.size();
-		     i < symbols.size() + modifiers.size();
-		     i++) {
-			List<T> row = table.getRow(i)
-					.subList(0, model.getSpecification().size());
+		int symbolsSize = symbols.size() + modifiers.size();
+
+		Map<String, FeatureArray<T>> mMap = new HashMap<>(modifiers.size());
+		for (int i = symbols.size(); i < symbolsSize; i++) {
+			List<T> row = table.getRow(i).subList(0, modelSize);
 			int index = i - symbols.size();
 			mMap.put(modifiers.get(index),
 					new StandardFeatureArray<>(row, model)
@@ -334,38 +344,38 @@ public final class ModelGenerator<T> {
 		FeatureMapping<T> mapping = factory.getFeatureMapping();
 		Map<String, FeatureArray<T>> featureMap = mapping.getFeatureMap();
 		Map<String, FeatureArray<T>> modifierMap = mapping.getModifiers();
-		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append("\nSYMBOLS\n");
+		StringBuilder buffer = new StringBuilder(0x1000);
+		buffer.append("\nSYMBOLS\n");
 		for (Entry<String, FeatureArray<T>> entry : featureMap.entrySet()) {
 			String key = entry.getKey();
-			stringBuilder.append(key);
+			buffer.append(key);
 			for (T t : entry.getValue()) {
-				stringBuilder.append('\t').append(t);
+				buffer.append('\t').append(t);
 			}
-			stringBuilder.append('\n');
+			buffer.append('\n');
 		}
-		stringBuilder.append("\nMODIFIERS\n");
+		buffer.append("\nMODIFIERS\n");
 		for (Entry<String, FeatureArray<T>> entry : modifierMap.entrySet()) {
 			String key = entry.getKey();
-			stringBuilder.append(key);
+			buffer.append(key);
 			for (T t : entry.getValue()) {
-				stringBuilder.append('\t').append(t);
+				buffer.append('\t').append(t);
 			}
-			stringBuilder.append('\n');
+			buffer.append('\n');
 		}
-		handler.writeString(pathname + ".mapping", stringBuilder);
+		handler.writeString(pathname + ".mapping", buffer);
 	}
 
 	private static <T> void writeAlignments(FileHandler handler,
 			Iterable<Alignment<T>> testData, String pathName
 	) {
 		Path outputPath = new File(pathName + "-alignment").toPath();
-		StringBuilder outputBuffer = new StringBuilder();
+		StringBuilder buffer = new StringBuilder();
 		for (Alignment<T> testDatum : testData) {
 			String str = testDatum.toString();
-			outputBuffer.append(str).append('\n');
+			buffer.append(str).append('\n');
 		}
-		handler.writeString(outputPath.toString(), outputBuffer);
+		handler.writeString(outputPath.toString(), buffer);
 	}
 
 	@NotNull
@@ -396,8 +406,6 @@ public final class ModelGenerator<T> {
 			FeatureType<T> featureType, SequenceFactory<T> factory,
 			Genotype<G> genotype
 	) {
-		//		SimpleComparator<T> comparator = new SimpleComparator<>(featureType,
-		//				i->1.0/Math.sqrt(i+2));
 		Comparator<T> comparator = Utilities.getMatrixComparator(
 				new DiskFileHandler("UTF-8"), factory, Function.identity(),
 				MATRIX_PATH

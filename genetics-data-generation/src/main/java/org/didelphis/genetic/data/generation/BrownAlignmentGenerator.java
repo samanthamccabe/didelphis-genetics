@@ -17,7 +17,6 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Random;
@@ -25,10 +24,12 @@ import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static java.lang.Math.*;
+import static java.lang.Math.abs;
+import static java.lang.Math.random;
+import static java.lang.Math.round;
+import static java.lang.Math.toIntExact;
 
 /**
  * Created by samantha on 4/22/17.
@@ -66,15 +67,17 @@ public final class BrownAlignmentGenerator {
 
 	public static void main(String... args) {
 		int maxIterations = Integer.valueOf(args[0]);
-		String patternFile = args[1];
-		String dataFile = args[2];
-		String outputFile = args[3];
 
-		CharSequence input = HANDLER.read(patternFile);
-		List<Tuple<String, String>> patterns = NEWLINE.splitAsStream(input)
-				.filter(predicate -> !predicate.isEmpty())
-				.map(BrownAlignmentGenerator::splitTuple)
-				.collect(Collectors.toList());
+		String dataFile = args[1];
+		String outputFile = args[2];
+
+//		String patternFile = args[3];
+
+//		CharSequence input = HANDLER.read(patternFile);
+//		List<Tuple<String, String>> patterns = NEWLINE.splitAsStream(input)
+//				.filter(predicate -> !predicate.isEmpty())
+//				.map(BrownAlignmentGenerator::splitTuple)
+//				.collect(Collectors.toList());
 
 		//		TwoKeyMultiMap<String, String, Correspondence> map = loadMap(dataFile);
 		BrownAlignmentGenerator generator = new BrownAlignmentGenerator(dataFile);
@@ -96,8 +99,8 @@ public final class BrownAlignmentGenerator {
 		for (int i = 0; i < iterations; i++) {
 			int n = toIntExact(round(random() * (max - min) + min));
 
-			StringBuilder left = new StringBuilder();
-			StringBuilder right = new StringBuilder();
+			StringBuilder left = new StringBuilder("# ");
+			StringBuilder right = new StringBuilder("# ");
 
 			for (int j = 0; j < n; j++) {
 				Entry<Double, Correspondence> entry = treeMap.floorEntry(random());
