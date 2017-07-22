@@ -8,8 +8,6 @@ import org.didelphis.language.phonetic.features.IntegerFeature;
 import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
-import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.SingleAlignmentAlgorithm;
 import org.didelphis.genetics.alignment.common.Utilities;

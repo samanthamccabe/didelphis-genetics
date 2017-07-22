@@ -1,8 +1,8 @@
 package org.didelphis.genetics.alignment.correspondences;
 
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.structures.tuples.Twin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -14,12 +14,12 @@ import java.util.List;
  * Created: 8/17/2015
  */
 
-public class AlignmentContext extends Tuple<Alignment<Integer>,Alignment<Integer>> {
+public class AlignmentContext<T> extends Twin<Alignment<T>> {
 	
 	private static final int HASH_ID = 0x732a970b;
 	
-	public AlignmentContext(Alignment<Integer> a, Alignment<Integer> b) {
-		super(a,b);
+	public AlignmentContext(Alignment<T> pre, Alignment<T> post) {
+		super(pre, post);
 	}
 
 	@Override

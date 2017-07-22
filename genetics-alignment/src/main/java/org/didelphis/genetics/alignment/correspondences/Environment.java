@@ -3,7 +3,7 @@ package org.didelphis.genetics.alignment.correspondences;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.tuples.Tuple;
+import org.didelphis.structures.tuples.Twin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -13,9 +13,9 @@ import java.util.TreeSet;
 /**
  * Created by samantha on 9/20/15.
  */
-public class Environment<T> implements Iterable<Tuple<Sequence<T>, Sequence<T>>> {
+public class Environment<T> implements Iterable<Twin<Sequence<T>>> {
 
-	private final Collection<Tuple<Sequence<T>, Sequence<T>>> environment;
+	private final Collection<Twin<Sequence<T>>> environment;
 	private final SequenceFactory<T> factory;
 
 	public Environment(SequenceFactory<T> factoryParam) {
@@ -25,11 +25,11 @@ public class Environment<T> implements Iterable<Tuple<Sequence<T>, Sequence<T>>>
 
 	@NotNull
 	@Override
-	public Iterator<Tuple<Sequence<T>, Sequence<T>>> iterator() {
+	public Iterator<Twin<Sequence<T>>> iterator() {
 		return environment.iterator();
 	}
 
-	public void add(Tuple<Sequence<T>, Sequence<T>> tuple) {
+	public void add(Twin<Sequence<T>> tuple) {
 		environment.add(tuple);
 	}
 

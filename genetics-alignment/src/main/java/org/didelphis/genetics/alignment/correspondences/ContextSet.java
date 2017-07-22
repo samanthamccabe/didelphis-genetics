@@ -10,17 +10,17 @@ import java.util.Iterator;
  * @author Samantha Fiona McCabe
  * Created: 6/9/2015
  */
-public class ContextSet {
+public class ContextSet<T> {
 
-	private final Collection<AlignmentContext> environments;
+	private final Collection<AlignmentContext<T>> environments;
 	private int count;
 
 	public ContextSet() {
 		environments = new HashSet<>();
 	}
 
-	public void addContext(Alignment<Integer> ante, Alignment<Integer> post) {
-		environments.add(new AlignmentContext(ante, post));
+	public void addContext(Alignment<T> ante, Alignment<T> post) {
+		environments.add(new AlignmentContext<>(ante, post));
 	}
 
 	@Override
@@ -45,7 +45,7 @@ public class ContextSet {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 
-		Iterator<AlignmentContext> li = environments.iterator();
+		Iterator<AlignmentContext<T>> li = environments.iterator();
 		while (li.hasNext()) {
 			AlignmentContext context = li.next();
 			sb.append(context);

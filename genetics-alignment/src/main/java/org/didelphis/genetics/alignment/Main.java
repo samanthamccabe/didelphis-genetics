@@ -1,7 +1,6 @@
 package org.didelphis.genetics.alignment;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
@@ -14,7 +13,6 @@ import org.didelphis.genetics.alignment.correspondences.ContextPair;
 import org.didelphis.genetics.alignment.correspondences.PairCorrespondenceSet;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
-import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConvexGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.io.DiskFileHandler;
@@ -28,7 +26,6 @@ import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.maps.GeneralMultiMap;
-import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tuples.Tuple;
@@ -186,10 +183,10 @@ public final class Main {
 					Context<Segment<Integer>> lContext = pair.getLeft();
 					Context<Segment<Integer>> rContext = pair.getRight();
 
-					Segment<Integer> lA = lContext.getAnte();
-					Segment<Integer> lP = lContext.getPost();
-					Segment<Integer> rA = rContext.getAnte();
-					Segment<Integer> rP = rContext.getPost();
+					Segment<Integer> lA = lContext.getLeft();
+					Segment<Integer> lP = lContext.getRight();
+					Segment<Integer> rA = rContext.getLeft();
+					Segment<Integer> rP = rContext.getRight();
 
 					try {
 						writer.write(lA.toString());

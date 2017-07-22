@@ -6,6 +6,7 @@ import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tuples.Tuple;
+import org.didelphis.structures.tuples.Twin;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -43,7 +44,7 @@ public class EnvironmentMap<T> {
 	public final void add(Segment<T> segment, Sequence<T> head, Sequence<T> tail) {
 		BasicSequence<T> nHead = new BasicSequence<>(head);
 		BasicSequence<T> nTail = new BasicSequence<>(tail);
-		Tuple<Sequence<T>, Sequence<T>> tuple = new Tuple<>(nHead, nTail);
+		Twin<Sequence<T>> tuple = new Twin<>(nHead, nTail);
 		if (environments.containsKey(segment)) {
 			Environment<T> tuples = environments.get(segment);
 			tuples.add(tuple);

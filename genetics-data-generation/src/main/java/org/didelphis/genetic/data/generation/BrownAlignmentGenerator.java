@@ -6,8 +6,10 @@ import org.didelphis.structures.maps.GeneralMultiMap;
 import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
+import org.didelphis.structures.tuples.Couple;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.structures.tuples.Tuple;
+import org.didelphis.structures.tuples.Twin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedWriter;
@@ -21,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
@@ -40,11 +43,21 @@ public final class BrownAlignmentGenerator {
 	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
 	private static final Random RANDOM = new Random();
 
+	private final double generaBias;
+	private final double gapBias;
+
 	private final TwoKeyMultiMap<String, String, Correspondence> stkm;
 	private final NavigableMap<Double, Correspondence> treeMap;
 
 	public BrownAlignmentGenerator(String correspondencePath) {
-		stkm = loadMap(correspondencePath);
+		this(correspondencePath, 1.0, 1.0);
+	}
+
+	public BrownAlignmentGenerator(String correspondencePath, double generaBias, double gapBias) {
+		this.generaBias = generaBias;
+		this.gapBias = gapBias;
+
+		stkm = load(correspondencePath);
 		treeMap = new TreeMap<>();
 		double sum = StreamSupport.stream(stkm.spliterator(), true)
 				.mapToDouble(BrownAlignmentGenerator::sum)
@@ -59,8 +72,8 @@ public final class BrownAlignmentGenerator {
 		}
 	}
 
-	public double put(Correspondence crs, double sum, double last) {
-		double percentage = crs.getPercentage() / sum + last;
+	private double put(Correspondence crs, double sum, double last) {
+		double percentage = crs.getScore() / sum + last;
 		treeMap.put(percentage, crs);
 		return percentage;
 	}
@@ -71,19 +84,10 @@ public final class BrownAlignmentGenerator {
 		String dataFile = args[1];
 		String outputFile = args[2];
 
-//		String patternFile = args[3];
-
-//		CharSequence input = HANDLER.read(patternFile);
-//		List<Tuple<String, String>> patterns = NEWLINE.splitAsStream(input)
-//				.filter(predicate -> !predicate.isEmpty())
-//				.map(BrownAlignmentGenerator::splitTuple)
-//				.collect(Collectors.toList());
-
-		//		TwoKeyMultiMap<String, String, Correspondence> map = loadMap(dataFile);
-		BrownAlignmentGenerator generator = new BrownAlignmentGenerator(dataFile);
+		BrownAlignmentGenerator generator = new BrownAlignmentGenerator(dataFile, 1.0, 3.0);
 
 //		String string = generator.generate(patterns, maxIterations);
-		String string = generator.generate(3, 10, 1000);
+		String string = generator.generate(3, 10, maxIterations);
 		try (Writer fileWriter = new BufferedWriter(
 				new FileWriter(outputFile))) {
 			fileWriter.write(string);
@@ -91,17 +95,11 @@ public final class BrownAlignmentGenerator {
 		}
 	}
 
-	public String generate(int min, int max, int iterations) {
-		StringBuilder stringBuilder = new StringBuilder(iterations * (min + max) / 2);
-
-		stringBuilder.append("A\tB\n");
-
-		for (int i = 0; i < iterations; i++) {
+	public Supplier<Tuple<String, String>> supplier(int min, int max) {
+		return () -> {
 			int n = toIntExact(round(random() * (max - min) + min));
-
 			StringBuilder left = new StringBuilder("# ");
 			StringBuilder right = new StringBuilder("# ");
-
 			for (int j = 0; j < n; j++) {
 				Entry<Double, Correspondence> entry = treeMap.floorEntry(random());
 				while (entry == null) {
@@ -111,7 +109,19 @@ public final class BrownAlignmentGenerator {
 				left.append(value.getLeftSymbol()).append(' ');
 				right.append(value.getRightSymbol()).append(' ');
 			}
-			stringBuilder.append(left).append('\t').append(right).append('\n');
+			return new Twin<>(left.toString(), right.toString());
+		};
+	}
+
+	public String generate(int min, int max, int iterations) {
+		StringBuilder stringBuilder = new StringBuilder(iterations * (min + max) / 2);
+		Supplier<Tuple<String, String>> supplier = supplier(min, max);
+		stringBuilder.append("A\tB\n");
+		for (int i = 0; i < iterations; i++) {
+			Tuple<String, String> tuple = supplier.get();
+			stringBuilder
+					.append(tuple.getLeft()).append('\t')
+					.append(tuple.getRight()).append('\n');
 		}
 		return stringBuilder.toString();
 	}
@@ -142,7 +152,7 @@ public final class BrownAlignmentGenerator {
 
 				List<Correspondence> list = new ArrayList<>(stkm.get(k1, k2));
 				List<Double> percentages = list.stream()
-						.map(Correspondence::getPercentage)
+						.map(Correspondence::getScore)
 						.collect(Collectors.toList());
 
 				int pIndex = rouletteSelect(percentages);
@@ -169,12 +179,12 @@ public final class BrownAlignmentGenerator {
 			@NotNull Triple<?, ?, Collection<Correspondence>> triple
 	) {
 		return triple.getThirdElement().parallelStream()
-				.mapToDouble(Correspondence::getPercentage);
+				.mapToDouble(Correspondence::getScore);
 	}
 
 	private static Tuple<String, String> splitTuple(String line) {
 		String[] strings = line.split("\t");
-		return new Tuple<>(strings[0], strings[1]);
+		return new Couple<>(strings[0], strings[1]);
 	}
 
 	private static int rouletteSelect(List<Double> weight) {
@@ -203,20 +213,18 @@ public final class BrownAlignmentGenerator {
 		return abs(RANDOM.nextInt() % size);
 	}
 
-	private static TwoKeyMultiMap<String, String, Correspondence> loadMap(
-			String dataFile) {
-
+	private TwoKeyMultiMap<String, String, Correspondence> load(String path) {
 		MultiMap<String, String> classToValue = new GeneralMultiMap<>();
 		TwoKeyMultiMap<String, String, Correspondence> map =
 				new GeneralTwoKeyMultiMap<>();
-		NEWLINE.splitAsStream(HANDLER.read(dataFile))
+		NEWLINE.splitAsStream(HANDLER.read(path))
 				.skip(1)
 				.filter(predicate -> !predicate.isEmpty())
 				.forEach(item -> {
 					String[] strings = item.split("\t");
 
-					String classLeft = strings[0];
-					String classRight = strings[1];
+					String typeLeft = strings[0];
+					String typeRight = strings[1];
 
 					String left = strings[2];
 					String right = strings[3];
@@ -224,30 +232,32 @@ public final class BrownAlignmentGenerator {
 					int count = Integer.valueOf(strings[4]);
 					double percent = Double.valueOf(strings[5]);
 
-					if (checkVC(classLeft) && checkVC(classRight) && count >= 10) {
-						classToValue.add(classLeft, left);
-						classToValue.add(classRight, right);
+					if (check(typeLeft,typeRight)) {
+						classToValue.add(typeLeft, left);
+						classToValue.add(typeRight, right);
 					}
 
-					map.add(classLeft, classRight,
-					        new Correspondence(left, right, count, percent));
-					map.add(classRight, classLeft,
-					        new Correspondence(right, left, count, percent));
+					boolean isGap = left.equals("Ø") || right.equals("Ø");
+					double score = (count * (generaBias > 0 ? generaBias : 1.0))
+							* (isGap ? gapBias : 1.0) * percent;
+
+					map.add(typeLeft, typeRight,
+					        new Correspondence(left, right, score));
+					map.add(typeRight, typeLeft,
+					        new Correspondence(right, left, score));
 				});
 
 		classToValue.iterator().forEachRemaining(tuple -> {
 			Iterable<String> symbols = tuple.getRight();
-			String classLabel = tuple.getLeft();
-			symbols.forEach(symbol -> {
-				Correspondence correspondence =
-						new Correspondence(symbol, symbol, 100, 100);
-				map.add(classLabel, classLabel, correspondence);
-			});
+			String label = tuple.getLeft();
+			symbols.forEach(s -> map.add(label, label,
+					new Correspondence(s, s, 100)));
 		});
 		return map;
 	}
 
-	private static boolean checkVC(String classLeft) {
-		return classLeft.equals("C") || classLeft.equals("V");
+	private static boolean check(String left, String right) {
+		return (left.equals("C") || left.equals("V")) &&
+				(right.equals("C") || right.equals("V"));
 	}
 }

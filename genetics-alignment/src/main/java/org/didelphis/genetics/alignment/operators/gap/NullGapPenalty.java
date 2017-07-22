@@ -1,8 +1,6 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
-import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Samantha Fiona McCabe

@@ -47,11 +47,11 @@ public class CorrespondenceSet<T> {
 	}
 
 
-	public ContextSet remove(List<Segment<?>> list) {
+	public ContextSet remove(List<Segment<T>> list) {
 		return countMap.remove(list);
 	}
 
-	public void addAlignment(Alignment<?> alignment) {
+	public void addAlignment(Alignment<T> alignment) {
 
 		if (alignment.rows() == 0) {
 			return;

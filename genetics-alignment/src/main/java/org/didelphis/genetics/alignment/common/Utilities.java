@@ -43,6 +43,7 @@ import static java.util.Arrays.stream;
  */
 public final class Utilities {
 
+	private static final Pattern COMPILE = Pattern.compile(" +");
 	//
 	public static final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public static final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
@@ -133,7 +134,7 @@ public final class Utilities {
 					String word = table.get(i, j);
 					String s = transformer.apply(word);
 					Sequence<T> segments = new BasicSequence<>(model);
-					for (String s1 : s.split(" ")) {
+					for (String s1 : COMPILE.split(s)) {
 						segments.add(factory.getSegment(s1));
 					}
 					list.add(segments);
@@ -170,7 +171,6 @@ public final class Utilities {
 		}
 		return alignments;
 	}
-
 
 	public static String formatStrings(Iterable<String> strings) {
 		StringBuilder sb = new StringBuilder();

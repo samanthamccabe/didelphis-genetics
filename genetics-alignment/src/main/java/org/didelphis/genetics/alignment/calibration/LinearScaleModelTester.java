@@ -1,15 +1,5 @@
 package org.didelphis.genetics.alignment.calibration;
 
-import org.didelphis.genetics.alignment.common.StringTransformer;
-import org.didelphis.io.ClassPathFileHandler;
-import org.didelphis.language.parsing.FormatterMode;
-import org.didelphis.language.phonetic.SequenceFactory;
-import org.didelphis.language.phonetic.features.FeatureType;
-import org.didelphis.language.phonetic.features.IntegerFeature;
-import org.didelphis.language.phonetic.model.FeatureMapping;
-import org.didelphis.language.phonetic.model.FeatureModelLoader;
-import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.SingleAlignmentAlgorithm;
 import org.didelphis.genetics.alignment.common.Utilities;
@@ -18,6 +8,14 @@ import org.didelphis.genetics.alignment.operators.comparators.LinearWeightCompar
 import org.didelphis.genetics.alignment.operators.comparators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConstantGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
+import org.didelphis.io.ClassPathFileHandler;
+import org.didelphis.language.parsing.FormatterMode;
+import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.features.FeatureType;
+import org.didelphis.language.phonetic.features.IntegerFeature;
+import org.didelphis.language.phonetic.model.FeatureMapping;
+import org.didelphis.language.phonetic.model.FeatureModelLoader;
+import org.didelphis.language.phonetic.sequences.Sequence;
 
 import java.io.BufferedWriter;
 import java.io.File;

@@ -89,7 +89,7 @@ public final class ModelGenerator<T> {
 	private static final double CUTOFF = 1.0;
 	private static final Pattern COMPILE = Pattern.compile("⬚");
 	private static final UnaryOperator<String> DELETE_GAP
-			= s -> COMPILE.matcher(s).replaceAll("");
+			= s -> Pattern.compile("⬚").matcher(s).replaceAll("");
 	private static final int ITERATIONS = 200;
 	private static final String MATRIX_PATH = "brown.utx";
 	private static final Function<String, String> TRANSFORMER
@@ -156,11 +156,11 @@ public final class ModelGenerator<T> {
 
 		FeatureType<Double> featureType = DoubleFeature.INSTANCE;
 
-		String correspondenceDataPath
-				= "/home/samantha/Downloads/data/brown_correspondences.csv";
+		String correspondenceDataPath = "/home/samantha/Downloads/data/" +
+				"brown_correspondences.csv";
 
 		BrownAlignmentGenerator brownAlignmentGenerator
-				= new BrownAlignmentGenerator(correspondenceDataPath);
+				= new BrownAlignmentGenerator(correspondenceDataPath, 1.0, 2.0);
 		ModelGenerator<Double> generator = new ModelGenerator<>(featureType,
 				handler, brownAlignmentGenerator, features, symbols, modifiers
 		);

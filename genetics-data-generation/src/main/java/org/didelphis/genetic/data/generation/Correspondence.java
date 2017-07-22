@@ -7,14 +7,12 @@ public final class Correspondence {
 
 	private final String leftSymbol;
 	private final String rightSymbol;
-	private final int numberOfGenera;
-	private final double percentage;
+	private final double score;
 	
-	public Correspondence(String left, String right, int genera, double percentage) {
+	public Correspondence(String left, String right, double score) {
 		leftSymbol = left;
 		rightSymbol = right;
-		numberOfGenera = genera;
-		this.percentage = percentage;
+		this.score = score;
 	}
 
 	public String getLeftSymbol() {
@@ -25,18 +23,12 @@ public final class Correspondence {
 		return rightSymbol;
 	}
 
-	public int getNumberOfGenera() {
-		return numberOfGenera;
-	}
-
-	public double getPercentage() {
-		return percentage;
+	public double getScore() {
+		return score;
 	}
 	
 	@Override
 	public String toString() {
-		return leftSymbol + '\t' + rightSymbol +
-		       '\t' + numberOfGenera +
-		       '\t' + percentage;
+		return leftSymbol + '\t' + rightSymbol + '\t' + score;
 	}
 }

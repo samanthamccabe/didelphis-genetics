@@ -7,9 +7,6 @@ import org.didelphis.language.parsing.FormatterMode;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.BinaryFeature;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
-import org.didelphis.structures.maps.GeneralTwoKeyMap;
-import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
-import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

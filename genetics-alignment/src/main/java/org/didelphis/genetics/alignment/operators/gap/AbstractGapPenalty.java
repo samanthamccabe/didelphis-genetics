@@ -2,10 +2,7 @@ package org.didelphis.genetics.alignment.operators.gap;
 
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
-
-import java.util.List;
 
 /**
  * @author Samantha Fiona McCabe

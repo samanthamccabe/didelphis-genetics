@@ -3,7 +3,6 @@ package org.didelphis.genetics.alignment.common;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 

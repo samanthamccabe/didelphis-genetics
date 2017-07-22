@@ -1,6 +1,5 @@
 package org.didelphis.genetics.learning;
 
-import org.jenetics.Gene;
 import org.jenetics.Phenotype;
 import org.jenetics.engine.EvolutionResult;
 
