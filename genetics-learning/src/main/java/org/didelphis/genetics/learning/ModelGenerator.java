@@ -1,14 +1,26 @@
 package org.didelphis.genetics.learning;
 
+import io.jenetics.Chromosome;
+import io.jenetics.DoubleChromosome;
+import io.jenetics.DoubleGene;
+import io.jenetics.Gene;
+import io.jenetics.Genotype;
+import io.jenetics.Mutator;
+import io.jenetics.Phenotype;
+import io.jenetics.SinglePointCrossover;
+import io.jenetics.StochasticUniversalSelector;
+import io.jenetics.engine.Engine;
+import io.jenetics.engine.EvolutionResult;
+import io.jenetics.engine.EvolutionStatistics;
+import lombok.ToString;
 import org.didelphis.genetic.data.generation.BrownAlignmentGenerator;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.Optimization;
 import org.didelphis.genetics.alignment.common.StringTransformer;
-import org.didelphis.genetics.alignment.common.Utilities;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConstantGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.io.DiskFileHandler;
@@ -20,26 +32,18 @@ import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.StandardFeatureArray;
 import org.didelphis.language.phonetic.model.DefaultFeatureSpecification;
+import org.didelphis.language.phonetic.model.EmptyFeatureSpecification;
 import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.model.GeneralFeatureMapping;
 import org.didelphis.language.phonetic.model.GeneralFeatureModel;
+import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.Table;
-import org.jenetics.Chromosome;
-import org.jenetics.DoubleChromosome;
-import org.jenetics.DoubleGene;
-import org.jenetics.Gene;
-import org.jenetics.Genotype;
-import org.jenetics.Mutator;
-import org.jenetics.Phenotype;
-import org.jenetics.SinglePointCrossover;
-import org.jenetics.StochasticUniversalSelector;
-import org.jenetics.engine.Engine;
-import org.jenetics.engine.EvolutionResult;
-import org.jenetics.engine.EvolutionStatistics;
+import org.didelphis.structures.tuples.Triple;
 import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 
@@ -63,13 +67,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.jenetics.engine.EvolutionResult.toBestPhenotype;
+import static io.jenetics.engine.Limits.bySteadyFitness;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static org.didelphis.genetics.alignment.common.Utilities.loadTable;
 import static org.didelphis.genetics.alignment.common.Utilities.toAlignments;
 import static org.didelphis.genetics.alignment.common.Utilities.toPhoneticTable;
 import static org.didelphis.genetics.alignment.common.Utilities.toTable;
-import static org.jenetics.engine.EvolutionResult.toBestPhenotype;
-import static org.jenetics.engine.limit.bySteadyFitness;
 
 /**
  * Class {@code ModelGenerator}
@@ -77,33 +81,30 @@ import static org.jenetics.engine.limit.bySteadyFitness;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-28
  */
-@SuppressWarnings({"unused",
-		"UseOfSystemOutOrSystemErr",
-		"TooBroadScope",
-		"FieldCanBeLocal"})
+@ToString
 public final class ModelGenerator<T> {
 	private static final Pattern SPACE = Pattern.compile("\\s+");
 	private static final String DATE_FORMAT = "yyyy-MM-dd/HH-mm-ss";
 	private static final Pattern EXTENSION = Pattern.compile("\\.[^.]+$");
 
 	private static final double CUTOFF = 1.0;
-	private static final Pattern COMPILE = Pattern.compile("⬚");
-	private static final UnaryOperator<String> DELETE_GAP
-			= s -> Pattern.compile("⬚").matcher(s).replaceAll("");
 	private static final int ITERATIONS = 200;
 	private static final String MATRIX_PATH = "brown.utx";
+
 	private static final Function<String, String> TRANSFORMER
 			= new StringTransformer("Ø >> ⬚");
+	private static final UnaryOperator<String> DELETE_GAP
+			= s -> Pattern.compile("⬚").matcher(s).replaceAll("");
 
 	private final FileHandler handler;
 	private final int features;
 	private final List<String> symbols;
 	private final List<String> modifiers;
-	private final BrownAlignmentGenerator alignmentGenerator;
+	private final BrownAlignmentGenerator generator;
 	private final FeatureType<T> featureType;
 
 	private ModelGenerator(FeatureType<T> featureType, FileHandler handler,
-			BrownAlignmentGenerator alignmentGenerator, int features,
+			BrownAlignmentGenerator generator, int features,
 			List<String> symbols, List<String> modifiers
 	) {
 		this.featureType = featureType;
@@ -119,7 +120,7 @@ public final class ModelGenerator<T> {
 		//			}
 		//		}
 
-		this.alignmentGenerator = alignmentGenerator;
+		this.generator = generator;
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -143,7 +144,7 @@ public final class ModelGenerator<T> {
 		BufferedWriter logWriter = Files.newBufferedWriter(logPath, CREATE);
 
 		DecimalFormat formatter = new DecimalFormat("#.0000");
-		Consumer<EvolutionResult<?, Double>> tracker = new StatsTracker<>(1,
+		Consumer<EvolutionResult<?, Double>> tracker = new StatsTracker(1,
 				logWriter, formatter
 		);
 
@@ -160,7 +161,7 @@ public final class ModelGenerator<T> {
 				"brown_correspondences.csv";
 
 		BrownAlignmentGenerator brownAlignmentGenerator
-				= new BrownAlignmentGenerator(correspondenceDataPath, 1.0, 2.0);
+				= new BrownAlignmentGenerator(correspondenceDataPath, 0.0, 0.5);
 		ModelGenerator<Double> generator = new ModelGenerator<>(featureType,
 				handler, brownAlignmentGenerator, features, symbols, modifiers
 		);
@@ -168,7 +169,7 @@ public final class ModelGenerator<T> {
 		int numberOfSymbols = symbols.size() + modifiers.size();
 
 		Engine<DoubleGene, Double> engine = Engine.builder(generator::fitness,
-				DoubleChromosome.of(-50, 100)
+				DoubleChromosome.of(-200, 200)
 		)
 				.populationSize(100)
 				.selector(new StochasticUniversalSelector<>())
@@ -216,34 +217,29 @@ public final class ModelGenerator<T> {
 			ColumnTable<String> table,
 			Genotype<G> genotype
 	) {
-
 		SequenceFactory<T> factory = toFactory(genotype);
-		AlignmentAlgorithm<T> algorithm = toAlgorithm(featureType, factory,
-				genotype
-		);
-
+		AlignmentAlgorithm<T> algorithm = toAlgorithm(factory, genotype);
 		//noinspection DynamicRegexReplaceableByCompiledPattern
 		ColumnTable<Sequence<T>> testWords = toPhoneticTable(table, factory,
 				DELETE_GAP
 		);
-
 		List<Alignment<T>> testData = doAlignment(algorithm, testWords);
-
 		writeAlignments(handler, testData, outputPath);
 		writeMapping(handler, factory, outputPath);
 	}
 
-	private BrownAlignmentGenerator getAlignmentGenerator() {
-		return alignmentGenerator;
+	private BrownAlignmentGenerator getGenerator() {
+		return generator;
 	}
 
 	private <G extends Gene<T, G>> Double fitness(Genotype<G> genotype) {
 		SequenceFactory<T> factory = toFactory(genotype);
-		AlignmentAlgorithm<T> algorithm = toAlgorithm(featureType, factory,
+
+		AlignmentAlgorithm<T> algorithm = toAlgorithm(factory,
 				genotype
 		);
 
-		BrownAlignmentGenerator alignmentGenerator = getAlignmentGenerator();
+		BrownAlignmentGenerator alignmentGenerator = getGenerator();
 
 		String generate = alignmentGenerator.generate(3, 10, ITERATIONS);
 
@@ -286,7 +282,7 @@ public final class ModelGenerator<T> {
 		*/
 
 		GeneralFeatureModel<T> model = new GeneralFeatureModel<>(featureType,
-				DefaultFeatureSpecification.EMPTY, Collections.emptyList(),
+				EmptyFeatureSpecification.INSTANCE, Collections.emptyList(),
 				Collections.emptyMap()
 		);
 
@@ -385,7 +381,7 @@ public final class ModelGenerator<T> {
 		List<Alignment<T>> testsData = new ArrayList<>(testWords.size());
 		for (int i = 0; i < testWords.rows(); i++) {
 			List<Sequence<T>> row = testWords.getRow(i);
-			AlignmentResult<T> alignmentResult = algorithm.getAlignment(row);
+			AlignmentResult<T> alignmentResult = algorithm.apply(row);
 			List<Alignment<T>> alignment = alignmentResult.getAlignments();
 			testsData.add(alignment.get(0));
 		}
@@ -402,23 +398,32 @@ public final class ModelGenerator<T> {
 	}
 
 	@NotNull
-	private static <T, G extends Gene<T, G>> AlignmentAlgorithm<T> toAlgorithm(
-			FeatureType<T> featureType, SequenceFactory<T> factory,
+	private <G extends Gene<T, G>> AlignmentAlgorithm<T> toAlgorithm(
+			SequenceFactory<T> factory,
 			Genotype<G> genotype
 	) {
-		Comparator<T> comparator = Utilities.getMatrixComparator(
-				new DiskFileHandler("UTF-8"), factory, Function.identity(),
-				MATRIX_PATH
-		);
+//		Comparator<T> comparator = Utilities.loadMatrixComparator(
+//				new DiskFileHandler("UTF-8"), factory, Function.identity(),
+//				MATRIX_PATH
+//		);
 
-		Chromosome<G> chromosome = genotype.getChromosome(0);
-		double gap1 = featureType.doubleValue(
-				chromosome.getGene(0).getAllele());
+		SymmetricalTwoKeyMap<Segment<T>, Double> scores = new SymmetricalTwoKeyMap<>();
+		for (Triple<String, String, Double> triple : generator.getScores()) {
+			scores.put(
+					factory.toSegment(triple.getFirstElement()),
+					factory.toSegment(triple.getSecondElement()),
+					triple.getThirdElement());
+		}
+
+		BrownEtAlComparator<T> comparator = new BrownEtAlComparator<>(scores);
+
+		Chromosome<G> ch = genotype.getChromosome(0);
+		double gap1 = featureType.doubleValue(ch.getGene(0).getAllele());
 		//		Integer gap2 = chromosome.getGene(1).getAllele();
 		GapPenalty<T> penalty = new ConstantGapPenalty<>(
-				factory.getSequence("⬚"), gap1);
-		//		GapPenalty<T> penalty = new ConvexGapPenalty<>(factory.getSequence("⬚"), gap1, gap2);
-		return new NeedlemanWunschAlgorithm<>(comparator, Optimization.MIN,
+				factory.toSequence("⬚"), gap1);
+		//		GapPenalty<T> penalty = new ConvexGapPenalty<>(factory.toSequence("⬚"), gap1, gap2);
+		return new NeedlemanWunschAlgorithm<>(comparator, BaseOptimization.MIN,
 				penalty, factory
 		);
 	}

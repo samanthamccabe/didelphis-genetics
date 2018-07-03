@@ -19,7 +19,7 @@ public class ConvexGapPenalty<T> extends AbstractGapPenalty<T> {
 	}
 
 	@Override
-	public double evaluate(int currentGapLength) {
-		return currentGapLength==0 ? openPenalty : extensionPenalty;
+	public double applyAsDouble(int value) {
+		return value == 0 ? openPenalty : extensionPenalty;
 	}
 }

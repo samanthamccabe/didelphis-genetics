@@ -1,5 +1,6 @@
 package org.didelphis.genetics.alignment.common;
 
+import lombok.experimental.UtilityClass;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
 import org.didelphis.genetics.alignment.operators.Comparator;
@@ -17,10 +18,9 @@ import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.DataTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
-import org.didelphis.utilities.Split;
+import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -38,29 +38,29 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 
 /**
- * @author Samantha Fiona McCabe
- * Created: 6/6/2015
+ * @author Samantha Fiona McCabe Created: 6/6/2015
  */
+@UtilityClass
 public final class Utilities {
 
-	private static final Pattern COMPILE = Pattern.compile(" +");
+	private final Pattern SPACE = Pattern.compile("\\s+");
 	//
-	public static final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
-	public static final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
+	public final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
+	public final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
 
-	private static final Pattern PATTERN = Pattern.compile("\n|\r?\n");
-
-	private Utilities() {
-	}
+	private final Pattern PATTERN = Pattern.compile("\n|\r?\n");
 
 	@NotNull
-	public static ColumnTable<String> loadTable(String path) {
+	public ColumnTable<String> loadTable(String path) {
 		return loadTable(path, Function.identity());
 	}
 
 	@NotNull
-	public static ColumnTable<String> toTable(CharSequence payload, Function<String,String> transformer) {
-		List<String> lines = stream(PATTERN.split(payload)).collect(Collectors.toList());
+	public ColumnTable<String> toTable(
+			CharSequence payload, Function<String, String> transformer
+	) {
+		List<String> lines
+				= stream(PATTERN.split(payload)).collect(Collectors.toList());
 		if (!lines.isEmpty()) {
 			List<String> keys = asList(lines.remove(0).split("\t", -1));
 			int numCol = keys.size();
@@ -75,12 +75,15 @@ public final class Utilities {
 			}
 			return new DataTable<>(keys, table);
 		}
-		throw new ParseException("Unable to read table, payload was empty", payload.toString());
+		throw new ParseException("Unable to read table, payload was empty",
+				payload.toString()
+		);
 	}
 
 	@NotNull
-	public static ColumnTable<String> loadTable(String path,
-			Function<String, String> transformer) {
+	public ColumnTable<String> loadTable(
+			String path, Function<String, String> transformer
+	) {
 		FileHandler handler = new DiskFileHandler("UTF-8");
 		CharSequence chars = handler.read(path);
 		if (chars.length() == 0) {
@@ -92,29 +95,34 @@ public final class Utilities {
 		}
 	}
 
-	public static <T> ColumnTable<Sequence<T>> toPhoneticTable(
+	public <T> ColumnTable<Sequence<T>> toPhoneticTable(
 			ColumnTable<String> table,
 			SequenceFactory<T> factory,
-			Function<String, String> transformer) {
-		return toPhoneticTable(table, factory, transformer, Collections.emptyList());
+			Function<String, String> transformer
+	) {
+		return toPhoneticTable(table,
+				factory,
+				transformer,
+				Collections.emptyList()
+		);
 	}
 
 	/**
 	 * Converts some columns from a {@link String}-based table into a {@link
 	 * Sequence}-based one
 	 *
-	 * @param file the {@link File} to read data from
 	 * @param factory a {@link SequenceFactory}
 	 * @param transformer a {@link StringTransformer} to process the data and
-	 * clean or apply it.
+	 * 		clean or apply it.
 	 * @param keys the columns to be selected for conversion
 	 * @return a new DataTable representing the columns with cognate data
 	 */
-	public static <T> ColumnTable<Sequence<T>> toPhoneticTable(
+	public <T> ColumnTable<Sequence<T>> toPhoneticTable(
 			ColumnTable<String> table,
 			SequenceFactory<T> factory,
 			Function<String, String> transformer,
-			List<String> keys) {
+			List<String> keys
+	) {
 		List<String> keyList = (keys.isEmpty()) ? table.getKeys() : keys;
 		Collection<Integer> indices = new HashSet<>();
 		int k = 0;
@@ -134,8 +142,8 @@ public final class Utilities {
 					String word = table.get(i, j);
 					String s = transformer.apply(word);
 					Sequence<T> segments = new BasicSequence<>(model);
-					for (String s1 : COMPILE.split(s)) {
-						segments.add(factory.getSegment(s1));
+					for (String s1 : SPACE.split(s)) {
+						segments.add(factory.toSegment(s1));
 					}
 					list.add(segments);
 				}
@@ -145,25 +153,32 @@ public final class Utilities {
 		return new DataTable<>(keyList, lists);
 	}
 
-	public static <T> Comparator<T> getMatrixComparator(FileHandler handler,
+	public <T> Comparator<T> loadMatrixComparator(
+			FileHandler handler,
 			SequenceFactory<T> factory,
 			Function<String, String> transformer,
-			String matrixPath) {
-		SymmetricalTwoKeyMap<Segment<T>, Double> map = new SymmetricalTwoKeyMap<>();
-		for (String line : Split.splitLines(handler.read(matrixPath))) {
+			String matrixPath
+	) {
+		SymmetricalTwoKeyMap<Segment<T>, Double> map
+				= new SymmetricalTwoKeyMap<>();
+		for (String line : Splitter.lines(handler.read(matrixPath))) {
 			String[] matcher = line.split("\t");
 			String s1 = matcher[0];
 			String s2 = matcher[1];
-			map.put(factory.getSegment(s1 == null ? "" : transformer.apply(s1)),
-					factory.getSegment(s2 == null ? "" : transformer.apply(s2)),
-					Double.parseDouble(matcher[2]));
+			map.put(
+					factory.toSegment(s1 == null ? "" : transformer.apply(s1)),
+					factory.toSegment(s2 == null ? "" : transformer.apply(s2)),
+					Double.parseDouble(matcher[2])
+			);
 		}
 		return new BrownEtAlComparator<>(map);
 	}
 
-	public static <T> List<Alignment<T>> toAlignments(Table<Sequence<T>> table,
-			SequenceFactory<T> factory) {
-		FeatureModel<T> featureModel = factory.getFeatureMapping().getFeatureModel();
+	public <T> List<Alignment<T>> toAlignments(
+			Table<Sequence<T>> table, SequenceFactory<T> factory
+	) {
+		FeatureModel<T> featureModel = factory.getFeatureMapping()
+				.getFeatureModel();
 		List<Alignment<T>> alignments = new ArrayList<>();
 		for (int i = 0; i < table.rows(); i++) {
 			List<Sequence<T>> row = table.getRow(i);
@@ -172,7 +187,7 @@ public final class Utilities {
 		return alignments;
 	}
 
-	public static String formatStrings(Iterable<String> strings) {
+	public String formatStrings(Iterable<String> strings) {
 		StringBuilder sb = new StringBuilder();
 		for (String string : strings) {
 			sb.append(string);
@@ -181,15 +196,15 @@ public final class Utilities {
 		return sb.toString();
 	}
 
-	public static String format(Iterable<Double> weights) {
+	public String format(Iterable<Double> weights) {
 		StringBuilder sb = new StringBuilder();
 
 		for (Double value : weights) {
 			String format = FORMAT_SHORT.format(value);
-			if (!format.startsWith("-")) {
-				sb.append(' ').append(format);
-			} else {
+			if (format.startsWith("-")) {
 				sb.append(format);
+			} else {
+				sb.append(' ').append(format);
 			}
 			sb.append(' ');
 		}
@@ -197,9 +212,9 @@ public final class Utilities {
 		return sb.toString();
 	}
 
-	public static <T> Map<String, EnvironmentMap<T>> computeEnvironments(
-			SequenceFactory<T> factory,
-			ColumnTable<Sequence<T>> data) {
+	public <T> Map<String, EnvironmentMap<T>> computeEnvironments(
+			SequenceFactory<T> factory, ColumnTable<Sequence<T>> data
+	) {
 		Map<String, EnvironmentMap<T>> environments = new HashMap<>();
 		for (String key : data.getKeys()) {
 			List<Sequence<T>> column = data.getColumn(key);
@@ -209,10 +224,13 @@ public final class Utilities {
 		return environments;
 	}
 
-	public static <T> void getTupleDistances(Comparator<T> comparator,
+	public <T> void getTupleDistances(
+			Comparator<T> comparator,
 			Sequence<T> gap,
 			Iterable<Tuple<Sequence<T>, Sequence<T>>> tuples,
-			Table<Double> distancesRight, Table<Double> distancesLeft) {
+			Table<Double> distancesRight,
+			Table<Double> distancesLeft
+	) {
 		int i = 0;
 		for (Tuple<Sequence<T>, Sequence<T>> t1 : tuples) {
 			int j = 0;
@@ -223,20 +241,26 @@ public final class Utilities {
 		}
 	}
 
-	private static <T> double getD(Comparator<T> comparator, Sequence<T> gap, Sequence<T> a, Sequence<T> b) {
+	private <T> double getD(
+			Comparator<T> comparator,
+			Sequence<T> gap,
+			Sequence<T> q1,
+			Sequence<T> q2
+	) {
 		double d = 0.0;
-		if (!(a.isEmpty() || b.isEmpty())) {
-			d += comparator.apply(a, b, 0,0);
-		} else if (a.isEmpty() && !b.isEmpty()) {
-			d += comparator.apply(gap, b, 0, 0);
-		} else if (!a.isEmpty()) {
-			d += comparator.apply(a, gap, 0, 0);
+		if (!(q1.isEmpty() || q2.isEmpty())) {
+			d += comparator.apply(q1, q2, 0, 0);
+		} else if (q1.isEmpty() && !q2.isEmpty()) {
+			d += comparator.apply(gap, q2, 0, 0);
+		} else if (!q1.isEmpty()) {
+			d += comparator.apply(q1, gap, 0, 0);
 		}
 		return d;
 	}
 
-	public static <T> Map<String, Map<Segment<T>, Integer>> computeSegmentCounts(
-			ColumnTable<Sequence<T>> data) {
+	public <T> Map<String, Map<Segment<T>, Integer>> computeSegmentCounts(
+			ColumnTable<Sequence<T>> data
+	) {
 
 		Map<String, Map<Segment<T>, Integer>> map = new HashMap<>();
 

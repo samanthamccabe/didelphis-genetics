@@ -36,8 +36,9 @@ public class SingleLayerReconstructor implements Reconstructor {
 	}
 
 	@Override
-	public FeatureArray<Integer> evaluate(FeatureArray<Integer> left,
-			FeatureArray<Integer> right, ContextSet contextSet) {
+	public FeatureArray evaluate(FeatureArray left, FeatureArray right,
+			ContextSet contextSet
+	) {
 		return null;
 	}
 }

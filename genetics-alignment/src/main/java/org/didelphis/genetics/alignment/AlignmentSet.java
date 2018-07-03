@@ -49,9 +49,9 @@ public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 					sequences = null;
 				} else {
 					sequences = new ArrayList<>();
-					sequences.add(factory.getBorderSequence());
+					sequences.add(factory.toSequence("#"));
 					for (String element : SPACE.split(cell)) {
-						sequences.add(factory.getSequence(element));
+						sequences.add(factory.toSequence(element));
 					}
 				}
 				data.add(sequences);
@@ -70,7 +70,7 @@ public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 			for (int i = 0; i < data.size(); i++) {
 				List<Sequence<T>> object = data.get(i);
 				if (object == null) {
-					List<Sequence<T>> sequences = Collections.nCopies(length, factory.getSequence(""));
+					List<Sequence<T>> sequences = Collections.nCopies(length, factory.toSequence(""));
 					data.set(i, sequences);
 				}
 			}

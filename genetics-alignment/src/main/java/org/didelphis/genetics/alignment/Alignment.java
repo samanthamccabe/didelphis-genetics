@@ -39,13 +39,11 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 
 	public Alignment(List<Sequence<T>> list, FeatureModel<T> featureModel) {
 		super(list, list.size(), list.isEmpty() ? 0 : list.get(0).size());
-
 		for (Sequence<T> sequence : list) {
 			if (sequence.size() != columns()) {
-				throw new IllegalArgumentException("Sequence "+sequence+" in " + list + " is not the correct number of elements.");
+				throw new IllegalArgumentException("Sequence "+sequence+" in " + list + " is not the correct number of elements: " + sequence.size() + " vs " + columns());
 			}
 		}
-
 		this.featureModel = featureModel;
 	}
 

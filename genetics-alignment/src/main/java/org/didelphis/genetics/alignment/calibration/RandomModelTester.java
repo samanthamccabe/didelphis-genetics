@@ -30,17 +30,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 /**
  * @author Samantha Fiona McCabe
  * Created: 5/6/2015
  */
-public final class RandomModelTester extends BaseModelTester {
+public final class RandomModelTester<T> extends BaseModelTester<T> {
 
 	private static final Pattern SPACE = Pattern.compile("\\s+");
 
-	public RandomModelTester(SequenceFactory<Integer> factoryParam) {
+	public RandomModelTester(SequenceFactory<T> factoryParam) {
 		super(factoryParam);
 	}
 
@@ -64,10 +65,10 @@ public final class RandomModelTester extends BaseModelTester {
 		constraintPaths.put("ING_BCB.std", "ING_BCB.lex");
 		//		constraintPaths.put("ASP_SKT.std", "ASP_SKT.lex");
 
-		Collection<Constraint> constraints = new HashSet<>();
+		Collection<Constraint<Integer>> constraints = new HashSet<>();
 		String trainingPath = "E:/git/data/training/";
-		for (Map.Entry<String, String> entry : constraintPaths.entrySet()) {
-			Constraint constraint = LexiconConstraint.loadFromPaths(
+		for (Entry<String, String> entry : constraintPaths.entrySet()) {
+			Constraint<Integer> constraint = LexiconConstraint.loadFromPaths(
 					trainingPath + entry.getKey(),
 					trainingPath + entry.getValue(), factory);
 			constraints.add(constraint);
@@ -110,18 +111,18 @@ public final class RandomModelTester extends BaseModelTester {
 			//			double b = (Math.random() * 20) - 10;
 
 			Comparator<Integer> segmentComparator =
-					new LinearWeightComparator(featureType,weights);
+					new LinearWeightComparator<>(featureType,weights);
 			Comparator<Integer> sequenceComparator =
-					new SequenceComparator(segmentComparator);
+					new SequenceComparator<>(segmentComparator);
 
-			GapPenalty gapPenalty =
-					new ConstantGapPenalty(factory.getSequence("_"), a);
+			GapPenalty<Integer> gapPenalty =
+					new ConstantGapPenalty<>(factory.toSequence("_"), a);
 
-			AlignmentAlgorithm algorithm =
-					new SingleAlignmentAlgorithm(sequenceComparator, gapPenalty,
+			AlignmentAlgorithm<Integer> algorithm =
+					new SingleAlignmentAlgorithm<>(sequenceComparator, gapPenalty,
 							1, factory);
 
-			for (Constraint constraint : constraints) {
+			for (Constraint<Integer> constraint : constraints) {
 				double fitness = constraint.evaluate(algorithm);
 				double strength = constraint.getStrength();
 				fitnessSum += fitness;

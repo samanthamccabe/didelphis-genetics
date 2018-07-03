@@ -14,12 +14,12 @@ public abstract class AbstractAlignmentAlgorithm<N>
 		implements AlignmentAlgorithm<N> {
 
 	private final Comparator<N> comparator;
-	private final Optimization optimization;
+	private final Optimization<Double> optimization;
 	private final GapPenalty<N> gapPenalty;
 	private final SequenceFactory<N> factory;
 
 	protected AbstractAlignmentAlgorithm(Comparator<N> comparator,
-			Optimization optimization, GapPenalty<N> gapPenalty,
+			Optimization<Double> optimization, GapPenalty<N> gapPenalty,
 			SequenceFactory<N> factory) {
 		this.comparator = comparator;
 		this.optimization = optimization;
@@ -45,8 +45,9 @@ public abstract class AbstractAlignmentAlgorithm<N>
 		return comparator;
 	}
 
+	@NotNull
 	@Override
-	public Optimization getOptimization() {
+	public Optimization<Double> getOptimization() {
 		return optimization;
 	}
 }

@@ -40,11 +40,6 @@ public class LexiconConstraint<T> implements Constraint<T> {
 		strength = computeStrength();
 	}
 
-	public static <T> Constraint<T> loadFromPaths(String humanPath, String lexiconPath,
-			SequenceFactory<T> factory) throws IOException {
-		return loadFromPaths(humanPath, lexiconPath, factory);
-	}
-
 	public static <T> Constraint<T> loadFromPaths(String humanPath,
 			String lexiconPath, SequenceFactory<T> factory, String... keys) throws IOException {
 		AlignmentSet<T> alignments = AlignmentSet.loadFromFile(humanPath, factory);
@@ -62,7 +57,7 @@ public class LexiconConstraint<T> implements Constraint<T> {
 
 		Alignment<T> blank = new Alignment<>(factory.getFeatureMapping().getFeatureModel());
 //		List<Alignment<T>> alignments = algorithm.getAlignments(data);
-//		Alignment<T> alignments = algorithm.getAlignments(Collections.emptyList());
+//		Alignment<T> alignments = algorithm.apply();
 
 		double sum = 0.0;
 
@@ -107,7 +102,7 @@ public class LexiconConstraint<T> implements Constraint<T> {
 			Iterable<Segment<T>> sequence) {
 		FeatureMapping<T> featureMapping = factory.getFeatureMapping();
 
-		Sequence<T> normalized = factory.getSequence("");
+		Sequence<T> normalized = factory.toSequence("");
 		for (Segment<T> segment : sequence) {
 			FeatureArray<T> features = segment.getFeatures();
 			String symbol = featureMapping.findBestSymbol(features);

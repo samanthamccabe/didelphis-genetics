@@ -3,7 +3,9 @@ package org.didelphis.genetics.alignment.operators.comparators;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.contracts.Streamable;
 import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
+import org.didelphis.structures.tuples.Triple;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -12,23 +14,33 @@ import org.jetbrains.annotations.NotNull;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-07-04
  */
-public class BrownEtAlComparator<E> implements Comparator<E> {
+public class BrownEtAlComparator<T> implements Comparator<T> {
 
-	private final SymmetricalTwoKeyMap<Segment<E>, Double> map;
+	private final SymmetricalTwoKeyMap<Segment<T>, Double> map;
+	private final double max;
 
-	public BrownEtAlComparator(SymmetricalTwoKeyMap<Segment<E>, Double> map) {
-		this.map = map;
+	public BrownEtAlComparator(
+			Streamable<Triple<Segment<T>, Segment<T>, Double>> streamable
+	) {
+		this.map = new SymmetricalTwoKeyMap<>();
+		max = streamable.stream()
+				.map(Triple::getThirdElement)
+				.max(Double::compare)
+				.orElse(100.0);
+		streamable.stream().forEach(t -> this.map.put(
+				t.getFirstElement(),
+				t.getSecondElement(),
+				(max - t.getThirdElement()) / 10.0));
 	}
 
 	@Override
-	public double apply(@NotNull Sequence<E> left, @NotNull Sequence<E> right,
+	public double apply(@NotNull Sequence<T> left, @NotNull Sequence<T> right,
 			int i, int j) {
-		Segment<E> sL = left.get(i);
-		Segment<E> sR = right.get(j);
-		if (sL.equals(sR)) {
-			return 0;
-		}
-		Double aDouble = map.get(sL, sR);
-		return aDouble == null ? 100 : 100-aDouble;
+		Segment<T> sL = left.get(i);
+		Segment<T> sR = right.get(j);
+		Double value = sL.equals(sR)
+				? 0.0
+				: (map.contains(sL, sR) ? map.get(sL, sR) : max);
+		return value;
 	}
 }

@@ -11,6 +11,7 @@ import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
+import org.didelphis.structures.tuples.Twin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -28,14 +29,14 @@ public class HirschbergsAlgorithm<N>
 
 	public HirschbergsAlgorithm(Comparator<N> comparator,
 			GapPenalty<N> gapPenalty, SequenceFactory<N> factory) {
-		super(comparator, Optimization.MIN, gapPenalty, factory);
+		super(comparator, BaseOptimization.MIN, gapPenalty, factory);
 		nwAlgorithm = new NeedlemanWunschAlgorithm<>(comparator,
-				Optimization.MIN, gapPenalty, factory);
+				BaseOptimization.MIN, gapPenalty, factory);
 	}
 	
 	@NotNull
 	@Override
-	public AlignmentResult<N> getAlignment(@NotNull List<Sequence<N>> sequences) {
+	public AlignmentResult<N> apply(@NotNull List<? extends Sequence<N>> sequences) {
 		
 		if (sequences.size() != 2) {
 			throw new IllegalArgumentException(getClass().getCanonicalName() +
@@ -45,7 +46,7 @@ public class HirschbergsAlgorithm<N>
 		Sequence<N> left = sequences.get(0);
 		Sequence<N> right = sequences.get(1);
 
-		Tuple<Sequence<N>, Sequence<N>> t = hirschberg(left, right);
+		Twin<Sequence<N>> t = hirschberg(left, right);
 
 		FeatureModel<N> model = getFactory().getFeatureMapping().getFeatureModel();
 
@@ -55,7 +56,7 @@ public class HirschbergsAlgorithm<N>
 		return null; // TODO:
 	}
 	
-	private Tuple<Sequence<N>, Sequence<N>> hirschberg(
+	private Twin<Sequence<N>> hirschberg(
 			@NotNull Sequence<N> left,
 			@NotNull Sequence<N> right
 	) {
@@ -78,7 +79,7 @@ public class HirschbergsAlgorithm<N>
 				W.addAll(gap);
 			}
 		} else if (m == 1 || n == 1) {
-			AlignmentResult<N> alignmentResult = nwAlgorithm.getAlignment(Arrays.asList(left, right));
+			AlignmentResult<N> alignmentResult = nwAlgorithm.apply(Arrays.asList(left, right));
 			List<Alignment<N>> alignments = alignmentResult.getAlignments();
 
 			if (!alignments.isEmpty()) {
@@ -119,7 +120,7 @@ public class HirschbergsAlgorithm<N>
 			Z.addAll(B.getRight());
 		}
 
-		return new Tuple<>(W, Z);
+		return new Twin<>(W, Z);
 	}
 
 	private static int getMid(List<Double> scoresLeft, List<Double> scoresRight) {

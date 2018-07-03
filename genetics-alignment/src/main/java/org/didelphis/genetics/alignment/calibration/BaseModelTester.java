@@ -19,25 +19,25 @@ import java.util.regex.Pattern;
  * @author Samantha Fiona McCabe
  * Created: 11/14/2015
  */
-public abstract class BaseModelTester {
+public abstract class BaseModelTester<T> {
 
 	private static final Pattern EXTENSION = Pattern.compile("\\.[^.]*");
 
 	protected final Collection<Constraint> constraints;
-	protected final SequenceFactory<Integer> sequenceFactory;
+	protected final SequenceFactory<T> sequenceFactory;
 
-	protected BaseModelTester(SequenceFactory<Integer> factoryParam) {
+	protected BaseModelTester(SequenceFactory<T> factoryParam) {
 		sequenceFactory = factoryParam;
 		constraints = new HashSet<>();
 	}
 
-	protected void loadLexicon(File file, ColumnTable<Sequence<Integer>> data)
+	protected void loadLexicon(File file, ColumnTable<Sequence<T>> data)
 			throws IOException {
-		AlignmentSet<Integer> alignments =
+		AlignmentSet<T> alignments =
 				AlignmentSet.loadFromFile(file.getAbsolutePath(),
 						sequenceFactory);
 
-		Map<String, List<Sequence<Integer>>> subMap = new LinkedHashMap<>();
+		Map<String, List<Sequence<T>>> subMap = new LinkedHashMap<>();
 
 		for (String key : alignments.getKeys()) {
 			subMap.put(key, data.getColumn(key));
@@ -50,4 +50,8 @@ public abstract class BaseModelTester {
 //						alignments);
 //		constraints.add(constraint);
 	}
+
+
+
+
 }

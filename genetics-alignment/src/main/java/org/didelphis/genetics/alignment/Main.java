@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.Optimization;
 import org.didelphis.genetics.alignment.common.StringTransformer;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.correspondences.Context;
@@ -25,12 +25,13 @@ import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.Suppliers;
 import org.didelphis.structures.maps.GeneralMultiMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tuples.Tuple;
+import org.didelphis.utilities.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -55,11 +56,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
-import static java.util.regex.Pattern.*;
-import static org.slf4j.LoggerFactory.getLogger;
+import static java.util.regex.Pattern.LITERAL;
+import static java.util.regex.Pattern.compile;
+
 
 public final class Main {
-	private static final transient Logger LOGGER = getLogger(Main.class);
+	private static final transient Logger LOGGER = Logger.create(Main.class);
 	private static final Pattern EXTENSION_PATTERN = compile("\\.[^.]*?$");
 	private static final Pattern HYPHEN = compile("-");
 	private static final Pattern WHITESPACE = compile("(\n|\r\n?|\\s)+");
@@ -102,7 +104,7 @@ public final class Main {
 				mapping, FormatterMode.INTELLIGENT);
 
 		String gapSymbol = "░";
-		Sequence<Integer> gap = factory.getSequence(gapSymbol);
+		Sequence<Integer> gap = factory.toSequence(gapSymbol);
 		GapPenalty<Integer> gapPenalty = new ConvexGapPenalty<>(gap, 0, 0);
 
 //		String weightsPath = "weights_14";
@@ -113,11 +115,11 @@ public final class Main {
 		);
 
 		//		String matrixPath = "brown.utx";
-//		Comparator<Integer> comparator = getMatrixComparator(handler, factory,
+//		Comparator<Integer> comparator = loadMatrixComparator(handler, factory,
 //				transformer, matrixPath);
 
 		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(
-				comparator, Optimization.MIN, gapPenalty, factory);
+				comparator, BaseOptimization.MIN, gapPenalty, factory);
 
 		Map<File, List<String>> files = new LinkedHashMap<>();
 
@@ -292,8 +294,9 @@ public final class Main {
 					List<Segment<Integer>> left = alignment.getRow(0);
 					List<Segment<Integer>> right = alignment.getRow(1);
 
-					left.add(factory.getBorderSegment());
-					right.add(factory.getBorderSegment());
+//					TODO: 2018 !!!!
+//					left.add(factory.getBorderSegment());
+//					right.add(factory.getBorderSegment());
 
 					for (int i = 1;
 					     i < alignment.columns() - 1; i++) {
@@ -330,7 +333,7 @@ public final class Main {
 			ColumnTable<Sequence<T>> data
 	) {
 		MultiMap<String, AlignmentResult<T>> alignmentMap =
-				new GeneralMultiMap<>(new LinkedHashMap<>(), ArrayList.class);
+				new GeneralMultiMap<>(new LinkedHashMap<>(), Suppliers.ofList());
 		for (int i = 0; i < keyList.size(); i++) {
 			String k1 = keyList.get(i);
 			List<Sequence<T>> d1 = data.getColumn(k1);
@@ -349,7 +352,7 @@ public final class Main {
 					Sequence<T> e1 = it1.next();
 					Sequence<T> e2 = it2.next();
 					List<Sequence<T>> list = asList(e1, e2);
-					AlignmentResult<T> result = algorithm.getAlignment(list);
+					AlignmentResult<T> result = algorithm.apply(list);
 					alignments.add(result);
 				}
 				alignmentMap.addAll(k1 + '-' + k2, alignments);

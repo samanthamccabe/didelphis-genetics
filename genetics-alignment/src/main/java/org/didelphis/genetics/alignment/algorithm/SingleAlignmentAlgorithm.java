@@ -31,17 +31,17 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 	public SingleAlignmentAlgorithm(Comparator<T> comparator,
 			GapPenalty<T> gapPenalty, int arity, SequenceFactory<T> factory) {
-		super(comparator, Optimization.MIN, gapPenalty, factory);
+		super(comparator, BaseOptimization.MIN, gapPenalty, factory);
 
 		model = factory.getFeatureMapping().getFeatureModel();
-		boundary = factory.getSegment("#");
+		boundary = factory.toSegment("#");
 
 		this.arity = arity;
 	}
 
 	@NotNull
 	@Override
-	public AlignmentResult<T> getAlignment(@NotNull List<Sequence<T>> sequences) {
+	public AlignmentResult<T> apply(@NotNull List<? extends Sequence<T>> sequences) {
 
 		Sequence<T> left = sequences.get(0);
 		Sequence<T> right = sequences.get(1);
@@ -236,6 +236,6 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 //			Sequence<T> b = alignment.getRow(1).get(i);
 //			score += comparator.apply(a, b);
 //		}
-		return score + getGapPenalty().evaluate(0); // todo
+		return score + getGapPenalty().applyAsDouble(0); // todo
 	}
 }

@@ -49,23 +49,23 @@ class NeedlemanWunschAlgorithmTest {
 
 		factory = new SequenceFactory<>(loader.getFeatureMapping(), MODE);
 
-		Sequence<Integer> gap = factory.getSequence("░");
+		Sequence<Integer> gap = factory.toSequence("░");
 		penalty = new NullGapPenalty<>(gap);
 		algorithm = new NeedlemanWunschAlgorithm<>((t, r, i, j) -> {
 			FeatureArray<Integer> z = t.get(i).getFeatures();
 			FeatureArray<Integer> x = r.get(j).getFeatures();
 			IntToDoubleFunction func = k -> type.difference(z.get(k), x.get(k));
 			return IntStream.range(0, z.size()).mapToDouble(func).sum();
-		}, Optimization.MIN, penalty, factory);
+		}, BaseOptimization.MIN, penalty, factory);
 	}
 
 	@Test
 	void getAlignment_01() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.getSequence("#amapar"),
-				factory.getSequence("#omber")
+				factory.toSequence("#amapar"),
+				factory.toSequence("#omber")
 		);
-		AlignmentResult<Integer> result = algorithm.getAlignment(sequences);
+		AlignmentResult<Integer> result = algorithm.apply(sequences);
 		Alignment<Integer> alignment = result.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
 		assertEquals(7, alignment.columns(), message);
@@ -74,10 +74,10 @@ class NeedlemanWunschAlgorithmTest {
 	@Test
 	void getAlignment_02() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.getSequence("#amapar"),
-				factory.getSequence("#kombera")
+				factory.toSequence("#amapar"),
+				factory.toSequence("#kombera")
 		);
-		AlignmentResult<Integer> alignmentResult = algorithm.getAlignment(sequences);
+		AlignmentResult<Integer> alignmentResult = algorithm.apply(sequences);
 		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
 		assertEquals(9, alignment.columns(), message);
@@ -86,10 +86,10 @@ class NeedlemanWunschAlgorithmTest {
 	@Test
 	void getAlignment_03() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.getSequence("#ammapar"),
-				factory.getSequence("#kamabra")
+				factory.toSequence("#ammapar"),
+				factory.toSequence("#kamabra")
 		);
-		AlignmentResult<Integer> alignmentResult = algorithm.getAlignment(sequences);
+		AlignmentResult<Integer> alignmentResult = algorithm.apply(sequences);
 		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
 		assertEquals(10, alignment.columns(), message);
@@ -105,18 +105,19 @@ class NeedlemanWunschAlgorithmTest {
 
 		AlignmentAlgorithm<Boolean> algorithm = new NeedlemanWunschAlgorithm<>(
 				comparator,
-				Optimization.MIN,
-				new NullGapPenalty<>(factory.getSequence("_")),
+				BaseOptimization.MIN,
+				new NullGapPenalty<>(factory.toSequence("_")),
 				factory
 		);
 
-		AlignmentResult<Boolean> result = algorithm.getAlignment(
-				Arrays.asList(factory.getSequence("#baba"),
-						factory.getSequence("#ababb")));
+		AlignmentResult<Boolean> result = algorithm.apply(
+				Arrays.asList(
+						factory.toSequence("#baba"),
+						factory.toSequence("#ababb")));
 
 		assertFalse(result.getAlignments().isEmpty());
-		assertEquals(1.0, result.getScore());
-//		String expected = "# a b a b a \t" + "# a b a _ a \t";
-//		assertEquals(expected, result.getAlignments().get(0).toString());
+		assertEquals(2.0, result.getScore());
+		String expected = "# _ b a b a \t" + "# a b a b b \t";
+		assertEquals(expected, result.getAlignments().get(0).toString());
 	}
 }

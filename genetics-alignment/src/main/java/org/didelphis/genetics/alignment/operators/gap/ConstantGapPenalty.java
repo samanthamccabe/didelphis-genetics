@@ -18,7 +18,7 @@ public class ConstantGapPenalty<T> extends AbstractGapPenalty<T> {
 	}
 
 	@Override
-	public double evaluate(int currentGapLength) {
+	public double applyAsDouble(int value) {
 		return penalty;
 	}
 }

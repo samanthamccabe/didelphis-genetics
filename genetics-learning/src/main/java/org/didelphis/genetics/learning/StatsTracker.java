@@ -1,7 +1,9 @@
 package org.didelphis.genetics.learning;
 
-import org.jenetics.Phenotype;
-import org.jenetics.engine.EvolutionResult;
+import io.jenetics.Phenotype;
+import io.jenetics.engine.EvolutionResult;
+import lombok.ToString;
+import org.didelphis.utilities.Logger;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -15,9 +17,12 @@ import java.util.stream.Collectors;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-28
  */
-final class StatsTracker<T>
+@ToString
+final class StatsTracker
 		implements Consumer<EvolutionResult<?, Double>> {
 
+	private static final Logger LOG = Logger.create(StatsTracker.class);
+	
 	private final int interval;
 	private final BufferedWriter writer;
 	private final DecimalFormat formatter;
@@ -31,7 +36,7 @@ final class StatsTracker<T>
 			writer.write("Generation\t'Maximum Fitness'\t'Mean Fitness'\t'Minimum Fitness'\n");
 			writer.flush();
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.error("{}",e);
 		}
 	}
 
@@ -52,7 +57,7 @@ final class StatsTracker<T>
 				writer.flush();
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.error("{}",e);
 		}
 	}
 }

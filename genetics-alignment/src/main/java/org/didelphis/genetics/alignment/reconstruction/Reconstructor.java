@@ -8,8 +8,8 @@ import org.didelphis.genetics.alignment.correspondences.ContextSet;
  * Created: 4/8/2016
  */
 @FunctionalInterface
-public interface Reconstructor {
+public interface Reconstructor<T> {
 
-	FeatureArray<Integer> evaluate(FeatureArray<Integer> left,
-			FeatureArray<Integer> right, ContextSet contextSet);
+	FeatureArray<T> evaluate(FeatureArray<T> left,
+			FeatureArray<T> right, ContextSet contextSet);
 }

@@ -1,7 +1,9 @@
 package org.didelphis.genetics.alignment.calibration;
 
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.SingleAlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.BaseOptimization;
+import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.Optimization;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
@@ -31,11 +33,11 @@ import java.util.List;
  * @author Samantha Fiona McCabe
  * Created: 6/6/2015
  */
-public final class LinearScaleModelTester extends BaseModelTester {
+public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 
 	private static final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 
-	protected LinearScaleModelTester(SequenceFactory<Integer> factoryParam) {
+	private LinearScaleModelTester(SequenceFactory<T> factoryParam) {
 		super(factoryParam);
 	}
 
@@ -68,14 +70,14 @@ public final class LinearScaleModelTester extends BaseModelTester {
 //		runner.loadLexicon(new File("../data/training/CHE_BCB.std"), nakhData);
 //		runner.loadLexicon(new File("../data/training/CHE_ING.std"), nakhData);
 //		runner.loadLexicon(new File("../data/training/ING_BCB.std"), nakhData);
-		//		constraints.add(LexiconConstraint.loadFromPaths("ASP_SKT.std",
-		// "ASP_SKT.lex", factory));
+//				constraints.add(LexiconConstraint.loadFromPaths("ASP_SKT.std",
+//		 "ASP_SKT.lex", factory));
 
 
 		// SET UP PARAMETERS 
 		// =========================================================================
 
-		Sequence<Integer> gap = factory.getSequence("_");
+		Sequence<Integer> gap = factory.toSequence("_");
 
 		// RUN ALGORITHM 
 		// =============================================================================
@@ -120,28 +122,27 @@ public final class LinearScaleModelTester extends BaseModelTester {
 			}
 
 			Comparator<Integer> segmentComparator =
-					new LinearWeightComparator(featureType,weights);
+					new LinearWeightComparator<>(featureType,weights);
 			Comparator<Integer> sequenceComparator =
-					new SequenceComparator(segmentComparator);
+					new SequenceComparator<>(segmentComparator);
 
 			//			GapPenalty gapPenalty = new ConvexGapPenalty(gap, a,
 			// b);
-			GapPenalty gapPenalty = new ConstantGapPenalty(gap, 0.0);
+			GapPenalty<Integer> gapPenalty = new ConstantGapPenalty<>(gap, 0.0);
+			Optimization<Double> optimization = BaseOptimization.MIN;
 
 			//			AlignmentAlgorithm algorithm = new 
 			// SingleAlignmentAlgorithm(gapPenalty, 1, sequenceComparator);
-			AlignmentAlgorithm algorithm =
-					new SingleAlignmentAlgorithm(sequenceComparator, gapPenalty,
-							1, factory);
+			AlignmentAlgorithm<Integer> algorithm =
+					new NeedlemanWunschAlgorithm<>(sequenceComparator, optimization, gapPenalty, factory);
 
 			double fitnessSum = 0.0;
 			double strengthSum = 0.0;
 
-			// TODO: broken??
-			//		for (Constraint constraint : constraints) {
-			//				fitnessSum  += constraint.apply(algorithm);
-			//			strengthSum += constraint.getStrength();
-			//		}
+//					for (Constraint constraint : constraints) {
+//							fitnessSum  += constraint.apply(algorithm);
+//						strengthSum += constraint.getStrength();
+//					}
 
 			writer.write(FORMAT_SHORT.format(fitnessSum / strengthSum) + '\t' +
 					//				Utilities.FORMAT_SHORT.format(a) + "\t" +

@@ -6,7 +6,6 @@ import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
@@ -28,7 +27,7 @@ import java.util.Objects;
 public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 
 	public NeedlemanWunschAlgorithm(Comparator<N> comparator,
-			Optimization optimization,
+			Optimization<Double> optimization,
 			GapPenalty<N> gapPenalty,
 			SequenceFactory<N> factory) {
 		super(comparator, optimization, gapPenalty, factory);
@@ -36,7 +35,7 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 
 	@NotNull
 	@Override
-	public AlignmentResult<N> getAlignment(@NotNull List<Sequence<N>> sequences) {
+	public AlignmentResult<N> apply(@NotNull List<? extends Sequence<N>> sequences) {
 		Sequence<N> left = sequences.get(0);
 		Sequence<N> right = sequences.get(1);
 		AlgorithmRunner runner = new AlgorithmRunner(left, right);
@@ -63,21 +62,22 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 		private final Sequence<N> left;
 		private final Sequence<N> right;
 		private final Table<Double> table;
-		private final FeatureModel<N> model;
-		private final Sequence<N> gap;
+		private final FeatureModel<N> model = getFactory().getFeatureMapping().getFeatureModel();
+		private final Comparator<N> comparator = getComparator();
+		private final GapPenalty<N> penalty = getGapPenalty();
+		private final Optimization<Double> optimization=getOptimization();
+
+		private final Sequence<N> gap = penalty.getGap();
+
 
 		private AlgorithmRunner(Sequence<N> left, Sequence<N> right) {
 			this.left = left;
 			this.right = right;
-
-			gap = getGapPenalty().getGap();
-			model = getFactory().getFeatureMapping().getFeatureModel();
 			table = new RectangularTable<>(0.0, left.size(), right.size());
 			align();
 		}
 
 		private void align() {
-			Optimization optimization = getOptimization();
 			int m = left.size();
 			int n = right.size();
 			for (int j = 1; j < n; j++) {
@@ -91,7 +91,7 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 					Collection<Double> candidates = buildCandidates(i, j);
 					Double score = candidates.parallelStream()
 							.reduce(optimization)
-							.orElse(optimization.getDefaultValue());
+							.orElse(optimization.defaultValue());
 					table.set(i, j, score);
 				}
 			}
@@ -116,102 +116,65 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 			Sequence<N> W = new BasicSequence<>(w, model);
 			Sequence<N> Z = new BasicSequence<>(z, model);
 
-			List<Alignment<N>> alignments = new ArrayList<>();
-
 			int i = startI;
 			int j = startJ;
-			while (i>=0 && j >=0) {
+			while (i > 0 || j > 0) {
 				double sub = get(table, i - 1, j - 1);
 				double del = get(table, i - 1, j);
 				double ins = get(table, i, j - 1);
 
-				Segment<N> lI = left.get(i);
-				Segment<N> rJ = right.get(j);
-
-//				if (del < ins && del < sub) {
-				if (op(del, ins, sub)) {
-					W.add(lI);
+				if (i > 0 && j > 0 && op(sub, del, ins)) {
+					W.add(this.left.get(i));
+					Z.add(this.right.get(j));
+					i--;
+					j--;
+				} else
+				if (i > 0 && op(del, ins, sub)) {
+					W.add(this.left.get(i));
 					Z.add(gap);
 					i--;
-				} else if (op(ins, sub, del)) {
+				} else /*if (j > 0 && op(ins, sub, del))*/ {
 					W.add(gap);
-					Z.add(rJ);
+					Z.add(this.right.get(j));
 					j--;
-				} else if (op(sub, del, ins)) {
-					W.add(lI);
-					Z.add(rJ);
-					i--;
-					j--;
-				}
-				// Because of how the alignments are calculated, multiple paths
-				// may not even be possible, but I leave it here anyway
-				else {
-					if (Objects.equals(sub, del) && Objects.equals(del, ins)) {
-						W.add(lI);
-						Z.add(rJ);
-						i--;
-						j--;
-//						alignments.addAll(trace(W, Z, i - 1, j - 1));
-//						alignments.addAll(trace(W, Z, i - 1, j));
-//						alignments.addAll(trace(W, Z, i, j - 1));
-					} else if (Objects.equals(sub, del)) {
-						W.add(lI);
-						Z.add(rJ);
-						i--;
-						j--;
-//						alignments.addAll(trace(W, Z, i - 1, j - 1));
-//						alignments.addAll(trace(W, Z, i - 1, j));
-					} else if (Objects.equals(del, ins)) {
-						W.add(gap);
-						Z.add(rJ);
-						j--;
-//						alignments.addAll(trace(W, Z, i - 1, j));
-//						alignments.addAll(trace(W, Z, i, j - 1));
-					} else if (Objects.equals(ins, sub)) {
-						W.add(lI);
-						Z.add(rJ);
-						i--;
-						j--;
-//						alignments.addAll(trace(W, Z, i - 1, j - 1));
-//						alignments.addAll(trace(W, Z, i, j - 1));
-					}
-//					return alignments;
 				}
 			}
 
-			if (i >= 0)
-			W.add(left.get(i));
-			if (j >= 0)
-			Z.add(right.get(j));
+			if (i >= 0) {
+				W.add(left.get(i));
+			}
+			if (j >= 0) {
+				Z.add(right.get(j));
+			}
 
 			Collections.reverse(W);
 			Collections.reverse(Z);
 
+			List<Alignment<N>> alignments = new ArrayList<>();
 			alignments.add(new Alignment<>(Arrays.asList(W, Z), model));
 			return alignments;
 		}
 
 		private boolean op(double v1, double v2, double v3) {
-			Optimization op = getOptimization();
-			return op.test(v1, v2) && op.test(v1, v3);
+			return optimization.test(v1, v2) || optimization.test(v1, v3);
 		}
 
 		private double get(Table<Double> table, int i, int j) {
 			return (i < 0 || j < 0 || i >= table.rows() || j >= table.columns())
-					? getOptimization().getDefaultValue()
+					? optimization.defaultValue()
 					: table.get(i, j);
 		}
 
 		private double ins(Sequence<N> right, int j) {
-			return getComparator().apply(gap, right, 0, j) + getGapPenalty().evaluate(0);
+			return comparator.apply(gap, right, 0, j) + penalty.applyAsDouble(0);
 		}
 
 		private double del(Sequence<N> left, int i) {
-			return getComparator().apply(left, gap, i, 0) + getGapPenalty().evaluate(0);
+			return comparator.apply(left, gap, i, 0) + penalty.applyAsDouble(0);
 		}
 
 		private double sub(Sequence<N> left, Sequence<N> right, int i, int j) {
-			return getComparator().apply(left, right, i, j);
+			return comparator.apply(left, right, i, j);
 		}
 
 		private Table<Double> getTable() {

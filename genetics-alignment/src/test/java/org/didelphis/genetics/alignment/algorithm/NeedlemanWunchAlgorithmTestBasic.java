@@ -7,6 +7,7 @@ import org.didelphis.language.parsing.FormatterMode;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.BinaryFeature;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Class {@code NeedlemanWunchAlgorithmTestBasic}
@@ -39,18 +39,18 @@ public class NeedlemanWunchAlgorithmTestBasic {
 				Objects.equals(left.get(i),right.get(j)) ? 0 : 1;
 		simpleAlgorithm = new NeedlemanWunschAlgorithm<>(
 				simpleComparator,
-				Optimization.MIN,
-				new NullGapPenalty<>(factory.getSequence("_")), factory
+				BaseOptimization.MIN,
+				new NullGapPenalty<>(factory.toSequence("_")), factory
 		);
 	}
 
 	@Test
 	void getAlignment_01() {
-		AlignmentResult<Boolean> result = simpleAlgorithm.getAlignment(
+		AlignmentResult<Boolean> result = simpleAlgorithm.apply(
 				Arrays.asList(
-						factory.getSequence("#aba"),
-						factory.getSequence("#baba")));
-		assertFalse(result.getAlignments().isEmpty());
+						factory.toSequence("#aba"),
+						factory.toSequence("#baba")));
+		Assertions.assertFalse(result.getAlignments().isEmpty());
 		assertEquals(1.0, result.getScore());
 		assertEquals("# _ a b a \n# b a b a \n",
 				result.getAlignments().get(0).getPrettyTable());
@@ -58,11 +58,11 @@ public class NeedlemanWunchAlgorithmTestBasic {
 
 	@Test
 	void getAlignment_02() {
-		AlignmentResult<Boolean> result = simpleAlgorithm.getAlignment(
+		AlignmentResult<Boolean> result = simpleAlgorithm.apply(
 				Arrays.asList(
-						factory.getSequence("#abab"),
-						factory.getSequence("#baba")));
-		assertFalse(result.getAlignments().isEmpty());
+						factory.toSequence("#abab"),
+						factory.toSequence("#baba")));
+		Assertions.assertFalse(result.getAlignments().isEmpty());
 		assertEquals(2.0, result.getScore());
 		assertEquals("# a b a b _ \n# _ b a b a \n",
 				result.getAlignments().get(0).getPrettyTable());
@@ -70,12 +70,12 @@ public class NeedlemanWunchAlgorithmTestBasic {
 
 	@Test
 	void getAlignment_04() {
-		AlignmentResult<Boolean> result = simpleAlgorithm.getAlignment(
+		AlignmentResult<Boolean> result = simpleAlgorithm.apply(
 				Arrays.asList(
-						factory.getSequence("#baba"),
-						factory.getSequence("#ababb")));
+						factory.toSequence("#baba"),
+						factory.toSequence("#ababb")));
 
-		assertFalse(result.getAlignments().isEmpty());
+		Assertions.assertFalse(result.getAlignments().isEmpty());
 		assertEquals(2.0, result.getScore());
 		//		String expected = "# a b a b a \t" + "# a b a _ a \t";
 		//		assertEquals(expected, result.getAlignments().get(0).toString());

@@ -5,21 +5,17 @@ import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * @author Samantha Fiona McCabe
  * Created: 5/31/2015
  */
-
-public interface AlignmentAlgorithm<T> {
-
-	@NotNull
-	@Contract("null -> fail")
-	AlignmentResult<T> getAlignment(@NotNull List<Sequence<T>> sequences);
+public interface AlignmentAlgorithm<T>
+		extends Function<List<? extends Sequence<T>>, AlignmentResult<T>> {
 
 	@NotNull
 	GapPenalty<T> getGapPenalty();
@@ -30,5 +26,6 @@ public interface AlignmentAlgorithm<T> {
 	@NotNull
 	Comparator<T> getComparator();
 
+	@NotNull
 	Optimization getOptimization();
 }

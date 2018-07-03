@@ -26,7 +26,7 @@ public class EnvironmentMap<T> {
 
 		// Populate data structure
 		for (Sequence<T> sequence : column) {
-			Sequence<T> head = factory.getSequence("");
+			Sequence<T> head = factory.toSequence("");
 			Sequence<T> tail = new BasicSequence<>(sequence);
 			while (!tail.isEmpty()) {
 				Segment<T> segment = tail.remove(0);

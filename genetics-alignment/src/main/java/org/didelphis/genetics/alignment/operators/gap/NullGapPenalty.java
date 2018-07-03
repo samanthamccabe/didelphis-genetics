@@ -13,7 +13,7 @@ public class NullGapPenalty<N> extends AbstractGapPenalty<N> {
 	}
 
 	@Override
-	public double evaluate(int currentGapLength) {
-		return 0;
+	public double applyAsDouble(int value) {
+		return 0.0;
 	}
 }
