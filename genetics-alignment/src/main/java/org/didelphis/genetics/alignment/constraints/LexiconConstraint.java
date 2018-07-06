@@ -41,7 +41,7 @@ public class LexiconConstraint<T> implements Constraint<T> {
 	}
 
 	public static <T> Constraint<T> loadFromPaths(String humanPath,
-			String lexiconPath, SequenceFactory<T> factory, String... keys) throws IOException {
+			String lexiconPath, SequenceFactory<T> factory, String... keys) {
 		AlignmentSet<T> alignments = AlignmentSet.loadFromFile(humanPath, factory);
 //
 //		ColumnTable<Sequence<T>> dataTable =

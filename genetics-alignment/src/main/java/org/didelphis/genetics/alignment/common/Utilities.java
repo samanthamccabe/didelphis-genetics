@@ -44,19 +44,16 @@ import static java.util.Arrays.stream;
 public final class Utilities {
 
 	private final Pattern SPACE = Pattern.compile("\\s+");
-	//
+	private final Pattern PATTERN = Pattern.compile("\n|\r?\n");
+
 	public final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
 
-	private final Pattern PATTERN = Pattern.compile("\n|\r?\n");
-
-	@NotNull
-	public ColumnTable<String> loadTable(String path) {
+	public @NotNull ColumnTable<String> loadTable(String path) {
 		return loadTable(path, Function.identity());
 	}
 
-	@NotNull
-	public ColumnTable<String> toTable(
+	public @NotNull ColumnTable<String> toTable(
 			CharSequence payload, Function<String, String> transformer
 	) {
 		List<String> lines
@@ -65,7 +62,7 @@ public final class Utilities {
 			List<String> keys = asList(lines.remove(0).split("\t", -1));
 			int numCol = keys.size();
 			List<List<String>> table = new ArrayList<>();
-			for (String line : lines) {
+			for (String line: lines) {
 				String[] cells = line.split("\t", -1);
 				List<String> list = asList(cells).subList(0, numCol);
 				List<String> collected = list.stream()
@@ -80,8 +77,7 @@ public final class Utilities {
 		);
 	}
 
-	@NotNull
-	public ColumnTable<String> loadTable(
+	public @NotNull ColumnTable<String> loadTable(
 			String path, Function<String, String> transformer
 	) {
 		FileHandler handler = new DiskFileHandler("UTF-8");
@@ -115,6 +111,7 @@ public final class Utilities {
 	 * @param transformer a {@link StringTransformer} to process the data and
 	 * 		clean or apply it.
 	 * @param keys the columns to be selected for conversion
+	 *
 	 * @return a new DataTable representing the columns with cognate data
 	 */
 	public <T> ColumnTable<Sequence<T>> toPhoneticTable(
@@ -126,7 +123,7 @@ public final class Utilities {
 		List<String> keyList = (keys.isEmpty()) ? table.getKeys() : keys;
 		Collection<Integer> indices = new HashSet<>();
 		int k = 0;
-		for (String key : table.getKeys()) {
+		for (String key: table.getKeys()) {
 			if (keyList.contains(key)) {
 				indices.add(k);
 			}
@@ -142,7 +139,7 @@ public final class Utilities {
 					String word = table.get(i, j);
 					String s = transformer.apply(word);
 					Sequence<T> segments = new BasicSequence<>(model);
-					for (String s1 : SPACE.split(s)) {
+					for (String s1: SPACE.split(s)) {
 						segments.add(factory.toSegment(s1));
 					}
 					list.add(segments);
@@ -161,7 +158,9 @@ public final class Utilities {
 	) {
 		SymmetricalTwoKeyMap<Segment<T>, Double> map
 				= new SymmetricalTwoKeyMap<>();
-		for (String line : Splitter.lines(handler.read(matrixPath))) {
+		CharSequence lines = handler.read(matrixPath);
+		
+		for (String line: Splitter.lines(lines)) {
 			String[] matcher = line.split("\t");
 			String s1 = matcher[0];
 			String s2 = matcher[1];
@@ -189,7 +188,7 @@ public final class Utilities {
 
 	public String formatStrings(Iterable<String> strings) {
 		StringBuilder sb = new StringBuilder();
-		for (String string : strings) {
+		for (String string: strings) {
 			sb.append(string);
 			sb.append('\t');
 		}
@@ -199,7 +198,7 @@ public final class Utilities {
 	public String format(Iterable<Double> weights) {
 		StringBuilder sb = new StringBuilder();
 
-		for (Double value : weights) {
+		for (Double value: weights) {
 			String format = FORMAT_SHORT.format(value);
 			if (format.startsWith("-")) {
 				sb.append(format);
@@ -216,7 +215,7 @@ public final class Utilities {
 			SequenceFactory<T> factory, ColumnTable<Sequence<T>> data
 	) {
 		Map<String, EnvironmentMap<T>> environments = new HashMap<>();
-		for (String key : data.getKeys()) {
+		for (String key: data.getKeys()) {
 			List<Sequence<T>> column = data.getColumn(key);
 			EnvironmentMap<T> env = new EnvironmentMap<>(column, factory);
 			environments.put(key, env);
@@ -232,9 +231,9 @@ public final class Utilities {
 			Table<Double> distancesLeft
 	) {
 		int i = 0;
-		for (Tuple<Sequence<T>, Sequence<T>> t1 : tuples) {
+		for (Tuple<Sequence<T>, Sequence<T>> t1: tuples) {
 			int j = 0;
-			for (Tuple<Sequence<T>, Sequence<T>> t2 : tuples) {
+			for (Tuple<Sequence<T>, Sequence<T>> t2: tuples) {
 				j++;
 			}
 			i++;
@@ -264,10 +263,10 @@ public final class Utilities {
 
 		Map<String, Map<Segment<T>, Integer>> map = new HashMap<>();
 
-		for (String key : data.getKeys()) {
+		for (String key: data.getKeys()) {
 			Map<Segment<T>, Integer> counts = new HashMap<>();
-			for (Sequence<T> sequence : data.getColumn(key)) {
-				for (Segment<T> segment : sequence) {
+			for (Sequence<T> sequence: data.getColumn(key)) {
+				for (Segment<T> segment: sequence) {
 					if (counts.containsKey(segment)) {
 						Integer integer = counts.get(segment);
 						counts.put(segment, integer + 1);

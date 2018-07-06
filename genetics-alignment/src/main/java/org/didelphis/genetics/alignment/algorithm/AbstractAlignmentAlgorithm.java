@@ -1,8 +1,10 @@
 package org.didelphis.genetics.alignment.algorithm;
 
-import org.didelphis.language.phonetic.SequenceFactory;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.didelphis.genetics.alignment.operators.Comparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
+import org.didelphis.language.phonetic.SequenceFactory;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -10,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
  *
  * @since 06/05/2017
  */
+@ToString
+@EqualsAndHashCode
 public abstract class AbstractAlignmentAlgorithm<N>
 		implements AlignmentAlgorithm<N> {
 
@@ -27,27 +31,23 @@ public abstract class AbstractAlignmentAlgorithm<N>
 		this.factory = factory;
 	}
 
-	@NotNull
 	@Override
-	public GapPenalty<N> getGapPenalty() {
+	public @NotNull GapPenalty<N> getGapPenalty() {
 		return gapPenalty;
 	}
 
-	@NotNull
 	@Override
-	public SequenceFactory<N> getFactory() {
+	public @NotNull SequenceFactory<N> getFactory() {
 		return factory;
 	}
 
-	@NotNull
 	@Override
-	public Comparator<N> getComparator() {
+	public @NotNull Comparator<N> getComparator() {
 		return comparator;
 	}
 
-	@NotNull
 	@Override
-	public Optimization<Double> getOptimization() {
+	public @NotNull Optimization<Double> getOptimization() {
 		return optimization;
 	}
 }

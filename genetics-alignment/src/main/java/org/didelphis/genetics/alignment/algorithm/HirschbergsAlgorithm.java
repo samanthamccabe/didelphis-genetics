@@ -1,6 +1,11 @@
 package org.didelphis.genetics.alignment.algorithm;
 
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
+import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
@@ -8,9 +13,6 @@ import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
-import org.didelphis.genetics.alignment.Alignment;
-import org.didelphis.genetics.alignment.operators.Comparator;
-import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.structures.tuples.Twin;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,25 +24,32 @@ import java.util.List;
  *
  * @param <N>
  */
+@ToString
+@EqualsAndHashCode(callSuper = true)
 public class HirschbergsAlgorithm<N>
 		extends AbstractAlignmentAlgorithm<N> {
 
 	private final NeedlemanWunschAlgorithm<N> nwAlgorithm;
 
-	public HirschbergsAlgorithm(Comparator<N> comparator,
-			GapPenalty<N> gapPenalty, SequenceFactory<N> factory) {
+	public HirschbergsAlgorithm(
+			Comparator<N> comparator,
+			GapPenalty<N> gapPenalty,
+			SequenceFactory<N> factory
+	) {
 		super(comparator, BaseOptimization.MIN, gapPenalty, factory);
 		nwAlgorithm = new NeedlemanWunschAlgorithm<>(comparator,
-				BaseOptimization.MIN, gapPenalty, factory);
+				BaseOptimization.MIN,
+				gapPenalty,
+				factory
+		);
 	}
-	
-	@NotNull
+
 	@Override
-	public AlignmentResult<N> apply(@NotNull List<? extends Sequence<N>> sequences) {
-		
+	public @NotNull AlignmentResult<N> apply(@NotNull List<? extends Sequence<N>> sequences) {
+
 		if (sequences.size() != 2) {
-			throw new IllegalArgumentException(getClass().getCanonicalName() +
-					" does not support aligning more than two sequences");
+			throw new IllegalArgumentException(getClass().getCanonicalName()
+					+ " does not support aligning more than two sequences");
 		}
 
 		Sequence<N> left = sequences.get(0);
@@ -48,11 +57,12 @@ public class HirschbergsAlgorithm<N>
 
 		Twin<Sequence<N>> t = hirschberg(left, right);
 
-		FeatureModel<N> model = getFactory().getFeatureMapping().getFeatureModel();
+		FeatureModel<N> model = getFactory().getFeatureMapping()
+				.getFeatureModel();
 
-//		return new Alignment<>(
-//				new BasicSequence<>(t.getLeft(), model),
-//				new BasicSequence<>(t.getRight(), model));
+		//		return new Alignment<>(
+		//				new BasicSequence<>(t.getLeft(), model),
+		//				new BasicSequence<>(t.getRight(), model));
 		return null; // TODO:
 	}
 	
@@ -137,8 +147,7 @@ public class HirschbergsAlgorithm<N>
 		return yMid;
 	}
 
-	@NotNull
-	private List<Double> NWScore(Sequence<N> left, Sequence<N> right) {
+	private @NotNull List<Double> NWScore(Sequence<N> left, Sequence<N> right) {
 		Table<Double> table = nwAlgorithm.align(left, right);
 		return table.getRow(table.rows()-1);
 	}

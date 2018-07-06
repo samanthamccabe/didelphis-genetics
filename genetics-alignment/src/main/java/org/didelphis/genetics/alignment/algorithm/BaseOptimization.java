@@ -1,5 +1,7 @@
 package org.didelphis.genetics.alignment.algorithm;
 
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.BiPredicate;
@@ -9,6 +11,8 @@ import java.util.function.BiPredicate;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-07-05
  */
+@ToString
+@EqualsAndHashCode
 public final class BaseOptimization<T> implements Optimization<T> {
 
 	public static final Optimization<Double> MAX = new BaseOptimization<>(

@@ -39,9 +39,8 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 		this.arity = arity;
 	}
 
-	@NotNull
 	@Override
-	public AlignmentResult<T> apply(@NotNull List<? extends Sequence<T>> sequences) {
+	public @NotNull AlignmentResult<T> apply(@NotNull List<? extends Sequence<T>> sequences) {
 
 		Sequence<T> left = sequences.get(0);
 		Sequence<T> right = sequences.get(1);

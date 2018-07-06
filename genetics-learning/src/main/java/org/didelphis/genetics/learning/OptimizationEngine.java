@@ -1,5 +1,7 @@
 package org.didelphis.genetics.learning;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
 import org.didelphis.genetic.data.generation.BrownAlignmentGenerator;
 import org.didelphis.genetics.alignment.Alignment;
@@ -39,9 +41,11 @@ import java.util.stream.Collectors;
  * @since 0.1.0 
  */
 @UtilityClass
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class OptimizationEngine<T> {
 
-	private static final Pattern Ø = Pattern.compile("Ø");
+	Pattern NONE = Pattern.compile("Ø");
+	FileHandler HANDLER = new DiskFileHandler("UTF-8");
 
 	public static void main(String[] args) {
 		// Basic case for a static model
@@ -52,19 +56,16 @@ public final class OptimizationEngine<T> {
 		// 5. Score Data
 
 		// -----------------------------------------------
-		FileHandler handler = new DiskFileHandler("UTF-8");
 		FeatureType<Integer> type = IntegerFeature.INSTANCE;
 		String modelPath = "../data/ASJPcode.model";
 		FormatterMode mode = FormatterMode.INTELLIGENT;
 
-		SequenceFactory<Integer> factory = loadFactory(modelPath,
-				handler,
+		SequenceFactory<Integer> factory = loadFactory(modelPath, HANDLER,
 				type,
 				mode
 		);
 
-		String dataPath = "/home/samantha/Downloads/data/" +
-				"brown_correspondences.csv";
+		String dataPath = "../data/brown_correspondences.txt";
 		BrownAlignmentGenerator generator
 				= new BrownAlignmentGenerator(dataPath, 0.0, 1.0);
 		Supplier<? extends List<String>> supplier = generator.supplier(4, 12);
@@ -100,7 +101,7 @@ public final class OptimizationEngine<T> {
 				);
 
 				List<String> input = list.stream()
-						.map(s -> Ø.matcher(s).replaceAll("").trim())
+						.map(s -> NONE.matcher(s).replaceAll("").trim())
 						.collect(Collectors.toList());
 				List<Sequence<Integer>> sequences = toSequences(input, factory);
 
@@ -119,8 +120,7 @@ public final class OptimizationEngine<T> {
 		}
 	}
 
-	@NotNull
-	private static <T> Alignment<T> toAlignment(
+	private static @NotNull <T> Alignment<T> toAlignment(
 			@NotNull Iterable<String> list, @NotNull SequenceFactory<T> factory
 	) {
 
@@ -129,8 +129,7 @@ public final class OptimizationEngine<T> {
 		return new Alignment<>(sequences, model);
 	}
 
-	@NotNull
-	private static <T> List<Sequence<T>> toSequences(
+	private static @NotNull <T> List<Sequence<T>> toSequences(
 			@NotNull Iterable<String> list, @NotNull SequenceFactory<T> factory
 	) {
 		List<Sequence<T>> sequences = new ArrayList<>();

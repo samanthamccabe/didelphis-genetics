@@ -1,5 +1,8 @@
 package org.didelphis.genetics.alignment.common;
 
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +15,8 @@ import java.util.regex.Pattern;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-27
  */
+@ToString
+@EqualsAndHashCode
 public class StringTransformer implements UnaryOperator<String> {
 
 	private static final Pattern OPERATOR = Pattern.compile("\\s>>\\s");
@@ -22,6 +27,14 @@ public class StringTransformer implements UnaryOperator<String> {
 		expressions = Collections.emptyList();
 	}
 
+	public StringTransformer(Iterable<String> lines) {
+		expressions = new ArrayList<>();
+		for (String string : lines) {
+			String[] split = OPERATOR.split(string, -1);
+			expressions.add(new Expression(split[0], split[1]));
+		}
+	}
+	
 	public StringTransformer(CharSequence payload) {
 		expressions = new ArrayList<>();
 		for (String string : NEWLINE.split(payload)) {

@@ -38,9 +38,8 @@ public class AlignmentContext<T> extends Twin<Alignment<T>> {
 		return super.equals(object);
 	}
 
-	@NotNull
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 
 		StringBuilder sb = new StringBuilder();
 

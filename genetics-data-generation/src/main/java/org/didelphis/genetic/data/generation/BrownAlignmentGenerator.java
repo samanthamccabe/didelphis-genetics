@@ -1,5 +1,8 @@
 package org.didelphis.genetic.data.generation;
 
+import lombok.AccessLevel;
+import lombok.ToString;
+import lombok.experimental.FieldDefaults;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.structures.maps.GeneralMultiMap;
@@ -7,27 +10,19 @@ import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
 import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
-import org.didelphis.structures.tuples.Couple;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.structures.tuples.Twin;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.Random;
-import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 import java.util.stream.StreamSupport;
 
 import static java.lang.Math.abs;
@@ -38,18 +33,20 @@ import static java.lang.Math.toIntExact;
 /**
  * Created by samantha on 4/22/17.
  */
+@ToString
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class BrownAlignmentGenerator {
 
-	private static final Pattern NEWLINE = Pattern.compile("\n");
-	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
-	private static final Random RANDOM = new Random();
+	static Pattern NEWLINE = Pattern.compile("\n");
+	static FileHandler HANDLER = new DiskFileHandler("UTF-8");
+	static Random RANDOM = new Random();
 
-	private final double generaBias;
-	private final double gapBias;
+	double generaBias;
+	double gapBias;
 
-	private final TwoKeyMultiMap<String, String, Correspondence> stkm;
-	private final NavigableMap<Double, Correspondence> treeMap;
-	private final SymmetricalTwoKeyMap<String, Double> scores;
+	TwoKeyMultiMap<String, String, Correspondence> stkm;
+	NavigableMap<Double, Correspondence> treeMap;
+	SymmetricalTwoKeyMap<String, Double> scores;
 
 	public BrownAlignmentGenerator(String correspondencePath) {
 		this(correspondencePath, 1.0, 1.0);
@@ -120,10 +117,6 @@ public final class BrownAlignmentGenerator {
 			}
 			return new Twin<>(left.toString(), right.toString());
 		};
-	}
-
-	private static int randomInt(int min, int max) {
-		return toIntExact(round(random() * (max - min) + min));
 	}
 
 	public String generate(int min, int max, int iterations) {
@@ -235,6 +228,10 @@ public final class BrownAlignmentGenerator {
 					);
 				});
 		return map;
+	}
+
+	private static int randomInt(int min, int max) {
+		return toIntExact(round(random() * (max - min) + min));
 	}
 
 	private static double sum(Triple<?, ?, Collection<Correspondence>> t) {

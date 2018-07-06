@@ -23,9 +23,8 @@ public class Environment<T> implements Iterable<Twin<Sequence<T>>> {
 		factory = factoryParam;
 	}
 
-	@NotNull
 	@Override
-	public Iterator<Twin<Sequence<T>>> iterator() {
+	public @NotNull Iterator<Twin<Sequence<T>>> iterator() {
 		return environment.iterator();
 	}
 

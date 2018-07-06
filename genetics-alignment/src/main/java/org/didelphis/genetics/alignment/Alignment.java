@@ -6,6 +6,7 @@ import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
+import org.didelphis.utilities.Exceptions;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -39,9 +40,12 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 
 	public Alignment(List<Sequence<T>> list, FeatureModel<T> featureModel) {
 		super(list, list.size(), list.isEmpty() ? 0 : list.get(0).size());
-		for (Sequence<T> sequence : list) {
+		for (Sequence<T> sequence: list) {
 			if (sequence.size() != columns()) {
-				throw new IllegalArgumentException("Sequence "+sequence+" in " + list + " is not the correct number of elements: " + sequence.size() + " vs " + columns());
+				throw Exceptions.create(IllegalArgumentException.class).add(
+						"Sequence {} in {} is not the correct number",
+						"of elements: {} vs {}"
+				).with(sequence, list, sequence.size(), columns()).build();
 			}
 		}
 		this.featureModel = featureModel;
@@ -52,6 +56,21 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 		featureModel = left.getFeatureModel();
 	}
 
+	@Override
+	public FeatureModel<T> getFeatureModel() {
+		return featureModel;
+	}
+
+	@Override
+	public FeatureSpecification getSpecification() {
+		return featureModel.getSpecification();
+	}
+
+	@Override
+	public @NotNull String toString() {
+		return getPrettyTable().replaceAll("\n", "\t");
+	}
+
 	public void add(Collection<Segment<T>> list) {
 		insertColumn(rows(), list);
 	}
@@ -60,7 +79,7 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 	public String getPrettyTable() {
 
 		StringBuilder stringBuilder = new StringBuilder();
-		for (CharSequence charSequence : buildPrettyAlignments()) {
+		for (CharSequence charSequence: buildPrettyAlignments()) {
 			stringBuilder.append(charSequence);
 			stringBuilder.append('\n');
 		}
@@ -105,29 +124,13 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 		return builders;
 	}
 
-	@Override
-	public FeatureModel<T> getFeatureModel() {
-		return featureModel;
-	}
-
-	@Override
-	public FeatureSpecification getSpecification() {
-		return featureModel.getSpecification();
-	}
-
 	private static int getPrintableLength(String string) {
 		int visible = 0;
-		for (char c : string.toCharArray()) {
+		for (char c: string.toCharArray()) {
 			if (Character.getType(c) != Character.NON_SPACING_MARK) {
 				visible++;
 			}
 		}
 		return visible;
-	}
-
-	@NotNull
-	@Override
-	public String toString() {
-		return getPrettyTable().replaceAll("\n", "\t");
 	}
 }

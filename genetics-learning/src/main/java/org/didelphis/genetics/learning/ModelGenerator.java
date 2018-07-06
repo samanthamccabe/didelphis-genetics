@@ -102,6 +102,7 @@ public final class ModelGenerator<T> {
 	private final List<String> modifiers;
 	private final BrownAlignmentGenerator generator;
 	private final FeatureType<T> featureType;
+	public static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
 
 	private ModelGenerator(FeatureType<T> featureType, FileHandler handler,
 			BrownAlignmentGenerator generator, int features,
@@ -125,10 +126,8 @@ public final class ModelGenerator<T> {
 
 	public static void main(String[] args) throws IOException {
 
-		String dataPath = "/home/samantha/git/data/";
+		String dataPath = "../data/";
 		String symbolsPath = dataPath + "ASJP_Symbols";
-
-		FileHandler handler = new DiskFileHandler("UTF-8");
 
 		String trainingPath = dataPath + "training/";
 		String dataSetName = "out.sample_1k.txt";
@@ -148,7 +147,8 @@ public final class ModelGenerator<T> {
 				logWriter, formatter
 		);
 
-		String clean = TRANSFORMER.apply(handler.read(symbolsPath).toString());
+		CharSequence read = HANDLER.read(symbolsPath);
+		String clean = TRANSFORMER.apply(read.toString());
 		String[] split = clean.split("\n");
 		List<String> symbols = Arrays.asList(SPACE.split(split[0]));
 		List<String> modifiers = Arrays.asList(SPACE.split(split[1]));
@@ -157,13 +157,12 @@ public final class ModelGenerator<T> {
 
 		FeatureType<Double> featureType = DoubleFeature.INSTANCE;
 
-		String correspondenceDataPath = "/home/samantha/Downloads/data/" +
-				"brown_correspondences.csv";
+		String correspondenceDataPath = "../data/brown_correspondences.txt";
 
 		BrownAlignmentGenerator brownAlignmentGenerator
 				= new BrownAlignmentGenerator(correspondenceDataPath, 0.0, 0.5);
 		ModelGenerator<Double> generator = new ModelGenerator<>(featureType,
-				handler, brownAlignmentGenerator, features, symbols, modifiers
+				HANDLER, brownAlignmentGenerator, features, symbols, modifiers
 		);
 
 		int numberOfSymbols = symbols.size() + modifiers.size();
@@ -264,8 +263,7 @@ public final class ModelGenerator<T> {
 		return correct / (double) tested;
 	}
 
-	@NotNull
-	private <G extends Gene<T, G>> SequenceFactory<T> toFactory(
+	private @NotNull <G extends Gene<T, G>> SequenceFactory<T> toFactory(
 			Genotype<G> genotype
 	) {
 		/*
@@ -293,8 +291,7 @@ public final class ModelGenerator<T> {
 		return new SequenceFactory<>(mapping, FormatterMode.INTELLIGENT);
 	}
 
-	@NotNull
-	private FeatureMapping<T> toMapping(Table<T> featureTable,
+	private @NotNull FeatureMapping<T> toMapping(Table<T> featureTable,
 			FeatureModel<T> model
 	) {
 		Map<String, FeatureArray<T>> sMap = parseSymbols(featureTable, model);
@@ -302,8 +299,7 @@ public final class ModelGenerator<T> {
 		return new GeneralFeatureMapping<>(model, sMap, mMap);
 	}
 
-	@NotNull
-	private <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseSymbols(
+	private @NotNull <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseSymbols(
 			Table<T> table, FeatureModel<T> model
 	) {
 		Map<String, FeatureArray<T>> sMap = new HashMap<>(symbols.size());
@@ -315,8 +311,7 @@ public final class ModelGenerator<T> {
 		return sMap;
 	}
 
-	@NotNull
-	private <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseModifiers(
+	private @NotNull <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseModifiers(
 			Table<T> table, FeatureModel<T> model
 	) {
 		int modelSize = model.getSpecification().size();
@@ -374,8 +369,7 @@ public final class ModelGenerator<T> {
 		handler.writeString(outputPath.toString(), buffer);
 	}
 
-	@NotNull
-	private static <T> List<Alignment<T>> doAlignment(
+	private static @NotNull <T> List<Alignment<T>> doAlignment(
 			AlignmentAlgorithm<T> algorithm, Table<Sequence<T>> testWords
 	) {
 		List<Alignment<T>> testsData = new ArrayList<>(testWords.size());
@@ -397,8 +391,7 @@ public final class ModelGenerator<T> {
 		return toAlignments(raw, factory);
 	}
 
-	@NotNull
-	private <G extends Gene<T, G>> AlignmentAlgorithm<T> toAlgorithm(
+	private @NotNull <G extends Gene<T, G>> AlignmentAlgorithm<T> toAlgorithm(
 			SequenceFactory<T> factory,
 			Genotype<G> genotype
 	) {
@@ -439,8 +432,7 @@ public final class ModelGenerator<T> {
 				.collect(Collectors.toList());
 	}
 
-	@NotNull
-	private static FeatureSpecification getSpecification(int n) {
+	private static @NotNull FeatureSpecification getSpecification(int n) {
 		List<String> names = new ArrayList<>(n);
 		Map<String, Integer> indices = new HashMap<>(n);
 		IntStream.range(0, n).forEach(i -> {

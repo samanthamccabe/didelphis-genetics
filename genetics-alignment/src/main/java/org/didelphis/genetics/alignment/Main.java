@@ -1,8 +1,13 @@
 package org.didelphis.genetics.alignment;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
+import lombok.experimental.UtilityClass;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
@@ -24,6 +29,7 @@ import org.didelphis.language.phonetic.features.IntegerFeature;
 import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.Suppliers;
 import org.didelphis.structures.maps.GeneralMultiMap;
@@ -31,46 +37,83 @@ import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.utilities.Logger;
+import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.LITERAL;
 import static java.util.regex.Pattern.compile;
 
-
+@UtilityClass
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public final class Main {
-	private static final transient Logger LOGGER = Logger.create(Main.class);
-	private static final Pattern EXTENSION_PATTERN = compile("\\.[^.]*?$");
-	private static final Pattern HYPHEN = compile("-");
-	private static final Pattern WHITESPACE = compile("(\n|\r\n?|\\s)+");
-	private static final Pattern HASH = compile("#", LITERAL);
-	private static final Pattern ZERO = compile("0");
 
-	private Main() {
+	Logger LOGGER = Logger.create(Main.class);
+	Pattern EXTENSION_PATTERN = compile("\\.[^.]*?$");
+	Pattern HYPHEN = compile("-");
+	Pattern WHITESPACE = compile("(\n|\r\n?|\\s)+");
+	Pattern HASH = compile("#", LITERAL);
+	Pattern ZERO = compile("0");
+
+	ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	static {
+		OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
+	}
+	
+	FileHandler HANDLER = new DiskFileHandler("UTF-8");
+	
+
+	private static String readConfigString(String key, JsonNode configNode) {
+		String pathFieldName = key + "_path";
+		if (configNode.has(pathFieldName)) {
+			String path = configNode.get(pathFieldName).asText();
+			return String.valueOf(HANDLER.read(path));
+		} else if (configNode.has(key)) {
+			JsonNode jsonNode = configNode.get(key);
+			return jsonNode.asText();
+		} else {
+			throw new IllegalArgumentException("Configuration item "
+					+ key
+					+ " and "
+					+ pathFieldName
+					+ " not found");
+		}
 	}
 
+	private static List<String> readConfigArray(String key, JsonNode configNode) {
+		String pathFieldName = key + "_path";
+		if (configNode.has(pathFieldName)) {
+			String path = configNode.get(pathFieldName).asText();
+			String value = String.valueOf(HANDLER.read(path));
+			return Splitter.lines(value);
+		} else if (configNode.has(key)) {
+			JsonNode jsonNode = configNode.get(key);
+			List<String> list = new ArrayList<>();
+			for (JsonNode node : jsonNode) {
+				list.add(node.asText(""));
+			}
+			return list;
+		} else {
+			throw new IllegalArgumentException("Configuration item "
+					+ key
+					+ " and "
+					+ pathFieldName
+					+ " not found");
+		}
+	}
+	
 	/**
 	 * TODO: Rehab plan:
 	 *    args:
@@ -85,45 +128,69 @@ public final class Main {
 	 */
 	public static void main(String[] args) throws IOException {
 
-		FileHandler handler = new DiskFileHandler("UTF-8");
+		if (args.length == 0) {
+			LOGGER.error("You must provide a JSON configuration");
+			System.exit(-1);
+		}
 
-//		CharSequence payload = handler.read("transformations");
-		CharSequence payload = "Ø >> ";
-		StringTransformer transformer = new StringTransformer(payload);
+		String configPath = args[0];
+
+		String basePath = configPath.contains("/") 
+				? configPath.replaceAll("/[^/]+$", "/") 
+				: "";
+		
+		String configData = String.valueOf(HANDLER.read(configPath));
+
+		// Read Configuration
+		JsonNode configNode = OBJECT_MAPPER.readTree(configData);
+		String modelPath   = basePath + configNode.get("model_path").asText();
+		String weightsPath = basePath + configNode.get("weights_path").asText();
+
+		List<String> transformPayload = readConfigArray(
+				"transformations",
+				configNode
+		);
+		String gapSymbol = readConfigString("gap_symbol", configNode);
+
+		Map<File, List<String>> files = new LinkedHashMap<>();
+		for (JsonNode file : configNode.get("files")) {
+			String path = file.get("path").asText();
+			List<String> list = readConfigArray("cols", file);
+			files.put(new File(basePath + path), list);
+
+		}
+		
+		Function<String, String> transformer = new StringTransformer(transformPayload);
 
 		FeatureType<Integer> type = IntegerFeature.INSTANCE;
 
-//		String path = "AT_hybrid_reduced.model";
-		String path = "../data/ASJPcode.model";
 		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
-				type, handler, path);
-//		FeatureModelLoader<Integer> loader = IntegerFeature.emptyLoader();
+				type,
+				HANDLER,
+				modelPath
+		);
+
 		FeatureMapping<Integer> mapping = loader.getFeatureMapping();
 
 		SequenceFactory<Integer> factory = new SequenceFactory<>(
 				mapping, FormatterMode.INTELLIGENT);
-
-		String gapSymbol = "░";
+		
 		Sequence<Integer> gap = factory.toSequence(gapSymbol);
 		GapPenalty<Integer> gapPenalty = new ConvexGapPenalty<>(gap, 0, 0);
 
-//		String weightsPath = "weights_14";
-//		Comparator<Integer> comparator = readWeightsComparator(type, handler, null);
-
-		Comparator<Integer> comparator = readWeightsComparator(type, handler,
-				"../data/ASJPcode.weights"
+		Comparator<Integer> comparator = readWeightsComparator(
+				type, weightsPath
 		);
-
-		//		String matrixPath = "brown.utx";
+		
 //		Comparator<Integer> comparator = loadMatrixComparator(handler, factory,
 //				transformer, matrixPath);
 
 		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(
-				comparator, BaseOptimization.MIN, gapPenalty, factory);
-
-		Map<File, List<String>> files = new LinkedHashMap<>();
-
-		files.put(new File("out.sample_1k.txt"), asList("A", "B"));
+				comparator,
+				BaseOptimization.MIN,
+				gapPenalty,
+				factory
+		);
 
 		Function<String,String> bFunc = new StringTransformer("^[^#] >> #$0");
 		for (Entry<File, List<String>> languageEntry : files.entrySet()) {
@@ -144,22 +211,29 @@ public final class Main {
 
 			String rootPath = EXTENSION_PATTERN
 					.matcher(tableFile.getCanonicalPath())
-					.replaceAll("/a/");
+					.replaceAll("/aligned/");
 			writeAlignments(rootPath, alignmentMap);
+			
+			Map<String, PairCorrespondenceSet<Integer>> contexts = buildContexts(
+					factory,
+					gap.get(0),
+					alignmentMap
+			);
+			writeContexts(contexts, rootPath);
 
 			StringBuilder sb = new StringBuilder(standards.size() * 10);
 			for (Alignment<Integer> alignment : standards) {
 				alignment.removeColumn(0);
-				sb.append(alignment.toString()).append('\n');
+				sb.append(alignment).append('\n');
 			}
-			handler.writeString(rootPath + "correct", sb);
+			HANDLER.writeString(rootPath + "correct", sb);
 		}
 	}
 
-	@NotNull
-	private static Comparator<Integer> readWeightsComparator(
-			FeatureType<Integer> type, FileHandler handler, String path) {
-		CharSequence weightsPayload = handler.read(path);
+	private static @NotNull Comparator<Integer> readWeightsComparator(
+			FeatureType<Integer> type, String path
+	) {
+		CharSequence weightsPayload = HANDLER.read(path);
 		List<Double> weights = new ArrayList<>();
 		for (String string : WHITESPACE.split(weightsPayload, -1)) {
 			weights.add(Double.parseDouble(string));
@@ -168,8 +242,11 @@ public final class Main {
 				type, weights);
 	}
 
-	private static void writeContexts(Map<String, PairCorrespondenceSet<Segment<Integer>>> contexts, String rootPath) throws IOException {
-		for (Entry<String, PairCorrespondenceSet<Segment<Integer>>> entry : contexts
+	private static <T> void writeContexts(
+			Map<String, PairCorrespondenceSet<T>> contexts,
+			String rootPath
+	) throws IOException {
+		for (Entry<String, PairCorrespondenceSet<T>> entry : contexts
 				.entrySet()) {
 			String key = entry.getKey();
 
@@ -179,16 +256,16 @@ public final class Main {
 			writer.write("L_a\tLeft\tL_p\tR_a\tRight\tR_p\n");
 
 			entry.getValue().iterator().forEachRemaining(triple -> {
-				Segment<Integer> left = triple.getFirstElement();
-				Segment<Integer> right = triple.getSecondElement();
+				Segment<T> left = triple.getFirstElement();
+				Segment<T> right = triple.getSecondElement();
 				triple.getThirdElement().forEach(pair -> {
-					Context<Segment<Integer>> lContext = pair.getLeft();
-					Context<Segment<Integer>> rContext = pair.getRight();
+					Context<T> lContext = pair.getLeft();
+					Context<T> rContext = pair.getRight();
 
-					Segment<Integer> lA = lContext.getLeft();
-					Segment<Integer> lP = lContext.getRight();
-					Segment<Integer> rA = rContext.getLeft();
-					Segment<Integer> rP = rContext.getRight();
+					Sequence<T> lA = lContext.getLeft();
+					Sequence<T> lP = lContext.getRight();
+					Sequence<T> rA = rContext.getLeft();
+					Sequence<T> rP = rContext.getRight();
 
 					try {
 						writer.write(lA.toString());
@@ -203,6 +280,7 @@ public final class Main {
 						writer.write("\t");
 						writer.write(rP.toString());
 						writer.write("\n");
+						writer.flush();
 					} catch (IOException e) {
 						LOGGER.error("Failed to write output", e);
 					}
@@ -252,7 +330,7 @@ public final class Main {
 				try {
 					sb2.append(objectMapper.writeValueAsString(node));
 				} catch (JsonProcessingException e) {
-					e.printStackTrace();
+					LOGGER.error("{}", e);
 				}
 			}
 
@@ -262,62 +340,65 @@ public final class Main {
 			try {
 				Files.createDirectories(path.getParent());
 			} catch (IOException e) {
-				e.printStackTrace();
+				LOGGER.error("{}", e);
 			}
 
 			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file1))) {
 				writer.write(sb1.toString());
 			} catch (IOException e) {
-				e.printStackTrace();
+				LOGGER.error("{}", e);
 			}
 
 			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file2))) {
 				writer.write(sb2.toString());
 			} catch (IOException e) {
-				e.printStackTrace();
+				LOGGER.error("{}", e);
 			}
 		}
 	}
 
-	private static Map<String, PairCorrespondenceSet<Segment<Integer>>> buildContexts(
-			SequenceFactory<Integer> factory, Sequence<Integer> gap, MultiMap<String, Alignment<Integer>> alignmentMap) {
-		Map<String, PairCorrespondenceSet<Segment<Integer>>> contexts =
-				new HashMap<>();
-		for (Tuple<String, Collection<Alignment<Integer>>> e : alignmentMap) {
+	private static <T> Map<String, PairCorrespondenceSet<T>> buildContexts(
+			SequenceFactory<T> factory,
+			Segment<T> gap,
+			MultiMap<String, AlignmentResult<T>> alignmentMap
+	) {
+		Map<String, PairCorrespondenceSet<T>> contexts = new HashMap<>();
+		for (Tuple<String, Collection<AlignmentResult<T>>> e : alignmentMap) {
 
 			String key = e.getLeft();
 
-			PairCorrespondenceSet<Segment<Integer>> set =
-					new PairCorrespondenceSet<>();
-			for (Alignment<Integer> alignment : e.getRight()) {
-				if (alignment.columns() > 0) {
-					List<Segment<Integer>> left = alignment.getRow(0);
-					List<Segment<Integer>> right = alignment.getRow(1);
+			PairCorrespondenceSet<T> set = new PairCorrespondenceSet<>();
+			for (AlignmentResult<T> alignmentResult : e.getRight()) {
 
-//					TODO: 2018 !!!!
-//					left.add(factory.getBorderSegment());
-//					right.add(factory.getBorderSegment());
+				List<Alignment<T>> alignments = alignmentResult.getAlignments();
 
-					for (int i = 1;
-					     i < alignment.columns() - 1; i++) {
-						Segment<Integer> l = left.get(i);
-						Segment<Integer> r = right.get(i);
+				for (Alignment<T> alignment : alignments) {
+					
+					if (alignment.columns() > 0) {
+						List<Segment<T>> left = new ArrayList<>(alignment.getRow(0));
+						List<Segment<T>> right = new ArrayList<>(alignment.getRow(1));
 
-						if (!l.equals(r)) {
-							Segment<Integer> lA = lookBack(left, i, gap);
-							Segment<Integer> rA = lookBack(right, i, gap);
+						left.add(factory.toSegment("#"));
+						right.add(factory.toSegment("#"));
 
-							Segment<Integer> lP =
-									lookForward(left, i, gap);
-							Segment<Integer> rP =
-									lookForward(right, i, gap);
+						for (int i = 1; i < alignment.columns() - 1; i++) {
+							Segment<T> l = left.get(i);
+							Segment<T> r = right.get(i);
 
-							ContextPair<Segment<Integer>> pair =
-									new ContextPair<>(
-											new Context<>(lA, lP),
-											new Context<>(rA, rP));
+							if (!l.equals(r)) {
+								Sequence<T> lA = lookBack(left, i, gap);
+								Sequence<T> rA = lookBack(right, i, gap);
 
-							set.add(l, r, pair);
+								Sequence<T> lP = lookForward(left, i, gap);
+								Sequence<T> rP = lookForward(right, i, gap);
+
+								ContextPair<T> pair = new ContextPair<>(
+										new Context<>(lA, lP),
+										new Context<>(rA, rP)
+								);
+
+								set.add(l, r, pair);
+							}
 						}
 					}
 				}
@@ -327,10 +408,11 @@ public final class Main {
 		return contexts;
 	}
 
+	@NonNull
 	private static <T> MultiMap<String, AlignmentResult<T>> align(
-			AlignmentAlgorithm<T> algorithm,
-			List<String> keyList,
-			ColumnTable<Sequence<T>> data
+			@NotNull AlignmentAlgorithm<T> algorithm,
+			@NotNull List<String> keyList,
+			@NotNull ColumnTable<Sequence<T>> data
 	) {
 		MultiMap<String, AlignmentResult<T>> alignmentMap =
 				new GeneralMultiMap<>(new LinkedHashMap<>(), Suppliers.ofList());
@@ -361,21 +443,27 @@ public final class Main {
 		return alignmentMap;
 	}
 
-	private static Segment<Integer> lookBack(List<Segment<Integer>> left, int i,
-	                                        Sequence<Integer> gap) {
-		Segment<Integer> a = left.get(i - 1);
-		for (int j = 2; a.equals(gap) && (i - j) >= 0; j++) {
-			a = left.get(i - j);
-		}
-		return a;
+	private static <T> Sequence<T> lookBack(
+			List<Segment<T>> segments,
+			int i,
+			Segment<T> gap
+	) {
+		List<Segment<T>> collect = segments.subList(0, i)
+				.stream()
+				.filter(segment -> !segment.equals(gap))
+				.collect(Collectors.toList());
+		return new BasicSequence<>(collect, gap.getFeatureModel());
 	}
 
-	private static Segment<Integer> lookForward(List<Segment<Integer>> left,
-	                                           int i, Sequence<Integer> gap) {
-		Segment<Integer> a = left.get(i + 1);
-		for (int j = 2; a.equals(gap) && (i + j) < left.size(); j++) {
-			a = left.get(i + j);
-		}
-		return a;
+	private static <T> Sequence<T> lookForward(
+			List<Segment<T>> segments,
+			int i, 
+			Segment<T> gap
+	) {
+		List<Segment<T>> collect = segments.subList(i+1, segments.size())
+				.stream()
+				.filter(segment -> !segment.equals(gap))
+				.collect(Collectors.toList());
+		return new BasicSequence<>(collect, gap.getFeatureModel());
 	}
 }

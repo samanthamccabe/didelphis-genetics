@@ -1,15 +1,14 @@
 package org.didelphis.genetics.alignment;
 
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import lombok.experimental.FieldDefaults;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -17,13 +16,16 @@ import java.util.stream.Collectors;
  * @author Samantha Fiona McCabe
  * Created: 11/6/2015
  */
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@ToString(of = "keys")
+@EqualsAndHashCode(callSuper = true)
 public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 
-	private static final Pattern PATTERN = Pattern.compile("\n|\r\n?");
-	private static final Pattern TAB = Pattern.compile("\\t");
-	private static final Pattern SPACE = Pattern.compile("\\s+");
+	static Pattern PATTERN = Pattern.compile("\n|\r\n?");
+	static Pattern TAB = Pattern.compile("\\t");
+	static Pattern SPACE = Pattern.compile("\\s+");
 
-	private final Iterable<String> keys;
+	Iterable<String> keys;
 
 	private AlignmentSet(Collection<String> keys) {
 		this.keys = keys;
@@ -82,10 +84,5 @@ public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 
 	public Iterable<String> getKeys() {
 		return keys;
-	}
-
-	@Override
-	public String toString() {
-		return "AlignmentSet{" + "keys=" + keys + '}';
 	}
 }

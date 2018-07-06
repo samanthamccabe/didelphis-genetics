@@ -45,7 +45,7 @@ public final class RandomModelTester<T> extends BaseModelTester<T> {
 		super(factoryParam);
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String... args) throws IOException {
 
 		String path = "AT_hybrid_reduced.model";
 
