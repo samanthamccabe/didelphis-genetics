@@ -27,6 +27,7 @@ import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.IntegerFeature;
 import org.didelphis.language.phonetic.model.FeatureMapping;
+import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
@@ -48,7 +49,6 @@ import java.text.Normalizer.Form;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -68,50 +68,10 @@ public final class Main {
 	Pattern ZERO = compile("0");
 
 	ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-	static {
-		OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
-	}
-	
 	FileHandler HANDLER = new DiskFileHandler("UTF-8");
 	
-
-	private static String readConfigString(String key, JsonNode configNode) {
-		String pathFieldName = key + "_path";
-		if (configNode.has(pathFieldName)) {
-			String path = configNode.get(pathFieldName).asText();
-			return String.valueOf(HANDLER.read(path));
-		} else if (configNode.has(key)) {
-			JsonNode jsonNode = configNode.get(key);
-			return jsonNode.asText();
-		} else {
-			throw new IllegalArgumentException("Configuration item "
-					+ key
-					+ " and "
-					+ pathFieldName
-					+ " not found");
-		}
-	}
-
-	private static List<String> readConfigArray(String key, JsonNode configNode) {
-		String pathFieldName = key + "_path";
-		if (configNode.has(pathFieldName)) {
-			String path = configNode.get(pathFieldName).asText();
-			String value = String.valueOf(HANDLER.read(path));
-			return Splitter.lines(value);
-		} else if (configNode.has(key)) {
-			JsonNode jsonNode = configNode.get(key);
-			List<String> list = new ArrayList<>();
-			for (JsonNode node : jsonNode) {
-				list.add(node.asText(""));
-			}
-			return list;
-		} else {
-			throw new IllegalArgumentException("Configuration item "
-					+ key
-					+ " and "
-					+ pathFieldName
-					+ " not found");
-		}
+	static {
+		OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
 	}
 	
 	/**
@@ -182,9 +142,6 @@ public final class Main {
 				type, weightsPath
 		);
 		
-//		Comparator<Integer> comparator = loadMatrixComparator(handler, factory,
-//				transformer, matrixPath);
-
 		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(
 				comparator,
 				BaseOptimization.MIN,
@@ -196,18 +153,26 @@ public final class Main {
 		for (Entry<File, List<String>> languageEntry : files.entrySet()) {
 			File tableFile = languageEntry.getKey();
 			List<String> keyList = languageEntry.getValue();
-			ColumnTable<String> table = Utilities.loadTable(tableFile.getPath(),
-					bFunc);
-
+			String path = tableFile.getPath();
+			ColumnTable<String> table = Utilities.loadTable(path, bFunc);
+			
 			ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
-					table, factory, transformer, keyList);
-			MultiMap<String, AlignmentResult<Integer>> alignmentMap =
-					align(algorithm, keyList, data);
+					table,
+					factory,
+					transformer,
+					keyList
+			);
 
-			List<Alignment<Integer>> standards = Utilities.toAlignments(
-					Utilities.toPhoneticTable(table, factory,
-							s -> ZERO.matcher(s).replaceAll(gapSymbol)
-					), factory);
+			MultiMap<String, AlignmentResult<Integer>> alignmentMap = align(
+					algorithm,
+					keyList,
+					data
+			);
+
+//			List<Alignment<Integer>> standards = Utilities.toAlignments(
+//					Utilities.toPhoneticTable(table, factory,
+//							s -> ZERO.matcher(s).replaceAll(gapSymbol)
+//					), factory);
 
 			String rootPath = EXTENSION_PATTERN
 					.matcher(tableFile.getCanonicalPath())
@@ -221,12 +186,51 @@ public final class Main {
 			);
 			writeContexts(contexts, rootPath);
 
-			StringBuilder sb = new StringBuilder(standards.size() * 10);
-			for (Alignment<Integer> alignment : standards) {
-				alignment.removeColumn(0);
-				sb.append(alignment).append('\n');
+//			StringBuilder sb = new StringBuilder(standards.size() * 10);
+//			for (Alignment<Integer> alignment : standards) {
+//				alignment.removeColumn(0);
+//				sb.append(alignment).append('\n');
+//			}
+//			HANDLER.writeString(rootPath + "correct", sb);
+		}
+	}
+
+	private static String readConfigString(String key, JsonNode configNode) {
+		String pathFieldName = key + "_path";
+		if (configNode.has(pathFieldName)) {
+			String path = configNode.get(pathFieldName).asText();
+			return String.valueOf(HANDLER.read(path));
+		} else if (configNode.has(key)) {
+			JsonNode jsonNode = configNode.get(key);
+			return jsonNode.asText();
+		} else {
+			throw new IllegalArgumentException("Configuration item "
+					+ key
+					+ " and "
+					+ pathFieldName
+					+ " not found");
+		}
+	}
+	
+	private static List<String> readConfigArray(String key, JsonNode configNode) {
+		String pathFieldName = key + "_path";
+		if (configNode.has(pathFieldName)) {
+			String path = configNode.get(pathFieldName).asText();
+			String value = String.valueOf(HANDLER.read(path));
+			return Splitter.lines(value);
+		} else if (configNode.has(key)) {
+			JsonNode jsonNode = configNode.get(key);
+			List<String> list = new ArrayList<>();
+			for (JsonNode node : jsonNode) {
+				list.add(node.asText(""));
 			}
-			HANDLER.writeString(rootPath + "correct", sb);
+			return list;
+		} else {
+			throw new IllegalArgumentException("Configuration item "
+					+ key
+					+ " and "
+					+ pathFieldName
+					+ " not found");
 		}
 	}
 
@@ -253,41 +257,57 @@ public final class Main {
 			File file = new File(rootPath + "contexts_" + key + ".tab");
 
 			Writer writer = new BufferedWriter(new FileWriter(file));
-			writer.write("L_a\tLeft\tL_p\tR_a\tRight\tR_p\n");
+			writer.write("L_orig\tR_orig\tL_a\tLeft\tL_p\tR_a\tRight\tR_p\n");
 
-			entry.getValue().iterator().forEachRemaining(triple -> {
-				Segment<T> left = triple.getFirstElement();
-				Segment<T> right = triple.getSecondElement();
-				triple.getThirdElement().forEach(pair -> {
-					Context<T> lContext = pair.getLeft();
-					Context<T> rContext = pair.getRight();
+			PairCorrespondenceSet<T> set = entry.getValue();
+			
+			set.iterator().forEachRemaining(element -> {
 
-					Sequence<T> lA = lContext.getLeft();
-					Sequence<T> lP = lContext.getRight();
-					Sequence<T> rA = rContext.getLeft();
-					Sequence<T> rP = rContext.getRight();
+				Sequence<T> leftSource = element.getLeftSource();
+				Sequence<T> rightSource = element.getRightSource();
 
-					try {
-						writer.write(lA.toString());
-						writer.write("\t");
-						writer.write(left.toString());
-						writer.write("\t");
-						writer.write(lP.toString());
-						writer.write("\t");
-						writer.write(rA.toString());
-						writer.write("\t");
-						writer.write(right.toString());
-						writer.write("\t");
-						writer.write(rP.toString());
-						writer.write("\n");
-						writer.flush();
-					} catch (IOException e) {
-						LOGGER.error("Failed to write output", e);
-					}
-				});
+				Segment<T> left = element.getLeft();
+				Segment<T> right = element.getRight();
+
+				ContextPair<T> contextPair = element.getContextPair();
+				
+				Context<T> lContext = contextPair.getLeft();
+				Context<T> rContext = contextPair.getRight();
+
+				Sequence<T> lA = lContext.getLeft();
+				Sequence<T> lP = lContext.getRight();
+				Sequence<T> rA = rContext.getLeft();
+				Sequence<T> rP = rContext.getRight();
+
+				try {
+					writer.write(leftSource.toString());
+					writer.write("\t");
+					writer.write(rightSource.toString());
+					writer.write("\t");
+					writer.write(collect(lA));
+					writer.write("\t");
+					writer.write(left.toString());
+					writer.write("\t");
+					writer.write(collect(lP));
+					writer.write("\t");
+					writer.write(collect(rA));
+					writer.write("\t");
+					writer.write(right.toString());
+					writer.write("\t");
+					writer.write(collect(rP));
+					writer.write("\n");
+				} catch (IOException e) {
+					LOGGER.error("Failed to write output", e);
+				}
 			});
 			writer.close();
 		}
+	}
+
+	private static <T> String collect(Collection<Segment<T>> sequence) {
+		return sequence.stream()
+				.map(Objects::toString)
+				.collect(Collectors.joining(" "));
 	}
 
 	private static <T> void writeAlignments(String rootPath,
@@ -301,16 +321,21 @@ public final class Main {
 			sb1.append('\n');
 			for (AlignmentResult<T> result : entry.getRight()) {
 				Iterator<Alignment<T>> list = result.getAlignments().iterator();
-				Iterable<CharSequence> charSequences = list.hasNext()
+				List<CharSequence> charSequences = list.hasNext()
 						? list.next().buildPrettyAlignments()
 						: Collections.emptyList();
 				for (CharSequence sequence : charSequences) {
 					String normal = Normalizer.normalize(sequence, Form.NFC);
 					String str = HASH.matcher(normal)
-							.replaceAll(Matcher.quoteReplacement("")).trim();
+							.replaceAll("").trim();
 					sb1.append(str);
 					sb1.append('\t');
 				}
+				String stackedSequences = charSequences.stream()
+						.map(q -> Normalizer.normalize(q, Form.NFC))
+						.map(q -> HASH.matcher(q).replaceAll("").trim())
+						.collect(Collectors.joining("\r", "\"", "\""));
+				sb1.append(stackedSequences);
 				sb1.append('\n');
 
 				ObjectNode node = new ObjectNode(objectMapper.getNodeFactory());
@@ -362,7 +387,8 @@ public final class Main {
 			Segment<T> gap,
 			MultiMap<String, AlignmentResult<T>> alignmentMap
 	) {
-		Map<String, PairCorrespondenceSet<T>> contexts = new HashMap<>();
+		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
+		Map<String, PairCorrespondenceSet<T>> contexts = new LinkedHashMap<>();
 		for (Tuple<String, Collection<AlignmentResult<T>>> e : alignmentMap) {
 
 			String key = e.getLeft();
@@ -377,15 +403,17 @@ public final class Main {
 					if (alignment.columns() > 0) {
 						List<Segment<T>> left = new ArrayList<>(alignment.getRow(0));
 						List<Segment<T>> right = new ArrayList<>(alignment.getRow(1));
-
+						
 						left.add(factory.toSegment("#"));
 						right.add(factory.toSegment("#"));
+						
+						Sequence<T> lSource = new BasicSequence<>(left, model);
+						Sequence<T> rSource = new BasicSequence<>(right, model);
 
 						for (int i = 1; i < alignment.columns() - 1; i++) {
 							Segment<T> l = left.get(i);
 							Segment<T> r = right.get(i);
 
-							if (!l.equals(r)) {
 								Sequence<T> lA = lookBack(left, i, gap);
 								Sequence<T> rA = lookBack(right, i, gap);
 
@@ -396,9 +424,8 @@ public final class Main {
 										new Context<>(lA, lP),
 										new Context<>(rA, rP)
 								);
-
-								set.add(l, r, pair);
-							}
+								
+								set.add(lSource, rSource, l, r, pair);
 						}
 					}
 				}
@@ -414,8 +441,10 @@ public final class Main {
 			@NotNull List<String> keyList,
 			@NotNull ColumnTable<Sequence<T>> data
 	) {
-		MultiMap<String, AlignmentResult<T>> alignmentMap =
-				new GeneralMultiMap<>(new LinkedHashMap<>(), Suppliers.ofList());
+		MultiMap<String, AlignmentResult<T>> alignmentMap = new GeneralMultiMap<>(
+				new LinkedHashMap<>(),
+				Suppliers.ofList()
+		);
 		for (int i = 0; i < keyList.size(); i++) {
 			String k1 = keyList.get(i);
 			List<Sequence<T>> d1 = data.getColumn(k1);
@@ -433,6 +462,11 @@ public final class Main {
 				while (it1.hasNext() && it2.hasNext()) {
 					Sequence<T> e1 = it1.next();
 					Sequence<T> e2 = it2.next();
+					
+					if (e1.isEmpty() || e2.isEmpty()) {
+						continue;
+					}
+					
 					List<Sequence<T>> list = asList(e1, e2);
 					AlignmentResult<T> result = algorithm.apply(list);
 					alignments.add(result);

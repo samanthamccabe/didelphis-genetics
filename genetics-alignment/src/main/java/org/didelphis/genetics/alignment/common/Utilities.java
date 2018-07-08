@@ -140,7 +140,7 @@ public final class Utilities {
 					String s = transformer.apply(word);
 					Sequence<T> segments = new BasicSequence<>(model);
 					for (String s1: SPACE.split(s)) {
-						segments.add(factory.toSegment(s1));
+						segments.add(factory.toSequence(s1));
 					}
 					list.add(segments);
 				}

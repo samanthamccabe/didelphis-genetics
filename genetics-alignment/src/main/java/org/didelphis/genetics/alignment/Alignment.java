@@ -86,10 +86,21 @@ public class Alignment<T> extends RectangularTable<Segment<T>>
 		return stringBuilder.toString();
 	}
 
-	@Deprecated
-	public Collection<CharSequence> buildPrettyAlignments() {
+	/**
+	 * Generates a human-readable alignments so that aligned segments of
+	 * different sizes will still group into columns by adding padding on the
+	 * shorter of a group:
+	 * {@code
+	 *  th a l  a n _
+	 *  d  a lh a n a
+	 * }
+	 *
+	 * @return a {@link List} where each entry is a single row of the
+	 * 		alignment
+	 */
+	public List<CharSequence> buildPrettyAlignments() {
 
-		Collection<CharSequence> builders = new ArrayList<>(rows());
+		List<CharSequence> builders = new ArrayList<>(rows());
 		int rows = rows();
 		int columns = columns();
 
