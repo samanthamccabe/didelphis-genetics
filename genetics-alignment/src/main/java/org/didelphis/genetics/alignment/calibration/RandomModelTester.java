@@ -13,9 +13,8 @@ import org.didelphis.genetics.alignment.algorithm.SingleAlignmentAlgorithm;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.constraints.Constraint;
 import org.didelphis.genetics.alignment.constraints.LexiconConstraint;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
-import org.didelphis.genetics.alignment.operators.comparators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConstantGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 
@@ -110,10 +109,10 @@ public final class RandomModelTester<T> extends BaseModelTester<T> {
 			double a = (Math.random() * aMax);
 			//			double b = (Math.random() * 20) - 10;
 
-			Comparator<Integer> segmentComparator =
+			SequenceComparator<Integer> segmentComparator =
 					new LinearWeightComparator<>(featureType,weights);
-			Comparator<Integer> sequenceComparator =
-					new SequenceComparator<>(segmentComparator);
+			SequenceComparator<Integer> sequenceComparator =
+					new org.didelphis.genetics.alignment.operators.comparators.SequenceComparator(segmentComparator);
 
 			GapPenalty<Integer> gapPenalty =
 					new ConstantGapPenalty<>(factory.toSequence("_"), a);

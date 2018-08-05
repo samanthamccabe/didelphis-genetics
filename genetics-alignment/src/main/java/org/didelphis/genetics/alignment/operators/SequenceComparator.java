@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
  * Created: 5/22/15
  */
 @FunctionalInterface
-public interface Comparator<T> {
+public interface SequenceComparator<T> {
 
 	double apply(@NotNull Sequence<T> left,@NotNull Sequence<T> right, int i, int j);
 }

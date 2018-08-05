@@ -6,7 +6,7 @@ import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
@@ -30,12 +30,12 @@ import java.util.*;
 public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 
 	public NeedlemanWunschAlgorithm(
-			Comparator<N> comparator,
 			Optimization<Double> optimization,
+			SequenceComparator<N> comparator,
 			GapPenalty<N> gapPenalty,
 			SequenceFactory<N> factory
 	) {
-		super(comparator, optimization, gapPenalty, factory);
+		super(optimization, comparator, gapPenalty, factory);
 	}
 
 	@Override
@@ -71,7 +71,7 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 		private final Table<Double> table;
 		private final FeatureModel<N> model = getFactory().getFeatureMapping()
 				.getFeatureModel();
-		private final Comparator<N> comparator = getComparator();
+		private final SequenceComparator<N> comparator = getComparator();
 		private final GapPenalty<N> penalty = getGapPenalty();
 		private final Optimization<Double> optimization = getOptimization();
 
@@ -132,15 +132,18 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 				double ins = get(table, i, j - 1);
 
 				if (i > 0 && j > 0 && op(sub, del, ins)) {
+					// Sub
 					W.add(left.get(i));
 					Z.add(right.get(j));
 					i--;
 					j--;
 				} else if (i > 0 && op(del, ins, sub)) {
+					// Del
 					W.add(left.get(i));
 					Z.add(gap);
 					i--;
 				} else /*if (j > 0 && op(ins, sub, del))*/ {
+					// Ins
 					W.add(gap);
 					Z.add(right.get(j));
 					j--;
@@ -163,7 +166,7 @@ public class NeedlemanWunschAlgorithm<N> extends AbstractAlignmentAlgorithm<N> {
 		}
 
 		private boolean op(double v1, double v2, double v3) {
-			return optimization.test(v1, v2) || optimization.test(v1, v3);
+			return optimization.test(v1, v2) && optimization.test(v1, v3);
 		}
 
 		private double get(Table<Double> table, int i, int j) {

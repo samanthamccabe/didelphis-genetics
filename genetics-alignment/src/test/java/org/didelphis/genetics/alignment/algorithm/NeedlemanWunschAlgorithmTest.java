@@ -2,7 +2,7 @@ package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.didelphis.io.ClassPathFileHandler;
@@ -51,12 +51,17 @@ class NeedlemanWunschAlgorithmTest {
 
 		Sequence<Integer> gap = factory.toSequence("░");
 		penalty = new NullGapPenalty<>(gap);
-		algorithm = new NeedlemanWunschAlgorithm<>((t, r, i, j) -> {
+		SequenceComparator<Integer> comparator = (t, r, i, j) -> {
 			FeatureArray<Integer> z = t.get(i).getFeatures();
 			FeatureArray<Integer> x = r.get(j).getFeatures();
 			IntToDoubleFunction func = k -> type.difference(z.get(k), x.get(k));
 			return IntStream.range(0, z.size()).mapToDouble(func).sum();
-		}, BaseOptimization.MIN, penalty, factory);
+		};
+		algorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+				comparator,
+				penalty,
+				factory
+		);
 	}
 
 	@Test
@@ -79,8 +84,8 @@ class NeedlemanWunschAlgorithmTest {
 		);
 		AlignmentResult<Integer> alignmentResult = algorithm.apply(sequences);
 		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
-		String message = '\n' + alignment.getPrettyTable();
-		assertEquals(9, alignment.columns(), message);
+		assertEquals("# ░ a m a p a r ░ \n# k o m ░ b e r a \n",
+				alignmentResult.getAlignments().get(0).getPrettyTable());
 	}
 
 	@Test
@@ -100,12 +105,11 @@ class NeedlemanWunschAlgorithmTest {
 		FeatureModelLoader<Boolean> loader = BinaryFeature.emptyLoader();
 		SequenceFactory<Boolean> factory = new SequenceFactory<>(
 				loader.getFeatureMapping(), FormatterMode.NONE);
-		Comparator<Boolean> comparator = (left, right, i, j) ->
+		SequenceComparator<Boolean> comparator = (left, right, i, j) ->
 				Objects.equals(left.get(i),right.get(j)) ? 0 : 1;
 
-		AlignmentAlgorithm<Boolean> algorithm = new NeedlemanWunschAlgorithm<>(
+		AlignmentAlgorithm<Boolean> algorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
 				comparator,
-				BaseOptimization.MIN,
 				new NullGapPenalty<>(factory.toSequence("_")),
 				factory
 		);

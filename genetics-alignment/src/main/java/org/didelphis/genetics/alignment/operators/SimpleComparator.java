@@ -14,7 +14,7 @@ import java.util.stream.IntStream;
  * @author Samantha Fiona McCabe
  * @since 0.1.0 Date: 2017-06-30
  */
-public class SimpleComparator<T> implements Comparator<T> {
+public class SimpleComparator<T> implements SequenceComparator<T> {
 	private static final Function<Integer, Double> FUNCTION = i -> 1.0;
 	private final FeatureType<T> featureType;
 	private final Function<Integer, Double> function;

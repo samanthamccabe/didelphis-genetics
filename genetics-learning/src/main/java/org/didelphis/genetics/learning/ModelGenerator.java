@@ -416,7 +416,8 @@ public final class ModelGenerator<T> {
 		GapPenalty<T> penalty = new ConstantGapPenalty<>(
 				factory.toSequence("⬚"), gap1);
 		//		GapPenalty<T> penalty = new ConvexGapPenalty<>(factory.toSequence("⬚"), gap1, gap2);
-		return new NeedlemanWunschAlgorithm<>(comparator, BaseOptimization.MIN,
+		return new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+				comparator,
 				penalty, factory
 		);
 	}

@@ -1,7 +1,7 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.genetics.alignment.AlignmentResult;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
@@ -23,8 +23,7 @@ public interface AlignmentAlgorithm<T>
 	@NotNull
 	SequenceFactory<T> getFactory();
 
-	@NotNull
-	Comparator<T> getComparator();
+	@NotNull SequenceComparator<T> getComparator();
 
 	@NotNull
 	Optimization getOptimization();

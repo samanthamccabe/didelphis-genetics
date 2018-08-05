@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * Created by samantha on 1/9/17.
  */
-public class Alignment<T> extends RectangularTable<Segment<T>>
+public class  Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
 
 	private final FeatureModel<T> featureModel;

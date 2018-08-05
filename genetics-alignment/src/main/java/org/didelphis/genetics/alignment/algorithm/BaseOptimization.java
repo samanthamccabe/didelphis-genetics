@@ -16,11 +16,11 @@ import java.util.function.BiPredicate;
 public final class BaseOptimization<T> implements Optimization<T> {
 
 	public static final Optimization<Double> MAX = new BaseOptimization<>(
-			(x, y) -> x > y, Double.MIN_VALUE
+			(x, y) -> x >= y, Double.MIN_VALUE
 	);
 
 	public static final Optimization<Double> MIN = new BaseOptimization<>(
-			(x, y) -> x < y, Double.MAX_VALUE
+			(x, y) -> x <= y, Double.MAX_VALUE
 	);
 
 	private final BiPredicate<T, T> predicate;

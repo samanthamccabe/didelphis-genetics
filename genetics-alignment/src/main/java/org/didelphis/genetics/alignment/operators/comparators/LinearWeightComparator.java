@@ -3,7 +3,7 @@ package org.didelphis.genetics.alignment.operators.comparators;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -12,7 +12,7 @@ import java.util.List;
  * @author Samantha Fiona McCabe
  * Created: 5/22/15
  */
-public class LinearWeightComparator<T> implements Comparator<T> {
+public class LinearWeightComparator<T> implements SequenceComparator<T> {
 
 	private final FeatureType<T> type;
 	private final List<Double> weights;

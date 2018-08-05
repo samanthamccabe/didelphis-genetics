@@ -13,11 +13,13 @@ import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.structures.tuples.Twin;
+import org.didelphis.utilities.Logger;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.security.SecureRandom;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
@@ -37,6 +39,8 @@ import static java.lang.Math.toIntExact;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class BrownAlignmentGenerator {
 
+	static Logger LOG = Logger.create(BrownAlignmentGenerator.class);
+	
 	static Pattern NEWLINE = Pattern.compile("\n");
 	static FileHandler HANDLER = new DiskFileHandler("UTF-8");
 	static Random RANDOM = new Random();
@@ -47,20 +51,25 @@ public final class BrownAlignmentGenerator {
 	TwoKeyMultiMap<String, String, Correspondence> stkm;
 	NavigableMap<Double, Correspondence> treeMap;
 	SymmetricalTwoKeyMap<String, Double> scores;
+	
+	SecureRandom secureRandom;
 
 	public BrownAlignmentGenerator(String correspondencePath) {
 		this(correspondencePath, 1.0, 1.0);
 	}
 
-	public BrownAlignmentGenerator(String correspondencePath, double generaBias,
-			double gapBias
+	public BrownAlignmentGenerator(
+			String correspondencePath, double generaBias, double gapBias
 	) {
+		secureRandom = new SecureRandom();
+
 		this.generaBias = generaBias;
 		this.gapBias = gapBias;
 
 		stkm = load(correspondencePath);
 		treeMap = new TreeMap<>();
 		scores = new SymmetricalTwoKeyMap<>();
+		
 		double sum = StreamSupport.stream(stkm.spliterator(), true)
 				.mapToDouble(BrownAlignmentGenerator::sum)
 				.sum();
@@ -230,8 +239,9 @@ public final class BrownAlignmentGenerator {
 		return map;
 	}
 
-	private static int randomInt(int min, int max) {
-		return toIntExact(round(random() * (max - min) + min));
+	private int randomInt(int min, int max) {
+		double random = secureRandom.nextDouble();
+		return toIntExact(round(random * (max - min) + min));
 	}
 
 	private static double sum(Triple<?, ?, Collection<Correspondence>> t) {
@@ -243,9 +253,9 @@ public final class BrownAlignmentGenerator {
 	private static int rouletteSelect(List<Double> weight) {
 		// calculate the total weight
 		double sum = weight.stream().mapToDouble(aDouble -> aDouble).sum();
-		// get a random value
+		// get a secureRandom value
 		double value = randUniformPositive() * sum;
-		// locate the random value based on the weights
+		// locate the secureRandom value based on the weights
 		for (int i = 0; i < weight.size(); i++) {
 			value -= weight.get(i);
 			if (value <= 0) {

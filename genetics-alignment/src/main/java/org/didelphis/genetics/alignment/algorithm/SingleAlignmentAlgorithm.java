@@ -9,7 +9,7 @@ import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.genetics.alignment.Alignment;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,9 +29,10 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 	private final int arity;
 
-	public SingleAlignmentAlgorithm(Comparator<T> comparator,
+	public SingleAlignmentAlgorithm(
+			SequenceComparator<T> comparator,
 			GapPenalty<T> gapPenalty, int arity, SequenceFactory<T> factory) {
-		super(comparator, BaseOptimization.MIN, gapPenalty, factory);
+		super(BaseOptimization.MIN, comparator, gapPenalty, factory);
 
 		model = factory.getFeatureMapping().getFeatureModel();
 		boundary = factory.toSegment("#");

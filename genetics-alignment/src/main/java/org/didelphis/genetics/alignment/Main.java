@@ -16,7 +16,7 @@ import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.correspondences.Context;
 import org.didelphis.genetics.alignment.correspondences.ContextPair;
 import org.didelphis.genetics.alignment.correspondences.PairCorrespondenceSet;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConvexGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
@@ -72,6 +72,7 @@ public final class Main {
 	
 	static {
 		OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
+		Logger.addAppender(System.out);
 	}
 	
 	/**
@@ -112,12 +113,20 @@ public final class Main {
 		);
 		String gapSymbol = readConfigString("gap_symbol", configNode);
 
-		Map<File, List<String>> files = new LinkedHashMap<>();
+		Map<File, List<List<String>>> files = new LinkedHashMap<>();
 		for (JsonNode file : configNode.get("files")) {
 			String path = file.get("path").asText();
-			List<String> list = readConfigArray("cols", file);
-			files.put(new File(basePath + path), list);
 
+			List<List<String>> list = new ArrayList<>();
+			JsonNode jsonNode = file.get("cols");
+			for (JsonNode node : jsonNode) {
+				List<String> cols = new ArrayList<>();
+				for (JsonNode colNode : node) {
+					cols.add(colNode.asText());
+				}
+				list.add(cols);
+			}
+			files.put(new File(basePath + path), list);
 		}
 		
 		Function<String, String> transformer = new StringTransformer(transformPayload);
@@ -138,60 +147,47 @@ public final class Main {
 		Sequence<Integer> gap = factory.toSequence(gapSymbol);
 		GapPenalty<Integer> gapPenalty = new ConvexGapPenalty<>(gap, 0, 0);
 
-		Comparator<Integer> comparator = readWeightsComparator(
+		SequenceComparator<Integer> comparator = readWeightsComparator(
 				type, weightsPath
 		);
 		
-		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(
+		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
 				comparator,
-				BaseOptimization.MIN,
 				gapPenalty,
 				factory
 		);
 
 		Function<String,String> bFunc = new StringTransformer("^[^#] >> #$0");
-		for (Entry<File, List<String>> languageEntry : files.entrySet()) {
+		for (Entry<File, List<List<String>>> languageEntry : files.entrySet()) {
 			File tableFile = languageEntry.getKey();
-			List<String> keyList = languageEntry.getValue();
+			List<List<String>> keyList = languageEntry.getValue();
 			String path = tableFile.getPath();
 			ColumnTable<String> table = Utilities.loadTable(path, bFunc);
-			
-			ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
-					table,
-					factory,
-					transformer,
-					keyList
-			);
 
-			MultiMap<String, AlignmentResult<Integer>> alignmentMap = align(
-					algorithm,
-					keyList,
-					data
-			);
+			for (List<String> keys : keyList) {
+				ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
+						table,
+						factory,
+						transformer,
+						keys
+				);
 
-//			List<Alignment<Integer>> standards = Utilities.toAlignments(
-//					Utilities.toPhoneticTable(table, factory,
-//							s -> ZERO.matcher(s).replaceAll(gapSymbol)
-//					), factory);
+				MultiMap<String, AlignmentResult<Integer>> alignmentMap = align(
+						algorithm,
+						keys,
+						data
+				);
 
-			String rootPath = EXTENSION_PATTERN
-					.matcher(tableFile.getCanonicalPath())
-					.replaceAll("/aligned/");
-			writeAlignments(rootPath, alignmentMap);
-			
-			Map<String, PairCorrespondenceSet<Integer>> contexts = buildContexts(
-					factory,
-					gap.get(0),
-					alignmentMap
-			);
-			writeContexts(contexts, rootPath);
+				String rootPath
+						= EXTENSION_PATTERN.matcher(tableFile.getCanonicalPath())
+						.replaceAll("/aligned/");
+				writeAlignments(rootPath, alignmentMap);
 
-//			StringBuilder sb = new StringBuilder(standards.size() * 10);
-//			for (Alignment<Integer> alignment : standards) {
-//				alignment.removeColumn(0);
-//				sb.append(alignment).append('\n');
-//			}
-//			HANDLER.writeString(rootPath + "correct", sb);
+				Map<String, PairCorrespondenceSet<Integer>> contexts
+						= buildContexts(factory, gap.get(0), alignmentMap);
+				writeContexts(contexts, rootPath);
+
+			}
 		}
 	}
 
@@ -234,7 +230,7 @@ public final class Main {
 		}
 	}
 
-	private static @NotNull Comparator<Integer> readWeightsComparator(
+	private static @NotNull SequenceComparator<Integer> readWeightsComparator(
 			FeatureType<Integer> type, String path
 	) {
 		CharSequence weightsPayload = HANDLER.read(path);
@@ -312,7 +308,6 @@ public final class Main {
 
 	private static <T> void writeAlignments(String rootPath,
 			Iterable<Tuple<String, Collection<AlignmentResult<T>>>> alignments) {
-		ObjectMapper objectMapper = new ObjectMapper();
 		for (Tuple<String, Collection<AlignmentResult<T>>> entry : alignments) {
 			String key = entry.getLeft();
 			StringBuilder sb1 = new StringBuilder();
@@ -338,7 +333,7 @@ public final class Main {
 				sb1.append(stackedSequences);
 				sb1.append('\n');
 
-				ObjectNode node = new ObjectNode(objectMapper.getNodeFactory());
+				ObjectNode node = new ObjectNode(OBJECT_MAPPER.getNodeFactory());
 				node.put("left",result.getLeft().toString());
 				node.put("right",result.getRight().toString());
 				List<Object> objects = new ArrayList<>();
@@ -353,7 +348,7 @@ public final class Main {
 				node.putPOJO("alignments",objects);
 				node.putPOJO("table", table);
 				try {
-					sb2.append(objectMapper.writeValueAsString(node));
+					sb2.append(OBJECT_MAPPER.writeValueAsString(node));
 				} catch (JsonProcessingException e) {
 					LOGGER.error("{}", e);
 				}

@@ -1,18 +1,18 @@
 package org.didelphis.genetics.alignment.operators.comparators;
 
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.genetics.alignment.operators.Comparator;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Samantha Fiona McCabe
  * Created: 5/23/15
  */
-public class SequenceComparator<T> implements Comparator<T> {
+public class SequenceComparator<T> implements org.didelphis.genetics.alignment.operators.SequenceComparator<T> {
 
-	private final Comparator<T> comparator;
+	private final org.didelphis.genetics.alignment.operators.SequenceComparator<T>
+			comparator;
 
-	public SequenceComparator(Comparator<T> comparatorParam) {
+	public SequenceComparator(org.didelphis.genetics.alignment.operators.SequenceComparator<T> comparatorParam) {
 		comparator = comparatorParam;
 	}
 

@@ -3,7 +3,7 @@ package org.didelphis.genetics.alignment.common;
 import lombok.experimental.UtilityClass;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparator;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
@@ -150,7 +150,7 @@ public final class Utilities {
 		return new DataTable<>(keyList, lists);
 	}
 
-	public <T> Comparator<T> loadMatrixComparator(
+	public <T> SequenceComparator<T> loadMatrixComparator(
 			FileHandler handler,
 			SequenceFactory<T> factory,
 			Function<String, String> transformer,
@@ -224,7 +224,7 @@ public final class Utilities {
 	}
 
 	public <T> void getTupleDistances(
-			Comparator<T> comparator,
+			SequenceComparator<T> comparator,
 			Sequence<T> gap,
 			Iterable<Tuple<Sequence<T>, Sequence<T>>> tuples,
 			Table<Double> distancesRight,
@@ -241,7 +241,7 @@ public final class Utilities {
 	}
 
 	private <T> double getD(
-			Comparator<T> comparator,
+			SequenceComparator<T> comparator,
 			Sequence<T> gap,
 			Sequence<T> q1,
 			Sequence<T> q2

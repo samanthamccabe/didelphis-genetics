@@ -2,7 +2,7 @@ package org.didelphis.genetics.alignment.algorithm;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.jetbrains.annotations.NotNull;
@@ -17,14 +17,17 @@ import org.jetbrains.annotations.NotNull;
 public abstract class AbstractAlignmentAlgorithm<N>
 		implements AlignmentAlgorithm<N> {
 
-	private final Comparator<N> comparator;
+	private final SequenceComparator<N> comparator;
 	private final Optimization<Double> optimization;
 	private final GapPenalty<N> gapPenalty;
 	private final SequenceFactory<N> factory;
 
-	protected AbstractAlignmentAlgorithm(Comparator<N> comparator,
-			Optimization<Double> optimization, GapPenalty<N> gapPenalty,
-			SequenceFactory<N> factory) {
+	protected AbstractAlignmentAlgorithm(
+			Optimization<Double> optimization,
+			SequenceComparator<N> comparator,
+			GapPenalty<N> gapPenalty,
+			SequenceFactory<N> factory
+	) {
 		this.comparator = comparator;
 		this.optimization = optimization;
 		this.gapPenalty = gapPenalty;
@@ -42,7 +45,7 @@ public abstract class AbstractAlignmentAlgorithm<N>
 	}
 
 	@Override
-	public @NotNull Comparator<N> getComparator() {
+	public @NotNull SequenceComparator<N> getComparator() {
 		return comparator;
 	}
 

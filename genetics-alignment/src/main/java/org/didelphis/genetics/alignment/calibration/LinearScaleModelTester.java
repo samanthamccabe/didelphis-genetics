@@ -5,9 +5,8 @@ import org.didelphis.genetics.alignment.algorithm.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.Optimization;
 import org.didelphis.genetics.alignment.common.Utilities;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
-import org.didelphis.genetics.alignment.operators.comparators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConstantGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.io.ClassPathFileHandler;
@@ -121,10 +120,10 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 				weights.add(v * i);
 			}
 
-			Comparator<Integer> segmentComparator =
+			SequenceComparator<Integer> segmentComparator =
 					new LinearWeightComparator<>(featureType,weights);
-			Comparator<Integer> sequenceComparator =
-					new SequenceComparator<>(segmentComparator);
+			SequenceComparator<Integer> sequenceComparator =
+					new org.didelphis.genetics.alignment.operators.comparators.SequenceComparator(segmentComparator);
 
 			//			GapPenalty gapPenalty = new ConvexGapPenalty(gap, a,
 			// b);
@@ -134,7 +133,10 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 			//			AlignmentAlgorithm algorithm = new 
 			// SingleAlignmentAlgorithm(gapPenalty, 1, sequenceComparator);
 			AlignmentAlgorithm<Integer> algorithm =
-					new NeedlemanWunschAlgorithm<>(sequenceComparator, optimization, gapPenalty, factory);
+					new NeedlemanWunschAlgorithm<>(
+							optimization,
+							sequenceComparator,
+							gapPenalty, factory);
 
 			double fitnessSum = 0.0;
 			double strengthSum = 0.0;

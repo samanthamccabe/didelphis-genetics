@@ -1,5 +1,7 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.jetbrains.annotations.NotNull;
 
@@ -7,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
  * @author Samantha Fiona McCabe
  * Created: 6/4/15
  */
+@ToString
+@EqualsAndHashCode(callSuper = true)
 public class ConvexGapPenalty<T> extends AbstractGapPenalty<T> {
 
 	private final double openPenalty;

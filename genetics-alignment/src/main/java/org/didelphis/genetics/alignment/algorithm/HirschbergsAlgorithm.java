@@ -4,7 +4,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
-import org.didelphis.genetics.alignment.operators.Comparator;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
@@ -32,13 +32,13 @@ public class HirschbergsAlgorithm<N>
 	private final NeedlemanWunschAlgorithm<N> nwAlgorithm;
 
 	public HirschbergsAlgorithm(
-			Comparator<N> comparator,
+			SequenceComparator<N> comparator,
 			GapPenalty<N> gapPenalty,
 			SequenceFactory<N> factory
 	) {
-		super(comparator, BaseOptimization.MIN, gapPenalty, factory);
-		nwAlgorithm = new NeedlemanWunschAlgorithm<>(comparator,
-				BaseOptimization.MIN,
+		super(BaseOptimization.MIN, comparator, gapPenalty, factory);
+		nwAlgorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+				comparator,
 				gapPenalty,
 				factory
 		);
