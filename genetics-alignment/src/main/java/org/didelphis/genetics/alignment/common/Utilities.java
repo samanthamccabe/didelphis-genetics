@@ -55,7 +55,7 @@ public final class Utilities {
 
 	public @NotNull ColumnTable<String> toTable(
 			CharSequence payload, Function<String, String> transformer
-	) {
+	) throws ParseException {
 		List<String> lines
 				= stream(PATTERN.split(payload)).collect(Collectors.toList());
 		if (!lines.isEmpty()) {
@@ -72,9 +72,7 @@ public final class Utilities {
 			}
 			return new DataTable<>(keys, table);
 		}
-		throw new ParseException("Unable to read table, payload was empty",
-				payload.toString()
-		);
+		throw new ParseException("Unable to read table, payload was empty"+payload.toString());
 	}
 
 	public @NotNull ColumnTable<String> loadTable(
@@ -83,9 +81,7 @@ public final class Utilities {
 		FileHandler handler = new DiskFileHandler("UTF-8");
 		CharSequence chars = handler.read(path);
 		if (chars.length() == 0) {
-			throw new ParseException("Unable to read table, file was empty",
-					path
-			);
+			throw new ParseException("Unable to read table, file was empty: " + path);
 		} else {
 			return toTable(chars, transformer);
 		}
@@ -158,7 +154,7 @@ public final class Utilities {
 	) {
 		SymmetricalTwoKeyMap<Segment<T>, Double> map
 				= new SymmetricalTwoKeyMap<>();
-		CharSequence lines = handler.read(matrixPath);
+		String lines = handler.read(matrixPath);
 		
 		for (String line: Splitter.lines(lines)) {
 			String[] matcher = line.split("\t");

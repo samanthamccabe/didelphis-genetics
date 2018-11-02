@@ -16,8 +16,8 @@
 
     <properties>
         <didelphis-genetics.version>0.2.0-SNAPSHOT</didelphis-genetics.version>
-        <didelphis-common.version>0.3.0-SNAPSHOT</didelphis-common.version>
-        <nd4j-common.version>0.9.1</nd4j-common.version>
+        <didelphis-common.version>0.3.1-SNAPSHOT</didelphis-common.version>
+        <nd4j-common.version>1.0.0-beta2</nd4j-common.version>
     </properties>
 
     <packaging>pom</packaging>

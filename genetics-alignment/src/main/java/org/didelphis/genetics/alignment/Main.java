@@ -18,11 +18,13 @@ import org.didelphis.genetics.alignment.correspondences.ContextPair;
 import org.didelphis.genetics.alignment.correspondences.PairCorrespondenceSet;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
-import org.didelphis.genetics.alignment.operators.gap.ConvexGapPenalty;
+import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
+import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.language.parsing.FormatterMode;
+import org.didelphis.language.parsing.ParseException;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.IntegerFeature;
@@ -36,18 +38,30 @@ import org.didelphis.structures.Suppliers;
 import org.didelphis.structures.maps.GeneralMultiMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.tables.ColumnTable;
+import org.didelphis.structures.tables.SymmetricTable;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.utilities.Logger;
 import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -69,12 +83,12 @@ public final class Main {
 
 	ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	FileHandler HANDLER = new DiskFileHandler("UTF-8");
-	
+
 	static {
 		OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
 		Logger.addAppender(System.out);
 	}
-	
+
 	/**
 	 * TODO: Rehab plan:
 	 *    args:
@@ -99,7 +113,7 @@ public final class Main {
 		String basePath = configPath.contains("/") 
 				? configPath.replaceAll("/[^/]+$", "/") 
 				: "";
-		
+
 		String configData = String.valueOf(HANDLER.read(configPath));
 
 		// Read Configuration
@@ -128,7 +142,7 @@ public final class Main {
 			}
 			files.put(new File(basePath + path), list);
 		}
-		
+
 		Function<String, String> transformer = new StringTransformer(transformPayload);
 
 		FeatureType<Integer> type = IntegerFeature.INSTANCE;
@@ -145,13 +159,14 @@ public final class Main {
 				mapping, FormatterMode.INTELLIGENT);
 		
 		Sequence<Integer> gap = factory.toSequence(gapSymbol);
-		GapPenalty<Integer> gapPenalty = new ConvexGapPenalty<>(gap, 0, 0);
+		GapPenalty<Integer> gapPenalty = new NullGapPenalty<>(gap);
 
 		SequenceComparator<Integer> comparator = readWeightsComparator(
 				type, weightsPath
 		);
 		
-		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(
+				BaseOptimization.MIN,
 				comparator,
 				gapPenalty,
 				factory
@@ -178,15 +193,14 @@ public final class Main {
 						data
 				);
 
-				String rootPath
-						= EXTENSION_PATTERN.matcher(tableFile.getCanonicalPath())
+				String tablePath = tableFile.getCanonicalPath();
+				String rootPath = EXTENSION_PATTERN.matcher(tablePath)
 						.replaceAll("/aligned/");
 				writeAlignments(rootPath, alignmentMap);
 
 				Map<String, PairCorrespondenceSet<Integer>> contexts
 						= buildContexts(factory, gap.get(0), alignmentMap);
 				writeContexts(contexts, rootPath);
-
 			}
 		}
 	}
@@ -233,21 +247,37 @@ public final class Main {
 	private static @NotNull SequenceComparator<Integer> readWeightsComparator(
 			FeatureType<Integer> type, String path
 	) {
-		CharSequence weightsPayload = HANDLER.read(path);
-		List<Double> weights = new ArrayList<>();
-		for (String string : WHITESPACE.split(weightsPayload, -1)) {
-			weights.add(Double.parseDouble(string));
+		String payload = HANDLER.read(path);
+		if (payload == null) {
+			throw new ParseException("Failed to load file from path " + path);
 		}
-		return new LinearWeightComparator<>(
-				type, weights);
+		List<String> lines = Splitter.lines(payload.trim());
+		if (lines.size() == 1) {
+			List<Double> weights = new ArrayList<>();
+			for (String string : WHITESPACE.split(payload, -1)) {
+				weights.add(Double.parseDouble(string));
+			}
+			return new LinearWeightComparator<>(type, weights);
+		} else {
+			int size = lines.size();
+			SymmetricTable<Double> table = new SymmetricTable<>(0.0, size);
+			int j = 0;
+			for (String line : lines) {
+				String[] split = WHITESPACE.split(line, -1);
+				for (int i = 0; i < split.length; i++) {
+					table.set(i, j, Double.parseDouble(split[i]));
+				}
+				j++;
+			}
+			return new MatrixComparator<>(type, table);
+		}
 	}
 
 	private static <T> void writeContexts(
 			Map<String, PairCorrespondenceSet<T>> contexts,
 			String rootPath
 	) throws IOException {
-		for (Entry<String, PairCorrespondenceSet<T>> entry : contexts
-				.entrySet()) {
+		for (Entry<String, PairCorrespondenceSet<T>> entry : contexts.entrySet()) {
 			String key = entry.getKey();
 
 			File file = new File(rootPath + "contexts_" + key + ".tab");
@@ -256,7 +286,7 @@ public final class Main {
 			writer.write("L_orig\tR_orig\tL_a\tLeft\tL_p\tR_a\tRight\tR_p\n");
 
 			PairCorrespondenceSet<T> set = entry.getValue();
-			
+
 			set.iterator().forEachRemaining(element -> {
 
 				Sequence<T> leftSource = element.getLeftSource();
@@ -266,7 +296,7 @@ public final class Main {
 				Segment<T> right = element.getRight();
 
 				ContextPair<T> contextPair = element.getContextPair();
-				
+
 				Context<T> lContext = contextPair.getLeft();
 				Context<T> rContext = contextPair.getRight();
 
@@ -398,10 +428,10 @@ public final class Main {
 					if (alignment.columns() > 0) {
 						List<Segment<T>> left = new ArrayList<>(alignment.getRow(0));
 						List<Segment<T>> right = new ArrayList<>(alignment.getRow(1));
-						
+
 						left.add(factory.toSegment("#"));
 						right.add(factory.toSegment("#"));
-						
+
 						Sequence<T> lSource = new BasicSequence<>(left, model);
 						Sequence<T> rSource = new BasicSequence<>(right, model);
 
@@ -419,7 +449,7 @@ public final class Main {
 										new Context<>(lA, lP),
 										new Context<>(rA, rP)
 								);
-								
+
 								set.add(lSource, rSource, l, r, pair);
 						}
 					}
@@ -457,11 +487,11 @@ public final class Main {
 				while (it1.hasNext() && it2.hasNext()) {
 					Sequence<T> e1 = it1.next();
 					Sequence<T> e2 = it2.next();
-					
+
 					if (e1.isEmpty() || e2.isEmpty()) {
 						continue;
 					}
-					
+
 					List<Sequence<T>> list = asList(e1, e2);
 					AlignmentResult<T> result = algorithm.apply(list);
 					alignments.add(result);

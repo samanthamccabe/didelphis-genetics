@@ -1,7 +1,7 @@
 package org.didelphis.genetics.alignment.operators;
 
+import lombok.NonNull;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Samantha Fiona McCabe
@@ -10,5 +10,5 @@ import org.jetbrains.annotations.NotNull;
 @FunctionalInterface
 public interface SequenceComparator<T> {
 
-	double apply(@NotNull Sequence<T> left,@NotNull Sequence<T> right, int i, int j);
+	double apply(@NonNull Sequence<T> left,@NonNull Sequence<T> right, int i, int j);
 }

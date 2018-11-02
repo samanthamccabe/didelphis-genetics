@@ -32,7 +32,6 @@ import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.StandardFeatureArray;
 import org.didelphis.language.phonetic.model.DefaultFeatureSpecification;
-import org.didelphis.language.phonetic.model.EmptyFeatureSpecification;
 import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
@@ -266,21 +265,10 @@ public final class ModelGenerator<T> {
 	private @NotNull <G extends Gene<T, G>> SequenceFactory<T> toFactory(
 			Genotype<G> genotype
 	) {
-		/*
-		List<T> data = toFeatureBits(featureType, genotype);
-		int rows = data.size() / features;
-		Table<T> featureTable = new RectangularTable<>(rows, features, data);
-		FeatureModel<T> model = new GeneralFeatureModel<>(
+		GeneralFeatureModel<T> model = new GeneralFeatureModel<>(
 				featureType,
-				getSpecification(features),
+				featureType.emptyLoader().getSpecification(),
 				Collections.emptyList(),
-				Collections.emptyMap());
-		FeatureMapping<T> mapping = toMapping(featureTable, model);
-		return new SequenceFactory<>(mapping, FormatterMode.INTELLIGENT);
-		*/
-
-		GeneralFeatureModel<T> model = new GeneralFeatureModel<>(featureType,
-				EmptyFeatureSpecification.INSTANCE, Collections.emptyList(),
 				Collections.emptyMap()
 		);
 
@@ -354,7 +342,7 @@ public final class ModelGenerator<T> {
 			}
 			buffer.append('\n');
 		}
-		handler.writeString(pathname + ".mapping", buffer);
+		handler.writeString(pathname + ".mapping", buffer.toString());
 	}
 
 	private static <T> void writeAlignments(FileHandler handler,
@@ -366,7 +354,7 @@ public final class ModelGenerator<T> {
 			String str = testDatum.toString();
 			buffer.append(str).append('\n');
 		}
-		handler.writeString(outputPath.toString(), buffer);
+		handler.writeString(outputPath.toString(), buffer.toString());
 	}
 
 	private static @NotNull <T> List<Alignment<T>> doAlignment(

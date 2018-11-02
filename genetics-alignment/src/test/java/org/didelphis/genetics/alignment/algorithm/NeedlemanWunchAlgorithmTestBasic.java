@@ -33,7 +33,7 @@ public class NeedlemanWunchAlgorithmTestBasic {
 
 	@BeforeAll
 	static void init() {
-		FeatureModelLoader<Boolean> loader = BinaryFeature.emptyLoader();
+		FeatureModelLoader<Boolean> loader = BinaryFeature.INSTANCE.emptyLoader();
 		FeatureMapping<Boolean> mapping = loader.getFeatureMapping();
 		factory = new SequenceFactory<>(mapping, FormatterMode.NONE);
 		

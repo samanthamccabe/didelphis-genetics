@@ -109,10 +109,8 @@ public final class RandomModelTester<T> extends BaseModelTester<T> {
 			double a = (Math.random() * aMax);
 			//			double b = (Math.random() * 20) - 10;
 
-			SequenceComparator<Integer> segmentComparator =
-					new LinearWeightComparator<>(featureType,weights);
 			SequenceComparator<Integer> sequenceComparator =
-					new org.didelphis.genetics.alignment.operators.comparators.SequenceComparator(segmentComparator);
+					new LinearWeightComparator<>(featureType,weights);
 
 			GapPenalty<Integer> gapPenalty =
 					new ConstantGapPenalty<>(factory.toSequence("_"), a);

@@ -120,10 +120,8 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 				weights.add(v * i);
 			}
 
-			SequenceComparator<Integer> segmentComparator =
-					new LinearWeightComparator<>(featureType,weights);
 			SequenceComparator<Integer> sequenceComparator =
-					new org.didelphis.genetics.alignment.operators.comparators.SequenceComparator(segmentComparator);
+					new LinearWeightComparator<>(featureType,weights);
 
 			//			GapPenalty gapPenalty = new ConvexGapPenalty(gap, a,
 			// b);

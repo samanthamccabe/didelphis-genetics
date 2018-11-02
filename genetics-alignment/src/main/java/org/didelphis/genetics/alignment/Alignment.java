@@ -6,7 +6,7 @@ import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
-import org.didelphis.utilities.Exceptions;
+import org.didelphis.utilities.Templates;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -42,10 +42,11 @@ public class  Alignment<T> extends RectangularTable<Segment<T>>
 		super(list, list.size(), list.isEmpty() ? 0 : list.get(0).size());
 		for (Sequence<T> sequence: list) {
 			if (sequence.size() != columns()) {
-				throw Exceptions.create(IllegalArgumentException.class).add(
+				String message =  Templates.create().add(
 						"Sequence {} in {} is not the correct number",
 						"of elements: {} vs {}"
 				).with(sequence, list, sequence.size(), columns()).build();
+				throw new IllegalArgumentException(message);
 			}
 		}
 		this.featureModel = featureModel;

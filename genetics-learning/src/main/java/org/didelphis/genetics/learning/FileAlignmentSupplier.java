@@ -1,11 +1,15 @@
 package org.didelphis.genetics.learning;
 
 import lombok.ToString;
-import org.didelphis.utilities.Exceptions;
 import org.didelphis.utilities.Logger;
+import org.didelphis.utilities.Templates;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
@@ -28,10 +32,11 @@ public class FileAlignmentSupplier implements Supplier<List<String>> {
 	public FileAlignmentSupplier(String filePath) {
 		BufferedReader reader = getReader(filePath);
 		if (reader == null) {
-			throw Exceptions.create(IllegalStateException.class)
+			String message = Templates.create()
 					.add("Fatal error: unable to load alignments from {}")
 					.with(filePath)
 					.build();
+			throw new IllegalStateException(message);
 		}
 		this.reader = reader;
 	}

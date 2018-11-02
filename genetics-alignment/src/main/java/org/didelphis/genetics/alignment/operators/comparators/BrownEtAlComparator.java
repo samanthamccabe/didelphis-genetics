@@ -1,12 +1,12 @@
 package org.didelphis.genetics.alignment.operators.comparators;
 
+import lombok.NonNull;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.contracts.Streamable;
 import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tuples.Triple;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Class {@code MatrixComparator}
@@ -34,7 +34,7 @@ public class BrownEtAlComparator<T> implements SequenceComparator<T> {
 	}
 
 	@Override
-	public double apply(@NotNull Sequence<T> left, @NotNull Sequence<T> right,
+	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right,
 			int i, int j) {
 		Segment<T> sL = left.get(i);
 		Segment<T> sR = right.get(j);

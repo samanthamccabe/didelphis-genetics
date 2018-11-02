@@ -102,7 +102,7 @@ class NeedlemanWunschAlgorithmTest {
 
 	@Test
 	void getAlignment_04() {
-		FeatureModelLoader<Boolean> loader = BinaryFeature.emptyLoader();
+		FeatureModelLoader<Boolean> loader = BinaryFeature.INSTANCE.emptyLoader();
 		SequenceFactory<Boolean> factory = new SequenceFactory<>(
 				loader.getFeatureMapping(), FormatterMode.NONE);
 		SequenceComparator<Boolean> comparator = (left, right, i, j) ->
