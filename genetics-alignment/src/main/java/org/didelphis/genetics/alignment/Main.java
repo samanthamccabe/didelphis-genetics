@@ -9,7 +9,7 @@ import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.BaseOptimization;
+import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.common.StringTransformer;
 import org.didelphis.genetics.alignment.common.Utilities;
@@ -85,7 +85,6 @@ public final class Main {
 	FileHandler HANDLER = new DiskFileHandler("UTF-8");
 
 	static {
-		OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
 		Logger.addAppender(System.out);
 	}
 
@@ -378,7 +377,10 @@ public final class Main {
 				node.putPOJO("alignments",objects);
 				node.putPOJO("table", table);
 				try {
-					sb2.append(OBJECT_MAPPER.writeValueAsString(node));
+					String value = OBJECT_MAPPER
+							.writerWithDefaultPrettyPrinter()
+							.writeValueAsString(node);
+					sb2.append(value);
 				} catch (JsonProcessingException e) {
 					LOGGER.error("{}", e);
 				}

@@ -1,4 +1,4 @@
-package org.didelphis.genetics.alignment.algorithm;
+package org.didelphis.genetics.alignment.algorithm.optimization;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

@@ -2,6 +2,7 @@ package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
+import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
@@ -57,7 +58,8 @@ class NeedlemanWunschAlgorithmTest {
 			IntToDoubleFunction func = k -> type.difference(z.get(k), x.get(k));
 			return IntStream.range(0, z.size()).mapToDouble(func).sum();
 		};
-		algorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+		algorithm = new NeedlemanWunschAlgorithm<>(
+				BaseOptimization.MIN,
 				comparator,
 				penalty,
 				factory

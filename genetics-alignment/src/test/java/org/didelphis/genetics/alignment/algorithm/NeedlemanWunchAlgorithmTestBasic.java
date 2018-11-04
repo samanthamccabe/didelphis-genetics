@@ -1,6 +1,7 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import org.didelphis.genetics.alignment.AlignmentResult;
+import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.didelphis.language.parsing.FormatterMode;
@@ -40,7 +41,8 @@ public class NeedlemanWunchAlgorithmTestBasic {
 		SequenceComparator<Boolean> simpleComparator = (left, right, i, j) -> 
 				Objects.equals(left.get(i), right.get(j)) ? 0 : 1;
 		
-		simpleAlgorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+		simpleAlgorithm = new NeedlemanWunschAlgorithm<>(
+				BaseOptimization.MIN,
 				simpleComparator,
 				new NullGapPenalty<>(factory.toSequence("_")), factory
 		);

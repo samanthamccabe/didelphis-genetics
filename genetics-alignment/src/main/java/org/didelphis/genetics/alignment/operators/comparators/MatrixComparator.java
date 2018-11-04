@@ -30,15 +30,17 @@ public class MatrixComparator<T> implements SequenceComparator<T> {
 	) {
 		FeatureArray<T> f1 = left.get(i).getFeatures();
 		FeatureArray<T> f2 = right.get(j).getFeatures();
+
 		double sum = 0.0;
 		int size = f1.size();
-		for (int x = 0; x < size; x++) {
-			T t1 = f1.get(x);
-			for (int y = 0; y <= x; y++) {
-				T t2 = f2.get(y);
-				sum += weights.get(x, y) * type.difference(t1, t2);
+		for (int row = 0; row < size; row++) {
+			T t1 = f1.get(row);
+			for (int col = 0; col <= row; col++) {
+				T t2 = f2.get(col);
+				sum += weights.get(row, col) * type.difference(t1, t2);
 			}
 		}
+
 		return sum;
 	}
 }

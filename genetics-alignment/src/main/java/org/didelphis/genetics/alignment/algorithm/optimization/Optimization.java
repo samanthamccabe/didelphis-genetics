@@ -1,4 +1,4 @@
-package org.didelphis.genetics.alignment.algorithm;
+package org.didelphis.genetics.alignment.algorithm.optimization;
 
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;

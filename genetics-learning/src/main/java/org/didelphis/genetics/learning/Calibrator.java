@@ -1,6 +1,13 @@
 package org.didelphis.genetics.learning;
 
-import io.jenetics.*;
+import io.jenetics.Chromosome;
+import io.jenetics.DoubleChromosome;
+import io.jenetics.DoubleGene;
+import io.jenetics.EliteSelector;
+import io.jenetics.Gene;
+import io.jenetics.Genotype;
+import io.jenetics.Mutator;
+import io.jenetics.Phenotype;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.EvolutionStatistics;
@@ -12,9 +19,10 @@ import lombok.experimental.FieldDefaults;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
-import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
+import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConvexGapPenalty;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
@@ -29,12 +37,21 @@ import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.tables.RectangularTable;
+import org.didelphis.structures.tables.Table;
 import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.jenetics.engine.EvolutionResult.toBestPhenotype;
@@ -92,36 +109,40 @@ public final class Calibrator<T> {
 		
 		Sequence<Integer> gap = factory.toSequence("░");
 		
-		Calibrator<Integer> optimizer = new Calibrator<>(handler, gap, factory);
+		Calibrator<Integer> calibrator = new Calibrator<>(handler, gap, factory);
 
-		optimizer.addFile("E:/git/data/training/training_CHM-TND_aligned.csv");
-		optimizer.addFile("E:/git/data/training/training_ING-CHE_aligned.csv");
+		calibrator.addFile("E:/git/data/training/training_CHM-TND_aligned.csv");
+		calibrator.addFile("E:/git/data/training/training_ING-CHE_aligned.csv");
 		
 		int extraParams = 2;
 
 		FeatureMapping<Integer> featureMapping = factory.getFeatureMapping();
 		FeatureSpecification specification = featureMapping.getSpecification();
-		
+
+		int size = specification.size();
+		int bigSize = (size * size - size) / 2;
 		Engine<DoubleGene, Double> engine = Engine.builder(
-				optimizer::fitness,
+				calibrator::fitness,
 				DoubleChromosome.of(-10, 10, extraParams),
-				DoubleChromosome.of(0, 10, specification.size())
+				DoubleChromosome.of(  0, 10, size),
+				DoubleChromosome.of( -5,  5, bigSize)
 		)
 				.maximizing()
-				.populationSize(500)
-//				.maximalPhenotypeAge(20)
+				.populationSize(1000)
+				.maximalPhenotypeAge(20)
 //				.survivorsFraction(0.8)
 //				.offspringSize(3)
 //				.selector(new MonteCarloSelector<>())
 //				.selector(new BoltzmannSelector<>(0.5))
 //				.selector(new StochasticUniversalSelector<>())
 				.selector(new EliteSelector<>())
-				.alterers(new Mutator<>(0.2))
+				.alterers(new Mutator<>(0.4))
 				.build();
 
 		EvolutionStatistics<Double, ?> stats = EvolutionStatistics.ofNumber();
 		Phenotype<DoubleGene, Double> phenotype = engine.stream()
-				.limit(byFixedGeneration(100)).peek(stats)
+				.limit(byFixedGeneration(100))
+				.peek(stats)
 				.peek(result -> print(result))
 				.collect(toBestPhenotype());
 
@@ -129,8 +150,9 @@ public final class Calibrator<T> {
 
 		List<Double> chromosomeA = toList(genotype.get(0));
 		List<Double> chromosomeB = toList(genotype.get(1));
+		List<Double> chromosomeC = toList(genotype.get(2));
 
-		normalize(chromosomeA, chromosomeB);
+		normalize(chromosomeA, chromosomeB, chromosomeC);
 
 		System.out.println(stats);
 		System.out.println("F: "
@@ -139,6 +161,8 @@ public final class Calibrator<T> {
 				+ formatList(chromosomeA)
 				+ " | "
 				+ formatList(chromosomeB)
+				+ " | "
+				+ formatList(chromosomeC)
 		);
 	}
 
@@ -178,63 +202,103 @@ public final class Calibrator<T> {
 
 		List<Double> chromosomeA = toList(genotype.get(0));
 		List<Double> chromosomeB = toList(genotype.get(1));
+		List<Double> chromosomeC = toList(genotype.get(2));
 
-		normalize(chromosomeA, chromosomeB);
+		normalize(chromosomeA, chromosomeB, chromosomeC);
 		
 		Set<String> filePaths = trainingData.keySet();
 
-		double correct = 0.0;
-		double total = 0.0;
-		
 		double openPenalty = chromosomeA.get(0);
 		double growPenalty = chromosomeA.get(1);
 
-		FeatureType<T> type = featureModel.getFeatureType();
-		
+		SequenceComparator<T> comparator = getComparator(
+				chromosomeB,
+				chromosomeC
+		);
+
 		AlignmentAlgorithm<T> algorithm = new NeedlemanWunschAlgorithm<>(
 				BaseOptimization.MIN,
-				new LinearWeightComparator<>(type, chromosomeB),
+//				new LinearWeightComparator<>(type, chromosomeB),
+				comparator,
 				new ConvexGapPenalty<>(gap, openPenalty, growPenalty),
 				factory
 		);
-		
+
+		return evaluate(filePaths, algorithm);
+	}
+
+	@NonNull
+	private SequenceComparator<T> getComparator(
+			List<Double> chromosomeB,
+			List<Double> chromosomeC
+	) {
+		int size = chromosomeB.size();
+		Table<Double> table = new RectangularTable<>(0.0, size, size);
+		int x = 0;
+		for (int row = 1; row < table.rows(); row++) {
+			for (int col = 0; col < row; col++) {
+				table.set(row, col, chromosomeC.get(x));
+				x++;
+			}
+		}
+		for (int i = 0; i < table.rows(); i++) {
+			table.set(i, i, chromosomeB.get(i));
+		}
+		FeatureType<T> type = featureModel.getFeatureType();
+		return new MatrixComparator<>(type, table);
+	}
+
+	private double evaluate(
+			Set<String> filePaths, AlignmentAlgorithm<T> algorithm
+	) {
+		double correct = 0.0;
+		double total = 0.0;
 		for (String filePath : filePaths) {
 			List<List<Alignment<T>>> alignmentGroup = trainingData.get(filePath);
-			
+
 			for (List<Alignment<T>> alignments : alignmentGroup) {
 
 				Alignment<T> baseAlignment = alignments.get(0);
-				List<Sequence<T>> sequences = new ArrayList<>();
-				for (int i = 0; i < baseAlignment.rows(); i++) {
-					List<Segment<T>> list = baseAlignment.getRow(i)
-							.stream()
-							.filter(segment -> !segment.equals(gap.get(0)))
-							.collect(Collectors.toList());
-					sequences.add(new BasicSequence<>(list, featureModel));
-				}
-				
-				// Difficulty is assessed on the basis of how many gaps are
-				// present in the training data
-				long nGaps = 1 + baseAlignment.getDelegate()
-						.stream()
-						.filter(tSegment -> tSegment.equals(gap.get(0)))
-						.count();
+				List<Sequence<T>> sequences = getSequences(baseAlignment);
 
 				if (sequences.size() < 2) {
 					continue;
 				}
+
+				// Difficulty is assessed on the basis of how many gaps are
+				// present in the training data
+//				long nGaps = 1 + baseAlignment.getDelegate()
+//						.stream()
+//						.filter(tSegment -> tSegment.equals(gap.get(0)))
+//						.count();
+
 				AlignmentResult<T> result = algorithm.apply(sequences);
 				for (Alignment<T> alignment : alignments) {
 					if (result.getAlignments().contains(alignment)) {
-						correct += Math.pow(nGaps,2);
+//						correct += Math.pow(nGaps,2);
+						correct++;
 						break;
 					}
 				}
-				total += Math.pow(nGaps,2);
+//				total += Math.pow(nGaps,2);
+				total++;
 			}
 		}
-		
+
 		return correct / total;
+	}
+
+	@NonNull
+	private List<Sequence<T>> getSequences(Alignment<T> baseAlignment) {
+		List<Sequence<T>> sequences = new ArrayList<>();
+		for (int i = 0; i < baseAlignment.rows(); i++) {
+			List<Segment<T>> list = baseAlignment.getRow(i)
+					.stream()
+					.filter(segment -> !segment.equals(gap.get(0)))
+					.collect(Collectors.toList());
+			sequences.add(new BasicSequence<>(list, featureModel));
+		}
+		return sequences;
 	}
 
 	private static void print(EvolutionResult<DoubleGene, Double> result) {
@@ -244,8 +308,9 @@ public final class Calibrator<T> {
 
 		List<Double> chromosomeA = toList(genotype.get(0));
 		List<Double> chromosomeB = toList(genotype.get(1));
+		List<Double> chromosomeC = toList(genotype.get(2));
 
-		normalize(chromosomeA, chromosomeB);
+		normalize(chromosomeA, chromosomeB, chromosomeC);
 
 		//noinspection UseOfSystemOutOrSystemErr
 		System.out.println(
@@ -259,6 +324,8 @@ public final class Calibrator<T> {
 				+ formatList(chromosomeA)
 				+" | "
 				+ formatList(chromosomeB)
+				+ " | "
+				+ formatList(chromosomeC)
 		);
 	}
 	
@@ -269,7 +336,6 @@ public final class Calibrator<T> {
 	}
 
 	@SafeVarargs
-	@NonNull
 	private static void normalize(List<Double>... lists) {
 		double sum = Arrays.stream(lists)
 				.flatMap(Collection::stream)
