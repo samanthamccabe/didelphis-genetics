@@ -9,6 +9,7 @@ import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.ColumnTable;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -31,9 +32,15 @@ public class BaseModelTester<T> {
 	}
 
 	protected void loadLexicon(File file, ColumnTable<Sequence<T>> data) {
-		AlignmentSet<T> alignments =
-				AlignmentSet.loadFromFile(file.getAbsolutePath(),
-						sequenceFactory);
+		AlignmentSet<T> alignments = null;
+		try {
+			alignments = AlignmentSet.loadFromFile(
+					file.getAbsolutePath(),
+					sequenceFactory
+			);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		Map<String, List<Sequence<T>>> subMap = new LinkedHashMap<>();
 

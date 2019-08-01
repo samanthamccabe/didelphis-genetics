@@ -205,7 +205,14 @@ public final class BrownAlignmentGenerator {
 		MultiMap<String, String> classToValue = new GeneralMultiMap<>();
 		TwoKeyMultiMap<String, String, Correspondence> map
 				= new GeneralTwoKeyMultiMap<>();
-		NEWLINE.splitAsStream(HANDLER.read(path))
+		String read = null;
+		try {
+			read = HANDLER.read(path);
+		} catch (IOException e) {
+			LOG.error("Failed to read from path {}", path, e);
+			return map;
+		}
+		NEWLINE.splitAsStream(read)
 				.skip(1)
 				.filter(predicate -> !predicate.isEmpty())
 				.forEach(item -> {

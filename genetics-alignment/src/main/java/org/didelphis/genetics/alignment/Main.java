@@ -36,13 +36,19 @@ import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.Suppliers;
 import org.didelphis.structures.maps.GeneralMultiMap;
+import org.didelphis.structures.maps.GeneralTwoKeyMap;
+import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
 import org.didelphis.structures.maps.interfaces.MultiMap;
+import org.didelphis.structures.maps.interfaces.TwoKeyMap;
+import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.SymmetricTable;
+import org.didelphis.structures.tuples.Couple;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.utilities.Logger;
 import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -62,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -71,18 +78,17 @@ import static java.util.regex.Pattern.LITERAL;
 import static java.util.regex.Pattern.compile;
 
 @UtilityClass
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public final class Main {
 
-	Logger LOGGER = Logger.create(Main.class);
-	Pattern EXTENSION_PATTERN = compile("\\.[^.]*?$");
-	Pattern HYPHEN = compile("-");
-	Pattern WHITESPACE = compile("(\n|\r\n?|\\s)+");
-	Pattern HASH = compile("#", LITERAL);
-	Pattern ZERO = compile("0");
+	private static final Logger LOGGER = Logger.create(Main.class);
+	private static final Pattern EXTENSION_PATTERN = compile("\\.[^.]*?$");
+	private static final Pattern HYPHEN = compile("-");
+	private static final Pattern WHITESPACE = compile("(\n|\r\n?|\\s)+");
+	private static final Pattern HASH = compile("#", LITERAL);
+	private static final Pattern ZERO = compile("0");
 
-	ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-	FileHandler HANDLER = new DiskFileHandler("UTF-8");
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
 
 	static {
 		Logger.addAppender(System.out);
@@ -120,27 +126,10 @@ public final class Main {
 		String modelPath   = basePath + configNode.get("model_path").asText();
 		String weightsPath = basePath + configNode.get("weights_path").asText();
 
-		List<String> transformPayload = readConfigArray(
-				"transformations",
-				configNode
-		);
+		List<String> transformPayload = readConfigArray("transformations", configNode);
 		String gapSymbol = readConfigString("gap_symbol", configNode);
 
-		Map<File, List<List<String>>> files = new LinkedHashMap<>();
-		for (JsonNode file : configNode.get("files")) {
-			String path = file.get("path").asText();
-
-			List<List<String>> list = new ArrayList<>();
-			JsonNode jsonNode = file.get("cols");
-			for (JsonNode node : jsonNode) {
-				List<String> cols = new ArrayList<>();
-				for (JsonNode colNode : node) {
-					cols.add(colNode.asText());
-				}
-				list.add(cols);
-			}
-			files.put(new File(basePath + path), list);
-		}
+		Map<File, List<List<String>>> files = loadData(basePath, configNode);
 
 		Function<String, String> transformer = new StringTransformer(transformPayload);
 
@@ -204,7 +193,30 @@ public final class Main {
 		}
 	}
 
-	private static String readConfigString(String key, JsonNode configNode) {
+	@NotNull
+	private static Map<File, List<List<String>>> loadData(
+			String basePath, JsonNode configNode
+	) {
+		Map<File, List<List<String>>> files = new LinkedHashMap<>();
+		for (JsonNode file : configNode.get("files")) {
+			String path = file.get("path").asText();
+
+			List<List<String>> list = new ArrayList<>();
+			JsonNode jsonNode = file.get("cols");
+			for (JsonNode node : jsonNode) {
+				List<String> cols = new ArrayList<>();
+				for (JsonNode colNode : node) {
+					cols.add(colNode.asText());
+				}
+				list.add(cols);
+			}
+			files.put(new File(basePath + path), list);
+		}
+		return files;
+	}
+
+	private static String readConfigString(String key, JsonNode configNode)
+			throws IOException {
 		String pathFieldName = key + "_path";
 		if (configNode.has(pathFieldName)) {
 			String path = configNode.get(pathFieldName).asText();
@@ -221,7 +233,8 @@ public final class Main {
 		}
 	}
 	
-	private static List<String> readConfigArray(String key, JsonNode configNode) {
+	private static List<String> readConfigArray(String key, JsonNode configNode)
+			throws IOException {
 		String pathFieldName = key + "_path";
 		if (configNode.has(pathFieldName)) {
 			String path = configNode.get(pathFieldName).asText();
@@ -246,10 +259,13 @@ public final class Main {
 	private static @NotNull SequenceComparator<Integer> readWeightsComparator(
 			FeatureType<Integer> type, String path
 	) {
-		String payload = HANDLER.read(path);
-		if (payload == null) {
-			throw new ParseException("Failed to load file from path " + path);
+		String payload = null;
+		try {
+			payload = HANDLER.read(path);
+		} catch (IOException e) {
+			throw new ParseException("Failed to load file from path " + path, e);
 		}
+
 		List<String> lines = Splitter.lines(payload.trim());
 		if (lines.size() == 1) {
 			List<Double> weights = new ArrayList<>();
@@ -329,7 +345,8 @@ public final class Main {
 		}
 	}
 
-	private static <T> String collect(Collection<Segment<T>> sequence) {
+	private static <T> String collect(@Nullable Collection<Segment<T>> sequence) {
+		if (sequence == null) return "";
 		return sequence.stream()
 				.map(Objects::toString)
 				.collect(Collectors.joining(" "));
@@ -480,7 +497,7 @@ public final class Main {
 				List<Sequence<T>> d2 = data.getColumn(k2);
 
 				if (d1 == null || d2 == null || d1.size() != d2.size()) {
-					return null;
+					continue;
 				}
 
 				Collection<AlignmentResult<T>> alignments = new ArrayList<>();
@@ -498,17 +515,52 @@ public final class Main {
 					AlignmentResult<T> result = algorithm.apply(list);
 					alignments.add(result);
 				}
+
+				// Start assembling alignments
+				TwoKeyMap<Segment<T>, Segment<T>, Integer> correspondenceCounts = new GeneralTwoKeyMap<>();
+				TwoKeyMultiMap<Segment<T>, Segment<T>, AlignmentSlice<T>> correspondences = new GeneralTwoKeyMultiMap<>();
+
+				alignments.forEach(result -> {
+					for (Alignment<T> alignment : result.getAlignments()) {
+						for (int k = 0; k < alignment.columns(); k++) {
+							List<Segment<T>> column = alignment.getColumn(k);
+							Segment<T> s1 = column.get(0);
+							Segment<T> s2 = column.get(1);
+							add(correspondenceCounts, s1, s2);
+						}
+					}
+				});
+
+				alignments.forEach(result -> {
+					for (Alignment<T> alignment : result.getAlignments()) {
+						for (int k = 0; k < alignment.columns(); k++) {
+							List<Segment<T>> column = alignment.getColumn(k);
+							Segment<T> s1 = column.get(0);
+							Segment<T> s2 = column.get(1);
+							AlignmentSlice<T> slice = new AlignmentSlice<>(alignment, k);
+							correspondences.add(s1, s2, slice);
+						}
+					}
+				});
+
 				alignmentMap.addAll(k1 + '-' + k2, alignments);
 			}
 		}
 		return alignmentMap;
 	}
 
-	private static <T> Sequence<T> lookBack(
-			List<Segment<T>> segments,
-			int i,
-			Segment<T> gap
-	) {
+	private static <E> void add(TwoKeyMap<E, E, Integer> map, E s1, E s2) {
+		if (map.contains(s1, s2)) {
+			Integer value = map.get(s1, s2);
+			if (value != null) {
+				map.put(s1, s2, value + 1);
+				return;
+			}
+		}
+		map.put(s1, s2, 1);
+	}
+
+	private static <T> Sequence<T> lookBack(List<Segment<T>> segments, int i, Segment<T> gap) {
 		List<Segment<T>> collect = segments.subList(0, i)
 				.stream()
 				.filter(segment -> !segment.equals(gap))
@@ -516,11 +568,7 @@ public final class Main {
 		return new BasicSequence<>(collect, gap.getFeatureModel());
 	}
 
-	private static <T> Sequence<T> lookForward(
-			List<Segment<T>> segments,
-			int i, 
-			Segment<T> gap
-	) {
+	private static <T> Sequence<T> lookForward(List<Segment<T>> segments, int i, Segment<T> gap) {
 		List<Segment<T>> collect = segments.subList(i+1, segments.size())
 				.stream()
 				.filter(segment -> !segment.equals(gap))

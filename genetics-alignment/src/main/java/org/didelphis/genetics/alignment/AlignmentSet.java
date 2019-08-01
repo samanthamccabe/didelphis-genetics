@@ -8,6 +8,7 @@ import org.didelphis.io.DiskFileHandler;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -21,9 +22,9 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode(callSuper = true)
 public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 
-	static Pattern PATTERN = Pattern.compile("\n|\r\n?");
-	static Pattern TAB = Pattern.compile("\\t");
-	static Pattern SPACE = Pattern.compile("\\s+");
+	private static final Pattern PATTERN = Pattern.compile("\n|\r\n?");
+	private static final Pattern TAB = Pattern.compile("\\t");
+	private static final Pattern SPACE = Pattern.compile("\\s+");
 
 	Iterable<String> keys;
 
@@ -32,7 +33,7 @@ public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 	}
 
 	public static <T> AlignmentSet<T> loadFromFile(String file,
-			SequenceFactory<T> factory) {
+			SequenceFactory<T> factory) throws IOException {
 
 		CharSequence input = new DiskFileHandler("UTF-8").read(file);
 		List<String> list = Arrays.stream(PATTERN.split(input))

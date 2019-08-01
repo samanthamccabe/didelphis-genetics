@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.didelphis.genetics</groupId>
         <artifactId>didelphis-genetics</artifactId>
-        <version>0.2.0-SNAPSHOT</version>
+        <version>0.3.3-SNAPSHOT</version>
     </parent>
     
     <artifactId>genetics-data-generation</artifactId>
@@ -15,12 +15,10 @@
         <dependency>
             <groupId>org.didelphis.common</groupId>
             <artifactId>didelphis-common-io</artifactId>
-            <version>${didelphis-common.version}</version>
         </dependency>
         <dependency>
             <groupId>org.didelphis.common</groupId>
             <artifactId>didelphis-common-structures</artifactId>
-            <version>${didelphis-common.version}</version>
         </dependency>
     </dependencies>
     

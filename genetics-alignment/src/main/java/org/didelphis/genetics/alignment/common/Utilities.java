@@ -21,6 +21,7 @@ import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -79,7 +80,12 @@ public final class Utilities {
 			String path, Function<String, String> transformer
 	) {
 		FileHandler handler = new DiskFileHandler("UTF-8");
-		CharSequence chars = handler.read(path);
+		CharSequence chars = null;
+		try {
+			chars = handler.read(path);
+		} catch (IOException e) {
+			throw new ParseException("Unable to read table", e);
+		}
 		if (chars.length() == 0) {
 			throw new ParseException("Unable to read table, file was empty: " + path);
 		} else {
@@ -151,7 +157,7 @@ public final class Utilities {
 			SequenceFactory<T> factory,
 			Function<String, String> transformer,
 			String matrixPath
-	) {
+	) throws IOException {
 		SymmetricalTwoKeyMap<Segment<T>, Double> map
 				= new SymmetricalTwoKeyMap<>();
 		String lines = handler.read(matrixPath);

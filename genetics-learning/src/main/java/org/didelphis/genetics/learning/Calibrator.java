@@ -6,8 +6,10 @@ import io.jenetics.DoubleGene;
 import io.jenetics.EliteSelector;
 import io.jenetics.Gene;
 import io.jenetics.Genotype;
+import io.jenetics.MonteCarloSelector;
 import io.jenetics.Mutator;
 import io.jenetics.Phenotype;
+import io.jenetics.StochasticUniversalSelector;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.EvolutionStatistics;
@@ -22,6 +24,7 @@ import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
 import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConvexGapPenalty;
 import org.didelphis.io.DiskFileHandler;
@@ -42,6 +45,7 @@ import org.didelphis.structures.tables.Table;
 import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -69,7 +73,7 @@ import static io.jenetics.engine.Limits.byFixedGeneration;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class Calibrator<T> {
 	
-	static NumberFormat DOUBLE_FORMAT = new DecimalFormat(" 0.00000;-0.00000");
+	static final NumberFormat DOUBLE_FORMAT = new DecimalFormat(" 0.00000;-0.00000");
 	
 	FileHandler handler;
 	Sequence<T> gap;
@@ -111,21 +115,21 @@ public final class Calibrator<T> {
 		
 		Calibrator<Integer> calibrator = new Calibrator<>(handler, gap, factory);
 
-		calibrator.addFile("E:/git/data/training/training_CHM-TND_aligned.csv");
-		calibrator.addFile("E:/git/data/training/training_ING-CHE_aligned.csv");
+		calibrator.addFile("D:/git/data/training/training_synthetic.csv");
+//		calibrator.addFile("D:/git/data/training/training_CHM-TND_aligned.csv");
+//		calibrator.addFile("D:/git/data/training/training_ING-CHE_aligned.csv");
 		
 		int extraParams = 2;
 
 		FeatureMapping<Integer> featureMapping = factory.getFeatureMapping();
 		FeatureSpecification specification = featureMapping.getSpecification();
 
-		int size = specification.size();
-		int bigSize = (size * size - size) / 2;
+		int size = specification.size() - 1;
+//		int bigSize = (size * size - size) / 2;
 		Engine<DoubleGene, Double> engine = Engine.builder(
 				calibrator::fitness,
 				DoubleChromosome.of(-10, 10, extraParams),
-				DoubleChromosome.of(  0, 10, size),
-				DoubleChromosome.of( -5,  5, bigSize)
+				DoubleChromosome.of(  0, 15, size)
 		)
 				.maximizing()
 				.populationSize(1000)
@@ -150,9 +154,9 @@ public final class Calibrator<T> {
 
 		List<Double> chromosomeA = toList(genotype.get(0));
 		List<Double> chromosomeB = toList(genotype.get(1));
-		List<Double> chromosomeC = toList(genotype.get(2));
+//		List<Double> chromosomeC = toList(genotype.get(2));
 
-		normalize(chromosomeA, chromosomeB, chromosomeC);
+//		normalize(chromosomeA, chromosomeB, chromosomeC);
 
 		System.out.println(stats);
 		System.out.println("F: "
@@ -161,14 +165,18 @@ public final class Calibrator<T> {
 				+ formatList(chromosomeA)
 				+ " | "
 				+ formatList(chromosomeB)
-				+ " | "
-				+ formatList(chromosomeC)
+//				+ " | "
+//				+ formatList(chromosomeC)
 		);
 	}
 
 	private void addFile(String filePath) {
-		String fileData = handler.read(filePath);
-		if (fileData == null) return;
+		String fileData = null;
+		try {
+			fileData = handler.read(filePath);
+		} catch (IOException e) {
+			return;
+		}
 		List<List<Alignment<T>>> list = new ArrayList<>();
 		for (String line : Splitter.lines(fileData)) {
 			
@@ -189,7 +197,6 @@ public final class Calibrator<T> {
 				alignmentGroup.add(new Alignment<>(sequences, featureModel));
 			}
 			list.add(alignmentGroup);
-			
 		}
 		
 		// pop header
@@ -202,19 +209,13 @@ public final class Calibrator<T> {
 
 		List<Double> chromosomeA = toList(genotype.get(0));
 		List<Double> chromosomeB = toList(genotype.get(1));
-		List<Double> chromosomeC = toList(genotype.get(2));
 
-		normalize(chromosomeA, chromosomeB, chromosomeC);
-		
 		Set<String> filePaths = trainingData.keySet();
 
 		double openPenalty = chromosomeA.get(0);
 		double growPenalty = chromosomeA.get(1);
 
-		SequenceComparator<T> comparator = getComparator(
-				chromosomeB,
-				chromosomeC
-		);
+		SequenceComparator<T> comparator = getFlatComparator(chromosomeB);
 
 		AlignmentAlgorithm<T> algorithm = new NeedlemanWunschAlgorithm<>(
 				BaseOptimization.MIN,
@@ -227,8 +228,16 @@ public final class Calibrator<T> {
 		return evaluate(filePaths, algorithm);
 	}
 
+	@SuppressWarnings ("MagicNumber")
 	@NonNull
-	private SequenceComparator<T> getComparator(
+	private SequenceComparator<T> getFlatComparator(List<Double> chromosome) {
+		chromosome.add(0, 10.0);
+		FeatureType<T> type = featureModel.getFeatureType();
+		return new LinearWeightComparator<>(type, chromosome);
+	}
+
+	@NonNull
+	private SequenceComparator<T> getMatrixComparator(
 			List<Double> chromosomeB,
 			List<Double> chromosomeC
 	) {
@@ -308,9 +317,9 @@ public final class Calibrator<T> {
 
 		List<Double> chromosomeA = toList(genotype.get(0));
 		List<Double> chromosomeB = toList(genotype.get(1));
-		List<Double> chromosomeC = toList(genotype.get(2));
+//		List<Double> chromosomeC = toList(genotype.get(2));
 
-		normalize(chromosomeA, chromosomeB, chromosomeC);
+//		normalize(chromosomeA, chromosomeB, chromosomeC);
 
 		//noinspection UseOfSystemOutOrSystemErr
 		System.out.println(
@@ -324,8 +333,8 @@ public final class Calibrator<T> {
 				+ formatList(chromosomeA)
 				+" | "
 				+ formatList(chromosomeB)
-				+ " | "
-				+ formatList(chromosomeC)
+//				+ " | "
+//				+ formatList(chromosomeC)
 		);
 	}
 	

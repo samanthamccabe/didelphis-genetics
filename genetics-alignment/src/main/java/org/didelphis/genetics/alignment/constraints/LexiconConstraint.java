@@ -16,8 +16,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * @author Samantha Fiona McCabe
- * Created: 5/3/2015
+ * @author Samantha Fiona McCabe Created: 5/3/2015
  */
 public class LexiconConstraint<T> implements Constraint<T> {
 
@@ -29,24 +28,33 @@ public class LexiconConstraint<T> implements Constraint<T> {
 	private final String name;
 	private final double strength;
 
-	public LexiconConstraint(String nameParam,
-			SequenceFactory<T> factoryParam,
+	public LexiconConstraint(
+			String name,
+			SequenceFactory<T> factory,
 			ColumnTable<Sequence<T>> dataParam,
-			List<Alignment<T>> standardParam) {
-		name = nameParam;
-		factory = factoryParam;
-		standard = standardParam;
-		data = dataParam;
+			List<Alignment<T>> standard
+	) {
+		this.name = name;
+		this.factory = factory;
+		this.standard = standard;
+		this.data = dataParam;
 		strength = computeStrength();
 	}
 
-	public static <T> Constraint<T> loadFromPaths(String humanPath,
-			String lexiconPath, SequenceFactory<T> factory, String... keys) {
-		AlignmentSet<T> alignments = AlignmentSet.loadFromFile(humanPath, factory);
-//
-//		ColumnTable<Sequence<T>> dataTable =
-//				Utilities.toPhoneticTable(lexiconPath, factory, new StringTransformer(),
-//						keys);
+	public static <T> Constraint<T> loadFromPaths(
+			String humanPath,
+			String lexiconPath,
+			SequenceFactory<T> factory,
+			String... keys
+	) throws IOException {
+		AlignmentSet<T> alignments = AlignmentSet.loadFromFile(
+				humanPath,
+				factory
+		);
+		//
+		//		ColumnTable<Sequence<T>> dataTable =
+		//				Utilities.toPhoneticTable(lexiconPath, factory, new StringTransformer(),
+		//						keys);
 
 		String path = EXTENSION.matcher(lexiconPath).replaceAll("");
 		return new LexiconConstraint<T>(path, factory, null, alignments);
@@ -55,25 +63,27 @@ public class LexiconConstraint<T> implements Constraint<T> {
 	@Override
 	public double evaluate(AlignmentAlgorithm<T> algorithm) {
 
-		Alignment<T> blank = new Alignment<>(factory.getFeatureMapping().getFeatureModel());
-//		List<Alignment<T>> alignments = algorithm.getAlignments(data);
-//		Alignment<T> alignments = algorithm.apply();
+		Alignment<T> blank = new Alignment<>(factory.getFeatureMapping()
+				.getFeatureModel());
+		//		List<Alignment<T>> alignments = algorithm.getAlignments(data);
+		//		Alignment<T> alignments = algorithm.apply();
 
 		double sum = 0.0;
 
-//		int size = alignments.size();
-//		for (int i = 0; i < size; i++) {
-//			Alignment<T> a = alignments.get(i);
-//			Alignment<T> s = standard.get(i);
-//
-//			if (s.columns() != 0) {
-//				boolean equals = a.equals(s) && !a.equals(blank);
-//				sum += equals ? 1 : 0;
-//			}
-//		}
+		//		int size = alignments.size();
+		//		for (int i = 0; i < size; i++) {
+		//			Alignment<T> a = alignments.get(i);
+		//			Alignment<T> s = standard.get(i);
+		//
+		//			if (s.columns() != 0) {
+		//				boolean equals = a.equals(s) && !a.equals(blank);
+		//				sum += equals ? 1 : 0;
+		//			}
+		//		}
 
 		return sum;
 	}
+
 	@Override
 	public String getName() {
 		return name;
@@ -99,7 +109,8 @@ public class LexiconConstraint<T> implements Constraint<T> {
 	}
 
 	private Sequence<T> normalizeSymbols(
-			Iterable<Segment<T>> sequence) {
+			Iterable<Segment<T>> sequence
+	) {
 		FeatureMapping<T> featureMapping = factory.getFeatureMapping();
 
 		Sequence<T> normalized = factory.toSequence("");

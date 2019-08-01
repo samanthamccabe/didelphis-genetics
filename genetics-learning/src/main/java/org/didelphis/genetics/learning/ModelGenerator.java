@@ -43,6 +43,7 @@ import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Triple;
+import org.didelphis.utilities.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.joda.time.DateTime;
 
@@ -82,6 +83,9 @@ import static org.didelphis.genetics.alignment.common.Utilities.toTable;
  */
 @ToString
 public final class ModelGenerator<T> {
+
+	private static final Logger LOG = Logger.create(ModelGenerator.class);
+
 	private static final Pattern SPACE = Pattern.compile("\\s+");
 	private static final String DATE_FORMAT = "yyyy-MM-dd/HH-mm-ss";
 	private static final Pattern EXTENSION = Pattern.compile("\\.[^.]+$");
@@ -325,6 +329,21 @@ public final class ModelGenerator<T> {
 		Map<String, FeatureArray<T>> modifierMap = mapping.getModifiers();
 		StringBuilder buffer = new StringBuilder(0x1000);
 		buffer.append("\nSYMBOLS\n");
+		buffer.append(writeSymbols(featureMap));
+		buffer.append("\nMODIFIERS\n");
+		buffer.append(writeSymbols(modifierMap));
+		try {
+			handler.writeString(pathname + ".mapping", buffer.toString());
+		} catch (IOException e) {
+			LOG.error("Unable to write to file {}", pathname, e);
+
+		}
+	}
+
+	private static <T> CharSequence writeSymbols(
+			Map<String, FeatureArray<T>> featureMap
+	) {
+		StringBuilder buffer = new StringBuilder();
 		for (Entry<String, FeatureArray<T>> entry : featureMap.entrySet()) {
 			String key = entry.getKey();
 			buffer.append(key);
@@ -333,16 +352,7 @@ public final class ModelGenerator<T> {
 			}
 			buffer.append('\n');
 		}
-		buffer.append("\nMODIFIERS\n");
-		for (Entry<String, FeatureArray<T>> entry : modifierMap.entrySet()) {
-			String key = entry.getKey();
-			buffer.append(key);
-			for (T t : entry.getValue()) {
-				buffer.append('\t').append(t);
-			}
-			buffer.append('\n');
-		}
-		handler.writeString(pathname + ".mapping", buffer.toString());
+		return buffer;
 	}
 
 	private static <T> void writeAlignments(FileHandler handler,
@@ -354,7 +364,11 @@ public final class ModelGenerator<T> {
 			String str = testDatum.toString();
 			buffer.append(str).append('\n');
 		}
-		handler.writeString(outputPath.toString(), buffer.toString());
+		try {
+			handler.writeString(outputPath.toString(), buffer.toString());
+		} catch (IOException e) {
+			LOG.error("Unable to write to file {}", outputPath, e);
+		}
 	}
 
 	private static @NotNull <T> List<Alignment<T>> doAlignment(
