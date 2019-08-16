@@ -91,6 +91,16 @@ public final class Calibrator<T> {
 		featureModel = factory.getFeatureMapping().getFeatureModel();
 	}
 
+	/* TODO: fields needed for an instance
+	 *  - Model Path
+	 *  -? Formatter Mode
+	 *  - gap symbol
+	 *  - training file or files
+	 *  - Selector mode
+	 *  - Population size
+	 *  - Number of generations
+	 */
+
 	public static void main(String[] args) {
 		// Basic case for a static model
 		// 1. Load Data
