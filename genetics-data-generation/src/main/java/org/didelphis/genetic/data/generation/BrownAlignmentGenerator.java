@@ -1,3 +1,23 @@
+/******************************************************************************
+ * General components for language modeling and analysis                      *
+ *                                                                            *
+ * Copyright (C) 2014-2019 Samantha F McCabe                                  *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ * (at your option) any later version.                                        *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.     *
+ *                                                                            *
+ ******************************************************************************/
+
 package org.didelphis.genetic.data.generation;
 
 import lombok.AccessLevel;
@@ -20,8 +40,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.Random;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -39,11 +64,11 @@ import static java.lang.Math.toIntExact;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class BrownAlignmentGenerator {
 
-	static Logger LOG = Logger.create(BrownAlignmentGenerator.class);
-	
-	static Pattern NEWLINE = Pattern.compile("\n");
-	static FileHandler HANDLER = new DiskFileHandler("UTF-8");
-	static Random RANDOM = new Random();
+	private static final Logger LOG = Logger.create(BrownAlignmentGenerator.class);
+
+	private static final Pattern     NEWLINE = Pattern.compile("\n");
+	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
+	private static final Random      RANDOM  = new Random();
 
 	double generaBias;
 	double gapBias;
@@ -88,7 +113,7 @@ public final class BrownAlignmentGenerator {
 	}
 
 	public static void main(String... args) {
-		int maxIterations = Integer.valueOf(args[0]);
+		int maxIterations = Integer.parseInt(args[0]);
 
 		String dataFile = args[1];
 		String outputFile = args[2];

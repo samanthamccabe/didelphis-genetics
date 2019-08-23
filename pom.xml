@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ~ General components for language modeling and analysis                     ~
+  ~                                                                           ~
+  ~ Copyright (C) 2014-2019 Samantha F McCabe                                 ~
+  ~                                                                           ~
+  ~ This program is free software: you can redistribute it and/or modify      ~
+  ~ it under the terms of the GNU General Public License as published by      ~
+  ~ the Free Software Foundation, either version 3 of the License, or         ~
+  ~ (at your option) any later version.                                       ~
+  ~                                                                           ~
+  ~ This program is distributed in the hope that it will be useful,           ~
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of            ~
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             ~
+  ~ GNU General Public License for more details.                              ~
+  ~                                                                           ~
+  ~ You should have received a copy of the GNU General Public License         ~
+  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.    ~
+  ~                                                                           ~
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -7,7 +27,7 @@
     <parent>
         <groupId>org.didelphis</groupId>
         <artifactId>didelphis-root</artifactId>
-        <version>0.3.2</version>
+        <version>0.3.3</version>
     </parent>
     
     <groupId>org.didelphis.genetics</groupId>
@@ -17,7 +37,7 @@
     <properties>
         <didelphis-genetics.version>0.3.3-SNAPSHOT</didelphis-genetics.version>
         <didelphis-common.version>0.3.3-SNAPSHOT</didelphis-common.version>
-        <nd4j-common.version>1.0.0-beta4</nd4j-common.version>
+        <nd4j-common.version>0.9.1</nd4j-common.version>
     </properties>
 
     <packaging>pom</packaging>
@@ -63,7 +83,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.9.9.1</version>
+            <version>2.9.9.3</version>
         </dependency>
     </dependencies>
     
