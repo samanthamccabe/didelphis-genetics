@@ -21,12 +21,12 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.ToString;
 import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Class AbstractAlignmentAlgorithm
@@ -35,19 +35,19 @@ import org.jetbrains.annotations.NotNull;
  */
 @ToString
 @EqualsAndHashCode
-public abstract class AbstractAlignmentAlgorithm<N>
-		implements AlignmentAlgorithm<N> {
+public abstract class AbstractAlignmentAlgorithm<T>
+		implements AlignmentAlgorithm<T> {
 
-	private final SequenceComparator<N> comparator;
-	private final Optimization<Double> optimization;
-	private final GapPenalty<N> gapPenalty;
-	private final SequenceFactory<N> factory;
+	private final SequenceComparator<T> comparator;
+	private final Optimization optimization;
+	private final GapPenalty<T> gapPenalty;
+	private final SequenceFactory<T> factory;
 
 	protected AbstractAlignmentAlgorithm(
-			Optimization<Double> optimization,
-			SequenceComparator<N> comparator,
-			GapPenalty<N> gapPenalty,
-			SequenceFactory<N> factory
+			Optimization optimization,
+			SequenceComparator<T> comparator,
+			GapPenalty<T> gapPenalty,
+			SequenceFactory<T> factory
 	) {
 		this.comparator = comparator;
 		this.optimization = optimization;
@@ -55,23 +55,27 @@ public abstract class AbstractAlignmentAlgorithm<N>
 		this.factory = factory;
 	}
 
+	@NonNull
 	@Override
-	public @NotNull GapPenalty<N> getGapPenalty() {
+	public GapPenalty<T> getGapPenalty() {
 		return gapPenalty;
 	}
 
+	@NonNull
 	@Override
-	public @NotNull SequenceFactory<N> getFactory() {
+	public SequenceFactory<T> getFactory() {
 		return factory;
 	}
 
+	@NonNull
 	@Override
-	public @NotNull SequenceComparator<N> getComparator() {
+	public SequenceComparator<T> getComparator() {
 		return comparator;
 	}
 
+	@NonNull
 	@Override
-	public @NotNull Optimization<Double> getOptimization() {
+	public Optimization getOptimization() {
 		return optimization;
 	}
 }

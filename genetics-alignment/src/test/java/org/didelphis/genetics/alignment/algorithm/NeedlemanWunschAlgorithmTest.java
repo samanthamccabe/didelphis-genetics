@@ -89,10 +89,10 @@ class NeedlemanWunschAlgorithmTest {
 	@Test
 	void getAlignment_01() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.toSequence("#amapar"),
-				factory.toSequence("#omber")
+
 		);
-		AlignmentResult<Integer> result = algorithm.apply(sequences);
+		AlignmentResult<Integer> result = algorithm.apply(factory.toSequence("#amapar"),
+				factory.toSequence("#omber"));
 		Alignment<Integer> alignment = result.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
 		assertEquals(7, alignment.columns(), message);
@@ -101,10 +101,10 @@ class NeedlemanWunschAlgorithmTest {
 	@Test
 	void getAlignment_02() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.toSequence("#amapar"),
-				factory.toSequence("#kombera")
+
 		);
-		AlignmentResult<Integer> alignmentResult = algorithm.apply(sequences);
+		AlignmentResult<Integer> alignmentResult = algorithm.apply(factory.toSequence("#amapar"),
+				factory.toSequence("#kombera"));
 		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
 		assertEquals("# ░ a m a p a r ░ \n# k o m ░ b e r a \n",
 				alignmentResult.getAlignments().get(0).getPrettyTable());
@@ -113,10 +113,10 @@ class NeedlemanWunschAlgorithmTest {
 	@Test
 	void getAlignment_03() {
 		List<Sequence<Integer>> sequences = Arrays.asList(
-				factory.toSequence("#ammapar"),
-				factory.toSequence("#kamabra")
+
 		);
-		AlignmentResult<Integer> alignmentResult = algorithm.apply(sequences);
+		AlignmentResult<Integer> alignmentResult = algorithm.apply(factory.toSequence("#ammapar"),
+				factory.toSequence("#kamabra"));
 		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
 		String message = '\n' + alignment.getPrettyTable();
 		assertEquals(10, alignment.columns(), message);
@@ -137,13 +137,12 @@ class NeedlemanWunschAlgorithmTest {
 		);
 
 		AlignmentResult<Boolean> result = algorithm.apply(
-				Arrays.asList(
 						factory.toSequence("#baba"),
-						factory.toSequence("#ababb")));
+						factory.toSequence("#ababb"));
 
 		assertFalse(result.getAlignments().isEmpty());
 		assertEquals(2.0, result.getScore());
-		String expected = "# _ b a b a \t" + "# a b a b b \t";
+		String expected = "# _ b a b a \t# a b a b b \t";
 		assertEquals(expected, result.getAlignments().get(0).toString());
 	}
 }

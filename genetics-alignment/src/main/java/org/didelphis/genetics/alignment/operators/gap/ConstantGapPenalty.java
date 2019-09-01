@@ -21,6 +21,9 @@
 package org.didelphis.genetics.alignment.operators.gap;
 
 
+import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+import lombok.ToString;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,11 +31,13 @@ import org.jetbrains.annotations.NotNull;
  * @author Samantha Fiona McCabe
  * Created: 6/3/2015
  */
+@ToString
+@EqualsAndHashCode
 public class ConstantGapPenalty<T> extends AbstractGapPenalty<T> {
 
 	private final double penalty;
 
-	public ConstantGapPenalty(@NotNull Sequence<T> gap, double penalty) {
+	public ConstantGapPenalty(@NonNull Sequence<T> gap, double penalty) {
 		super(gap);
 		this.penalty = penalty;
 	}

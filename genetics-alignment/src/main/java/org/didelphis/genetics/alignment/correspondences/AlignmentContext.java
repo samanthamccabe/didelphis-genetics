@@ -20,6 +20,7 @@
 
 package org.didelphis.genetics.alignment.correspondences;
 
+import lombok.NonNull;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.structures.tuples.Twin;
@@ -58,8 +59,9 @@ public class AlignmentContext<T> extends Twin<Alignment<T>> {
 		return super.equals(object);
 	}
 
+	@NonNull
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 
 		StringBuilder sb = new StringBuilder();
 

@@ -20,6 +20,7 @@
 
 package org.didelphis.genetics.alignment.correspondences;
 
+import lombok.NonNull;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.sequences.Sequence;
@@ -43,8 +44,9 @@ public class Environment<T> implements Iterable<Twin<Sequence<T>>> {
 		factory = factoryParam;
 	}
 
+	@NonNull
 	@Override
-	public @NotNull Iterator<Twin<Sequence<T>>> iterator() {
+	public Iterator<Twin<Sequence<T>>> iterator() {
 		return environment.iterator();
 	}
 

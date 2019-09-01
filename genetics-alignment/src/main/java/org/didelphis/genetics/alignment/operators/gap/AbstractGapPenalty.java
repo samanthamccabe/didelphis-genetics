@@ -28,12 +28,12 @@ import org.didelphis.language.phonetic.sequences.Sequence;
  * @author Samantha Fiona McCabe
  * Created: 6/3/2015
  */
-public abstract class AbstractGapPenalty<N>
-		implements GapPenalty<N> {
+public abstract class AbstractGapPenalty<T>
+		implements GapPenalty<T> {
 
-	private final Sequence<N> gap;
+	private final Sequence<T> gap;
 
-	protected AbstractGapPenalty(Sequence<N> gap) {
+	protected AbstractGapPenalty(Sequence<T> gap) {
 		this.gap = gap;
 	}
 
@@ -43,12 +43,12 @@ public abstract class AbstractGapPenalty<N>
 	}
 
 	@Override
-	public FeatureModel<N> getFeatureModel() {
+	public FeatureModel<T> getFeatureModel() {
 		return gap.getFeatureModel();
 	}
 
 	@Override
-	public Sequence<N> getGap() {
+	public Sequence<T> getGap() {
 		return gap;
 	}
 }

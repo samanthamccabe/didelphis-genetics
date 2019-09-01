@@ -32,6 +32,7 @@ import io.jenetics.StochasticUniversalSelector;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import io.jenetics.engine.EvolutionStatistics;
+import lombok.NonNull;
 import lombok.ToString;
 import org.didelphis.genetic.data.generation.BrownAlignmentGenerator;
 import org.didelphis.genetics.alignment.Alignment;
@@ -286,7 +287,8 @@ public final class ModelGenerator<T> {
 		return correct / (double) tested;
 	}
 
-	private @NotNull <G extends Gene<T, G>> SequenceFactory<T> toFactory(
+	@NonNull
+	private <G extends Gene<T, G>> SequenceFactory<T> toFactory(
 			Genotype<G> genotype
 	) {
 		GeneralFeatureModel<T> model = new GeneralFeatureModel<>(
@@ -303,7 +305,8 @@ public final class ModelGenerator<T> {
 		return new SequenceFactory<>(mapping, FormatterMode.INTELLIGENT);
 	}
 
-	private @NotNull FeatureMapping<T> toMapping(Table<T> featureTable,
+	@NonNull
+	private FeatureMapping<T> toMapping(Table<T> featureTable,
 			FeatureModel<T> model
 	) {
 		Map<String, FeatureArray<T>> sMap = parseSymbols(featureTable, model);
@@ -311,7 +314,8 @@ public final class ModelGenerator<T> {
 		return new GeneralFeatureMapping<>(model, sMap, mMap);
 	}
 
-	private @NotNull <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseSymbols(
+	@NonNull
+	private <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseSymbols(
 			Table<T> table, FeatureModel<T> model
 	) {
 		Map<String, FeatureArray<T>> sMap = new HashMap<>(symbols.size());
@@ -323,7 +327,8 @@ public final class ModelGenerator<T> {
 		return sMap;
 	}
 
-	private @NotNull <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseModifiers(
+	@NonNull
+	private <G extends Gene<T, G>> Map<String, FeatureArray<T>> parseModifiers(
 			Table<T> table, FeatureModel<T> model
 	) {
 		int modelSize = model.getSpecification().size();
@@ -391,13 +396,13 @@ public final class ModelGenerator<T> {
 		}
 	}
 
-	private static @NotNull <T> List<Alignment<T>> doAlignment(
+	private static @NonNull <T> List<Alignment<T>> doAlignment(
 			AlignmentAlgorithm<T> algorithm, Table<Sequence<T>> testWords
 	) {
 		List<Alignment<T>> testsData = new ArrayList<>(testWords.size());
 		for (int i = 0; i < testWords.rows(); i++) {
 			List<Sequence<T>> row = testWords.getRow(i);
-			AlignmentResult<T> alignmentResult = algorithm.apply(row);
+			AlignmentResult<T> alignmentResult = algorithm.apply(row.get(0), row.get(1));
 			List<Alignment<T>> alignment = alignmentResult.getAlignments();
 			testsData.add(alignment.get(0));
 		}
@@ -413,7 +418,8 @@ public final class ModelGenerator<T> {
 		return toAlignments(raw, factory);
 	}
 
-	private @NotNull <G extends Gene<T, G>> AlignmentAlgorithm<T> toAlgorithm(
+	@NonNull
+	private <G extends Gene<T, G>> AlignmentAlgorithm<T> toAlgorithm(
 			SequenceFactory<T> factory,
 			Genotype<G> genotype
 	) {
@@ -455,7 +461,7 @@ public final class ModelGenerator<T> {
 				.collect(Collectors.toList());
 	}
 
-	private static @NotNull FeatureSpecification getSpecification(int n) {
+	private static @NonNull FeatureSpecification getSpecification(int n) {
 		List<String> names = new ArrayList<>(n);
 		Map<String, Integer> indices = new HashMap<>(n);
 		IntStream.range(0, n).forEach(i -> {

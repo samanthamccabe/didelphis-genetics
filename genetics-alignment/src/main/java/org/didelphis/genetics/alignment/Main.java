@@ -213,7 +213,7 @@ public final class Main {
 		}
 	}
 
-	@NotNull
+	@NonNull
 	private static Map<File, List<List<String>>> loadData(
 			String basePath, JsonNode configNode
 	) {
@@ -276,7 +276,7 @@ public final class Main {
 		}
 	}
 
-	private static @NotNull SequenceComparator<Integer> readWeightsComparator(
+	private static @NonNull SequenceComparator<Integer> readWeightsComparator(
 			FeatureType<Integer> type, String path
 	) {
 		String payload = null;
@@ -501,9 +501,9 @@ public final class Main {
 
 	@NonNull
 	private static <T> MultiMap<String, AlignmentResult<T>> align(
-			@NotNull AlignmentAlgorithm<T> algorithm,
-			@NotNull List<String> keyList,
-			@NotNull ColumnTable<Sequence<T>> data
+			@NonNull AlignmentAlgorithm<T> algorithm,
+			@NonNull List<String> keyList,
+			@NonNull ColumnTable<Sequence<T>> data
 	) {
 		MultiMap<String, AlignmentResult<T>> alignmentMap = new GeneralMultiMap<>(
 				new LinkedHashMap<>(),
@@ -531,8 +531,7 @@ public final class Main {
 						continue;
 					}
 
-					List<Sequence<T>> list = asList(e1, e2);
-					AlignmentResult<T> result = algorithm.apply(list);
+					AlignmentResult<T> result = algorithm.apply(e1, e2);
 					alignments.add(result);
 				}
 

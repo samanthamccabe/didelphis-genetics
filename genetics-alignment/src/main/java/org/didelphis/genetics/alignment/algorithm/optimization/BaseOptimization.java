@@ -21,6 +21,7 @@
 package org.didelphis.genetics.alignment.algorithm.optimization;
 
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.ToString;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,18 +34,18 @@ import java.util.function.BiPredicate;
  */
 @ToString
 @EqualsAndHashCode
-public final class BaseOptimization<T> implements Optimization<T> {
+public final class BaseOptimization implements Optimization {
 
-	public static final Optimization<Double> MAX = new BaseOptimization<>(
+	public static final Optimization MAX = new BaseOptimization(
 			(x, y) -> x >= y, Double.MIN_VALUE
 	);
 
-	public static final Optimization<Double> MIN = new BaseOptimization<>(
+	public static final Optimization MIN = new BaseOptimization(
 			(x, y) -> x <= y, Double.MAX_VALUE
 	);
 
-	private final BiPredicate<T, T> predicate;
-	private final T defaultValue;
+	private final @NonNull BiPredicate<? super Double, ? super Double> predicate;
+	private final double defaultValue;
 
 	/**
 	 * Creates a basic {@link Optimization} using the provided values
@@ -54,20 +55,20 @@ public final class BaseOptimization<T> implements Optimization<T> {
 	 * @param defaultValue a default value to use
 	 */
 	public BaseOptimization(
-			@NotNull BiPredicate<T, T> predicate,
-			@NotNull T defaultValue
+			@NonNull BiPredicate<? super Double, ? super Double> predicate,
+			double defaultValue
 	) {
 		this.predicate = predicate;
 		this.defaultValue = defaultValue;
 	}
 
 	@Override
-	public boolean test(T x, T y) {
+	public boolean test(Double x, Double y) {
 		return predicate.test(x, y);
 	}
 
 	@Override
-	public T defaultValue() {
+	public double defaultValue() {
 		return defaultValue;
 	}
 

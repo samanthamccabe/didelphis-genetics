@@ -146,7 +146,7 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 			//			GapPenalty gapPenalty = new ConvexGapPenalty(gap, a,
 			// b);
 			GapPenalty<Integer> gapPenalty = new ConstantGapPenalty<>(gap, 0.0);
-			Optimization<Double> optimization = BaseOptimization.MIN;
+			Optimization optimization = BaseOptimization.MIN;
 
 			//			AlignmentAlgorithm algorithm = new 
 			// SingleAlignmentAlgorithm(gapPenalty, 1, sequenceComparator);

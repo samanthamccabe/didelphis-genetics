@@ -20,6 +20,7 @@
 
 package org.didelphis.genetics.alignment.common;
 
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
@@ -70,12 +71,14 @@ public final class Utilities {
 	public final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
 
-	public @NotNull ColumnTable<String> loadTable(String path) {
+	@NonNull
+	public ColumnTable<String> loadTable(String path) {
 		return loadTable(path, Function.identity());
 	}
 
-	public @NotNull ColumnTable<String> toTable(
-			CharSequence payload, Function<String, String> transformer
+	@NonNull
+	public ColumnTable<String> toTable(
+			CharSequence payload, Function<? super String, String> transformer
 	) throws ParseException {
 		List<String> lines
 				= stream(PATTERN.split(payload)).collect(Collectors.toList());
@@ -93,10 +96,12 @@ public final class Utilities {
 			}
 			return new DataTable<>(keys, table);
 		}
-		throw new ParseException("Unable to read table, payload was empty"+payload.toString());
+		throw new ParseException("Unable to read table, payload was empty"+
+				payload);
 	}
 
-	public @NotNull ColumnTable<String> loadTable(
+	@NonNull
+	public ColumnTable<String> loadTable(
 			String path, Function<String, String> transformer
 	) {
 		FileHandler handler = new DiskFileHandler("UTF-8");

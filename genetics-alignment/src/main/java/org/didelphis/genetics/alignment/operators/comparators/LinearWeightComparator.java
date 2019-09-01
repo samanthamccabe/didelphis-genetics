@@ -20,6 +20,9 @@
 
 package org.didelphis.genetics.alignment.operators.comparators;
 
+import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+import lombok.ToString;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.sequences.Sequence;
@@ -32,33 +35,30 @@ import java.util.List;
  * @author Samantha Fiona McCabe
  * Created: 5/22/15
  */
+@ToString
+@EqualsAndHashCode
 public class LinearWeightComparator<T> implements SequenceComparator<T> {
 
-	private final FeatureType<T> type;
+	private final FeatureType<? super T> type;
 	private final List<Double> weights;
 
-	public LinearWeightComparator(FeatureType<T> type, List<Double> list) {
+	public LinearWeightComparator(FeatureType<? super T> type, List<Double> list) {
 		this.type = type;
 		weights = list;
 	}
 
 	@Override
-	public double apply(@NotNull Sequence<T> left, @NotNull Sequence<T> right, int l, int j) {
+	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j) {
 		double score = 0.0;
-		FeatureArray<T> lFeatures = left.get(l).getFeatures();
+		FeatureArray<T> lFeatures = left.get(i).getFeatures();
 		FeatureArray<T> rFeatures = right.get(j).getFeatures();
-		for (int i = 0; i < weights.size(); i++) {
-			T lF = lFeatures.get(i);
-			T rF = rFeatures.get(i);
+		for (int k = 0; k < weights.size(); k++) {
+			T lF = lFeatures.get(k);
+			T rF = rFeatures.get(k);
 			Double d = type.difference(lF, rF);
-			Double w = weights.get(i);
+			Double w = weights.get(k);
 			score += w * d;
 		}
 		return score;
-	}
-
-	@Override
-	public String toString() {
-		return "LinearWeightComparator{weights=" + weights + '}';
 	}
 }

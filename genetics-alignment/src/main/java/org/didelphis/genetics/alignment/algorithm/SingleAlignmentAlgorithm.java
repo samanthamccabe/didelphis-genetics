@@ -20,6 +20,7 @@
 
 package org.didelphis.genetics.alignment.algorithm;
 
+import lombok.NonNull;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.language.phonetic.SequenceFactory;
@@ -32,7 +33,6 @@ import org.didelphis.structures.tables.Table;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +40,7 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 /**
- * @author Samantha Fiona McCabe
- * Created: 4/12/2016
+ * @author Samantha Fiona McCabe Created: 4/12/2016
  */
 public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
@@ -52,7 +51,10 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 	public SingleAlignmentAlgorithm(
 			SequenceComparator<T> comparator,
-			GapPenalty<T> gapPenalty, int arity, SequenceFactory<T> factory) {
+			GapPenalty<T> gapPenalty,
+			int arity,
+			SequenceFactory<T> factory
+	) {
 		super(BaseOptimization.MIN, comparator, gapPenalty, factory);
 
 		model = factory.getFeatureMapping().getFeatureModel();
@@ -61,50 +63,53 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 		this.arity = arity;
 	}
 
+	@NonNull
 	@Override
-	public @NotNull AlignmentResult<T> apply(@NotNull List<? extends Sequence<T>> sequences) {
-
-		Sequence<T> left = sequences.get(0);
-		Sequence<T> right = sequences.get(1);
+	public AlignmentResult<T> apply(@NonNull Sequence<T>left, @NonNull Sequence<T> right) {
 
 		left.add(0, boundary);
-		right.add(0,boundary);
+		right.add(0, boundary);
 
 		int m = left.size();
 		int n = right.size();
 
-		Table<Alignment<T>> matrix =
-				new RectangularTable<>((Alignment<T>) null, m, n);
-//
-//		Alignment<T> start = new Alignment<>(2, model);
-//
-//		matrix.set(0, 0, start);
-//
-//		Segment<T> gap = gapPenalty.getGap();
-//
-//		for (int i = 1; i < m; i++) {   // Fill Left
-//			Alignment<T> tail = matrix.get(i - 1, 0);
-//			Alignment<T> body = new Alignment<>(tail);
-//			Alignment<T> head = new Alignment<>(left.get(i), gap);
-//			body.add(head);
-//			matrix.set(i, 0, body);
-//			body.setScore(0);
-//		}
-//		for (int j = 1; j < n; j++) {   // Fill Right
-//			Alignment<T> tail = matrix.get(0, j - 1);
-//			Alignment<T> body = new Alignment<>(tail);
-//			Alignment<T> head = new Alignment<>(gap, right.get(j));
-//			body.add(head);
-//			matrix.set(0, j, body);
-//			body.setScore(0);
-//		}
-//		for (int i = 1; i < m; i++) {
-//			for (int j = 1; j < n; j++) {
-//				matrix.set(i, j, min(matrix, left, right, i, j));
-//			}
-//		}
+		Table<Alignment<T>> matrix = new RectangularTable<>(
+				(Alignment<T>) null,
+				m,
+				n
+		);
+
+/*		Alignment<T> start = new Alignment<>(2, model);
+
+		matrix.set(0, 0, start);
+
+		Segment<T> gap = gapPenalty.getGap();
+
+		for (int i = 1; i < m; i++) {   // Fill Left
+			Alignment<T> tail = matrix.get(i - 1, 0);
+			Alignment<T> body = new Alignment<>(tail);
+			Alignment<T> head = new Alignment<>(left.get(i), gap);
+			body.add(head);
+			matrix.set(i, 0, body);
+			body.setScore(0);
+		}
+		for (int j = 1; j < n; j++) {   // Fill Right
+			Alignment<T> tail = matrix.get(0, j - 1);
+			Alignment<T> body = new Alignment<>(tail);
+			Alignment<T> head = new Alignment<>(gap, right.get(j));
+			body.add(head);
+			matrix.set(0, j, body);
+			body.setScore(0);
+		}
+		for (int i = 1; i < m; i++) {
+			for (int j = 1; j < n; j++) {
+				matrix.set(i, j, min(matrix, left, right, i, j));
+			}
+		}
+*/
+
 		Alignment<T> alignment = matrix.get(m - 1, n - 1);
-		return new AlignmentResult<>(left, right, null,alignment);
+		return new AlignmentResult<>(left, right, null, alignment);
 	}
 
 /*	public List<Alignment<T>> align(ColumnTable<Sequence<T>> data) {
@@ -146,12 +151,17 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 	@Override
 	public String toString() {
-		return "SingleAlignmentAlgorithm{" + super.toString()+ ", boundary=" + boundary +
-				", model=" + model + ", arity=" + arity + '}';
+		return "SingleAlignmentAlgorithm{" + super.toString() + ", boundary=" +
+				boundary + ", model=" + model + ", arity=" + arity + '}';
 	}
 
-	private Alignment<T> minimum(Table<Alignment<T>> matrix,
-			Sequence<T> left, Sequence<T> right, int i, int j) {
+	private Alignment<T> minimum(
+			Table<Alignment<T>> matrix,
+			Sequence<T> left,
+			Sequence<T> right,
+			int i,
+			int j
+	) {
 		// We could probably just use the current segments and not need indices
 		// matrix isn't needed
 
@@ -161,8 +171,8 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 		Sequence<T> l = new BasicSequence<>(left.get(i));
 		Sequence<T> r = new BasicSequence<>(right.get(j));
 
-		Alignment<T> insert = build(matrix.get(i - 1, j), l, g);
-		Alignment<T> delete = build(matrix.get(i, j - 1), g, r);
+		Alignment<T> insert = build(matrix.get(i - 1, j    ), l, g);
+		Alignment<T> delete = build(matrix.get(i,     j - 1), g, r);
 		Alignment<T> change = build(matrix.get(i - 1, j - 1), l, r);
 
 		NavigableMap<Double, Alignment<T>> map = new TreeMap<>();
@@ -173,8 +183,13 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 		return map.firstEntry().getValue();
 	}
 
-	private Alignment<T> min(Table<Alignment<T>> matrix,
-			Sequence<T> left, Sequence<T> right, int i, int j) {
+	private Alignment<T> min(
+			Table<Alignment<T>> matrix,
+			Sequence<T> left,
+			Sequence<T> right,
+			int i,
+			int j
+	) {
 
 		NavigableMap<Double, Alignment<T>> candidates = new TreeMap<>();
 
@@ -189,8 +204,7 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 				if (indexL >= 0 && indexR >= 0 && (g != 0 || h != 0)) {
 
 					Sequence<T> subL = left.subsequence(indexL + 1, i + 1);
-					Sequence<T> subR =
-							right.subsequence(indexR + 1, j + 1);
+					Sequence<T> subR = right.subsequence(indexR + 1, j + 1);
 
 					List<Sequence<T>> sequenceList = new ArrayList<>();
 					sequenceList.add(g == 0 ? gap : subL);
@@ -202,10 +216,10 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 					Alignment<T> head = matrix.get(indexL, indexR);
 					Alignment<T> alignment = new Alignment<>(head);
-//					alignment.add(sequenceList, indexList);
+					//					alignment.add(sequenceList, indexList);
 
 					double score = evaluate(alignment);
-//					alignment.setScore(score);
+					//					alignment.setScore(score);
 
 					candidates.put(score, alignment);
 				}
@@ -214,49 +228,56 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 		return candidates.firstEntry().getValue();
 	}
 
-	private Alignment<T> build(Table<Alignment<T>> matrix,
-			Sequence<T> a, Sequence<T> b, int i, int j, int g,
-			int h) {
+	private Alignment<T> build(
+			Table<Alignment<T>> matrix,
+			Sequence<T> w,
+			Sequence<T> z,
+			int i,
+			int j,
+			int g,
+			int h
+	) {
 
 		Sequence<T> gap = new BasicSequence<>(getGapPenalty().getGap());
 
 		List<Sequence<T>> sequenceList = new ArrayList<>();
 		int ixL = i - g;
 		int ixR = j - h;
-		sequenceList.add(g == 0 ? gap : a.subsequence(ixL, i + 1));
-		sequenceList.add(h == 0 ? gap : b.subsequence(ixR, j + 1));
+		sequenceList.add(g == 0 ? gap : w.subsequence(ixL, i + 1));
+		sequenceList.add(h == 0 ? gap : z.subsequence(ixR, j + 1));
 
 		List<Integer> indexList = new ArrayList<>();
 		indexList.add(ixL * (g == 0 ? -1 : 1));
 		indexList.add(ixR * (h == 0 ? -1 : 1));
 
 		Alignment<T> alignment = new Alignment<>(matrix.get(ixL, ixR));
-//		alignment.add(sequenceList, indexList);
+		//		alignment.add(sequenceList, indexList);
 
 		double score = evaluate(alignment);
-//		alignment.setScore(score);
+		//		alignment.setScore(score);
 
 		return alignment;
 	}
 
-	private Alignment<T> build(Alignment<T> tail, Sequence<T> a,
-			Sequence<T> b) {
+	private Alignment<T> build(
+			Alignment<T> tail, Sequence<T> a, Sequence<T> b
+	) {
 
-//		Alignment<T> head = new Alignment<>(tail.getSpecification());
+		//		Alignment<T> head = new Alignment<>(tail.getSpecification());
 		Alignment<T> body = new Alignment<>(tail);
-//		body.add(head);
+		//		body.add(head);
 		double score = evaluate(body);
-//		body.setScore(score);
+		//		body.setScore(score);
 		return body;
 	}
 
 	private double evaluate(Alignment<T> alignment) {
 		double score = 0.0;
-//		for (int i = 0; i < alignment.getNumberColumns(); i++) {
-//			Sequence<T> a = alignment.getRow(0).get(i);
-//			Sequence<T> b = alignment.getRow(1).get(i);
-//			score += comparator.apply(a, b);
-//		}
+		//		for (int i = 0; i < alignment.getNumberColumns(); i++) {
+		//			Sequence<T> a = alignment.getRow(0).get(i);
+		//			Sequence<T> b = alignment.getRow(1).get(i);
+		//			score += comparator.apply(a, b);
+		//		}
 		return score + getGapPenalty().applyAsDouble(0); // todo
 	}
 }

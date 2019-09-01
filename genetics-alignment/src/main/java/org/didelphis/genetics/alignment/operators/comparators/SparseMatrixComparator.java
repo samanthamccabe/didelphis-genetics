@@ -18,22 +18,57 @@
  *                                                                            *
  ******************************************************************************/
 
-package org.didelphis.genetics.alignment.operators.gap;
+package org.didelphis.genetics.alignment.operators.comparators;
 
+import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+import lombok.ToString;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.language.phonetic.features.FeatureArray;
+import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.maps.interfaces.TwoKeyMap;
+import org.didelphis.structures.tuples.Triple;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
 
 /**
  * @author Samantha Fiona McCabe
- * Created: 6/3/2015
+ * Created: 5/22/15
  */
-public class NullGapPenalty<T> extends AbstractGapPenalty<T> {
+@ToString
+@EqualsAndHashCode
+public class SparseMatrixComparator<T> implements SequenceComparator<T> {
 
-	public NullGapPenalty(Sequence<T> gap) {
-		super(gap);
+	private final SequenceComparator<T> comparator;
+	private final TwoKeyMap<Integer, Integer, Double> sparseWeights;
+	private final FeatureType<? super T> type;
+
+	public SparseMatrixComparator(
+			FeatureType<? super T> type,
+			List<Double> weights,
+			TwoKeyMap<Integer, Integer, Double> sparseWeights
+	) {
+		comparator = new LinearWeightComparator<>(type, weights);
+		this.type = type;
+		this.sparseWeights = sparseWeights;
 	}
 
 	@Override
-	public double applyAsDouble(int value) {
-		return 0.0;
+	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j) {
+		double score = comparator.apply(left, right, i, j);
+
+		FeatureArray<T> lFeatures = left.get(i).getFeatures();
+		FeatureArray<T> rFeatures = right.get(j).getFeatures();
+
+		for (Triple<Integer, Integer, Double> triple : sparseWeights) {
+			T lFeature = lFeatures.get(triple.getFirstElement());
+			T rFeature = rFeatures.get(triple.getSecondElement());
+
+			double difference = type.difference(lFeature, rFeature);
+			score += difference * triple.getThirdElement();
+		}
+		return score;
 	}
 }

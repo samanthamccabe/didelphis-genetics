@@ -33,10 +33,10 @@ import org.didelphis.structures.tables.Table;
 @EqualsAndHashCode
 public class MatrixComparator<T> implements SequenceComparator<T> {
 
-	private final FeatureType<T> type;
+	private final FeatureType<? super T> type;
 	private final Table<Double> weights;
 
-	public MatrixComparator(FeatureType<T> type, Table<Double> weights) {
+	public MatrixComparator(FeatureType<? super T> type, Table<Double> weights) {
 		this.type = type;
 		this.weights = weights;
 	}

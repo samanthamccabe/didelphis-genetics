@@ -46,6 +46,7 @@ import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
 import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
+import org.didelphis.genetics.alignment.operators.comparators.SparseMatrixComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConvexGapPenalty;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
@@ -60,12 +61,20 @@ import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.maps.GeneralTwoKeyMap;
+import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
+import org.didelphis.structures.tuples.Twin;
+import org.didelphis.utilities.Logger;
 import org.didelphis.utilities.Splitter;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -76,6 +85,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.stream.Collectors;
 
 import static io.jenetics.engine.EvolutionResult.toBestPhenotype;
@@ -84,31 +94,142 @@ import static io.jenetics.engine.Limits.byFixedGeneration;
 /**
  * Class {@code OptimizationEngine}
  *
- * @author Samantha Fiona McCabe
- * Date: 2017-08-01
- * @since 0.1.0 
+ * @author Samantha Fiona McCabe Date: 2017-08-01
+ * @since 0.1.0
  */
 @ToString
 @EqualsAndHashCode
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults (level = AccessLevel.PRIVATE, makeFinal = true)
 public final class Calibrator<T> {
-	
-	static final NumberFormat DOUBLE_FORMAT = new DecimalFormat(" 0.00000;-0.00000");
-	
+
+	private static final NumberFormat DOUBLE_FORMAT = new DecimalFormat(" 0.000;-0.000");
+
 	FileHandler handler;
 	Sequence<T> gap;
 	SequenceFactory<T> factory;
+	int extraParams;
+	List<Twin<Integer>> correlatedFeatures;
 	FeatureModel<T> featureModel;
 	Map<String, List<List<Alignment<T>>>> trainingData;
 
+	Map<Alignment<T>, List<Sequence<T>>> cache;
+
+	public static void main(String[] args) {
+		// Basic case for a static model
+		// 1. Load Data
+		// 2. Load Model
+		// 3. Generate Algorithm
+		// 4. Align Data
+		// 5. Score Data
+
+		// -----------------------------------------------
+		FeatureType<Integer> type = IntegerFeature.INSTANCE;
+		String modelPath = "/projects/data/AT_extended_x.model";
+		FormatterMode mode = FormatterMode.INTELLIGENT;
+
+		FileHandler handler = new DiskFileHandler("UTF-8");
+
+		SequenceFactory<Integer> factory = loadFactory(
+				modelPath,
+				handler,
+				type,
+				mode
+		);
+
+		Sequence<Integer> gap = factory.toSequence("░");
+
+		List<Twin<String>> correlatedFeatures = new ArrayList<>();
+		add(correlatedFeatures, "con", "son");
+//		add(correlatedFeatures, "con", "cnt");
+//		add(correlatedFeatures, "son", "cnt");
+//		add(correlatedFeatures, "con", "eje");
+//		add(correlatedFeatures, "son", "eje");
+//		add(correlatedFeatures, "cnt", "eje");
+//		add(correlatedFeatures, "lat", "nas");
+
+		Calibrator<Integer> calibrator = new Calibrator<>(
+				handler,
+				gap,
+				factory,
+				2,
+				correlatedFeatures
+		);
+
+		calibrator.addFile("/projects/data/training/training_synthetic.csv");
+//		calibrator.addFile("D:/git/data/training/training_CHM-TND_aligned.csv");
+//		calibrator.addFile("D:/git/data/training/training_ING-CHE_aligned.csv");
+
+		Phenotype<DoubleGene, Double> phenotype = calibrator.optimize();
+		Genotype<DoubleGene> genotype = phenotype.getGenotype();
+
+		List<Double> chromosomeA = toList(genotype, 0);
+		List<Double> chromosomeB = toList(genotype, 1);
+		List<Double> chromosomeC = toList(genotype, 2);
+
+		//		normalize(chromosomeA, chromosomeB, chromosomeC);
+
+		AlignmentAlgorithm<Integer> algorithm = calibrator.genotypeToAlgorithm(genotype);
+
+		long timestamp = System.currentTimeMillis();
+		for (String path : calibrator.trainingData.keySet()) {
+			String fileName = path.replaceAll("\\.csv$", "_" + timestamp);
+			try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName + ".csv"))) {
+				writer.write("Correct,Left,Right,Output Left, Output Right\n");
+				List<List<Alignment<Integer>>> alignmentGroup = calibrator.trainingData.get(path);
+				for (List<Alignment<Integer>> alignments : alignmentGroup) {
+					// Only retrieve the first alignment to create the sequences;
+					// Any second entry that exists should create the same sequence
+					Alignment<Integer> baseAlignment = alignments.get(0);
+
+					List<CharSequence> charSequences = baseAlignment.buildPrettyAlignments();
+					if (charSequences.size() != 2) {
+						continue;
+					}
+
+					List<Sequence<Integer>> sequences = calibrator.getSequences(baseAlignment);
+					AlignmentResult<Integer> result = algorithm.apply(sequences.get(0), sequences.get(1));
+					if (matches(alignments, result)) {
+						writer.write("1,");
+					} else {
+						writer.write("0,");
+					}
+					writer.write(charSequences.get(0)+","+charSequences.get(1)+",");
+					for (CharSequence sequence : result.getAlignments().get(0).buildPrettyAlignments()) {
+						writer.write(sequence+",");
+					}
+					writer.write("\""+result.getTable().formattedTable()+"\"");
+					writer.write("\n");
+
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		System.out.printf("F: %s -> %s | %s | %s%n",
+				DOUBLE_FORMAT.format(phenotype.getFitness()),
+				formatList(chromosomeA),
+				formatList(chromosomeB),
+				formatList(chromosomeC)
+		);
+	}
+
 	public Calibrator(
-			FileHandler handler, Sequence<T> gap, SequenceFactory<T> factory
+			FileHandler handler,
+			Sequence<T> gap,
+			SequenceFactory<T> factory,
+			int extraParams,
+			Collection<Twin<String>> correlatedFeatures
 	) {
 		this.handler = handler;
 		this.gap = gap;
 		this.factory = factory;
+		this.extraParams = extraParams;
+		this.correlatedFeatures = toIndices(factory, correlatedFeatures);
 		trainingData = new LinkedHashMap<>();
 		featureModel = factory.getFeatureMapping().getFeatureModel();
+
+		cache = new WeakHashMap<>(1000);
 	}
 
 	/* TODO: fields needed for an instance
@@ -121,87 +242,38 @@ public final class Calibrator<T> {
 	 *  - Number of generations
 	 */
 
-	public static void main(String[] args) {
-		// Basic case for a static model
-		// 1. Load Data
-		// 2. Load Model
-		// 3. Generate Algorithm
-		// 4. Align Data
-		// 5. Score Data
-
-		// -----------------------------------------------
-		FeatureType<Integer> type = IntegerFeature.INSTANCE;
-		String modelPath = "../data/AT_extended_x.model";
-		FormatterMode mode = FormatterMode.INTELLIGENT;
-
-		FileHandler handler = new DiskFileHandler("UTF-8");
-
-		SequenceFactory<Integer> factory = loadFactory(modelPath, handler,
-				type,
-				mode
-		);
-		
-		Sequence<Integer> gap = factory.toSequence("░");
-		
-		Calibrator<Integer> calibrator = new Calibrator<>(handler, gap, factory);
-
-		calibrator.addFile("D:/git/data/training/training_synthetic.csv");
-//		calibrator.addFile("D:/git/data/training/training_CHM-TND_aligned.csv");
-//		calibrator.addFile("D:/git/data/training/training_ING-CHE_aligned.csv");
-		
-		int extraParams = 2;
-
-		FeatureMapping<Integer> featureMapping = factory.getFeatureMapping();
+	private Phenotype<DoubleGene, Double> optimize() {
+		FeatureMapping<T> featureMapping = factory.getFeatureMapping();
 		FeatureSpecification specification = featureMapping.getSpecification();
 
 		int size = specification.size() - 1;
-//		int bigSize = (size * size - size) / 2;
-		Engine<DoubleGene, Double> engine = Engine.builder(
-				calibrator::fitness,
-				DoubleChromosome.of(-10, 10, extraParams),
-				DoubleChromosome.of(  0, 15, size)
+
+		Engine<DoubleGene, Double> engine = Engine.builder(this::fitness,
+				DoubleChromosome.of(-10, 30, extraParams),
+				DoubleChromosome.of(  0, 20, size),
+				DoubleChromosome.of(-10, 10, correlatedFeatures.size())
 		)
 				.maximizing()
-				.populationSize(1000)
+				.populationSize(2000)
 				.maximalPhenotypeAge(20)
 //				.survivorsFraction(0.8)
 //				.offspringSize(3)
 //				.selector(new MonteCarloSelector<>())
 //				.selector(new BoltzmannSelector<>(0.5))
-//				.selector(new StochasticUniversalSelector<>())
-				.selector(new EliteSelector<>())
-				.alterers(new Mutator<>(0.4))
+				.selector(new StochasticUniversalSelector<>())
+//				.selector(new EliteSelector<>())
+//				.alterers(new Mutator<>(0.4))
 				.build();
 
-		EvolutionStatistics<Double, ?> stats = EvolutionStatistics.ofNumber();
-		Phenotype<DoubleGene, Double> phenotype = engine.stream()
+		return engine.stream()
 				.limit(byFixedGeneration(100))
-				.peek(stats)
-				.peek(result -> print(result))
+//				.peek(EvolutionStatistics.ofNumber())
+				.peek(Calibrator::print)
 				.collect(toBestPhenotype());
-
-		Genotype<DoubleGene> genotype = phenotype.getGenotype();
-
-		List<Double> chromosomeA = toList(genotype.get(0));
-		List<Double> chromosomeB = toList(genotype.get(1));
-//		List<Double> chromosomeC = toList(genotype.get(2));
-
-//		normalize(chromosomeA, chromosomeB, chromosomeC);
-
-		System.out.println(stats);
-		System.out.println("F: "
-				+ DOUBLE_FORMAT.format(phenotype.getFitness())
-				+ " -> "
-				+ formatList(chromosomeA)
-				+ " | "
-				+ formatList(chromosomeB)
-//				+ " | "
-//				+ formatList(chromosomeC)
-		);
 	}
 
 	private void addFile(String filePath) {
-		String fileData = null;
+		String fileData;
 		try {
 			fileData = handler.read(filePath);
 		} catch (IOException e) {
@@ -209,17 +281,24 @@ public final class Calibrator<T> {
 		}
 		List<List<Alignment<T>>> list = new ArrayList<>();
 		for (String line : Splitter.lines(fileData)) {
-			
+
 			List<Alignment<T>> alignmentGroup = new ArrayList<>();
 			for (String group : line.split(";")) {
 
 				List<Sequence<T>> sequences = new ArrayList<>();
 				for (String element : group.split("[,\t]")) {
 
-					element = element.replaceAll("\"([^\"]+)\"", "$1");
+					String replaced = element.replaceAll("\"([^\"]+)\"", "$1");
+
+					if (!replaced.startsWith("#")) {
+						replaced = "# "+replaced;
+					}
 
 					Sequence<T> sequence = new BasicSequence<>(featureModel);
-					for (String segment : Splitter.whitespace(element, Collections.emptyMap())) {
+					for (String segment : Splitter.whitespace(
+							replaced,
+							Collections.emptyMap()
+					)) {
 						sequence.add(factory.toSequence(segment));
 					}
 					sequences.add(sequence);
@@ -228,37 +307,56 @@ public final class Calibrator<T> {
 			}
 			list.add(alignmentGroup);
 		}
-		
+
 		// pop header
 		list.remove(0);
-		
+
 		trainingData.put(filePath, list);
 	}
 
 	private <G extends Gene<Double, G>> double fitness(Genotype<G> genotype) {
-
-		List<Double> chromosomeA = toList(genotype.get(0));
-		List<Double> chromosomeB = toList(genotype.get(1));
-
 		Set<String> filePaths = trainingData.keySet();
+		AlignmentAlgorithm<T> algorithm = genotypeToAlgorithm(genotype);
+		return evaluate(filePaths, algorithm);
+	}
 
-		double openPenalty = chromosomeA.get(0);
-		double growPenalty = chromosomeA.get(1);
+	@NonNull
+	private <G extends Gene<Double, G>> AlignmentAlgorithm<T> genotypeToAlgorithm(
+			Genotype<G> genotype
+	) {
+		List<Double> listA = toList(genotype, 0);
+		List<Double> listB = toList(genotype, 1);
+		List<Double> listC = toList(genotype, 2);
 
-		SequenceComparator<T> comparator = getFlatComparator(chromosomeB);
+		TwoKeyMap<Integer, Integer, Double> correlates = toSparseWeights(listC);
 
-		AlignmentAlgorithm<T> algorithm = new NeedlemanWunschAlgorithm<>(
+		double openPenalty = listA.get(0);
+		double growPenalty = listA.get(1);
+
+		SequenceComparator<T> comparator = getSparseComparator(
+				listB,
+				correlates
+		);
+
+		return new NeedlemanWunschAlgorithm<>(
 				BaseOptimization.MIN,
-//				new LinearWeightComparator<>(type, chromosomeB),
 				comparator,
 				new ConvexGapPenalty<>(gap, openPenalty, growPenalty),
 				factory
 		);
-
-		return evaluate(filePaths, algorithm);
 	}
 
-	@SuppressWarnings ("MagicNumber")
+	@NonNull
+	private TwoKeyMap<Integer, Integer, Double> toSparseWeights(List<Double> chromosome) {
+		TwoKeyMap<Integer, Integer, Double> correlates = new GeneralTwoKeyMap<>();
+		for (int i = 0; i < correlatedFeatures.size(); i++) {
+			Twin<Integer> feature = correlatedFeatures.get(i);
+			Double aDouble = chromosome.get(i);
+			correlates.put(feature.getLeft(), feature.getRight(), aDouble);
+		}
+		return correlates;
+	}
+
 	@NonNull
 	private SequenceComparator<T> getFlatComparator(List<Double> chromosome) {
 		chromosome.add(0, 10.0);
@@ -267,9 +365,18 @@ public final class Calibrator<T> {
 	}
 
 	@NonNull
+	private SequenceComparator<T> getSparseComparator(
+			List<Double> weights,
+			TwoKeyMap<Integer, Integer, Double> sparseWeights
+	) {
+		weights.add(0, 10.0);
+		FeatureType<T> type = featureModel.getFeatureType();
+		return new SparseMatrixComparator<>(type, weights, sparseWeights);
+	}
+
+	@NonNull
 	private SequenceComparator<T> getMatrixComparator(
-			List<Double> chromosomeB,
-			List<Double> chromosomeC
+			List<Double> chromosomeB, List<Double> chromosomeC
 	) {
 		int size = chromosomeB.size();
 		Table<Double> table = new RectangularTable<>(0.0, size, size);
@@ -288,50 +395,40 @@ public final class Calibrator<T> {
 	}
 
 	private double evaluate(
-			Set<String> filePaths, AlignmentAlgorithm<T> algorithm
+			Iterable<String> paths,
+			AlignmentAlgorithm<T> algorithm
 	) {
 		double correct = 0.0;
-		double total = 0.0;
-		for (String filePath : filePaths) {
-			List<List<Alignment<T>>> alignmentGroup = trainingData.get(filePath);
+		double total = trainingData.values()
+				.stream()
+				.mapToDouble(List::size)
+				.sum();
 
+		for (String path : paths) {
+			List<List<Alignment<T>>> alignmentGroup = trainingData.get(path);
 			for (List<Alignment<T>> alignments : alignmentGroup) {
-
+				// Only retrieve the first alignment to create the sequences;
+				// Any second entry that exists should create the same sequence
 				Alignment<T> baseAlignment = alignments.get(0);
-				List<Sequence<T>> sequences = getSequences(baseAlignment);
-
-				if (sequences.size() < 2) {
+				if (baseAlignment.size() < 2) {
 					continue;
 				}
-
-				// Difficulty is assessed on the basis of how many gaps are
-				// present in the training data
-//				long nGaps = 1 + baseAlignment.getDelegate()
-//						.stream()
-//						.filter(tSegment -> tSegment.equals(gap.get(0)))
-//						.count();
-
-				AlignmentResult<T> result = algorithm.apply(sequences);
-				for (Alignment<T> alignment : alignments) {
-					if (result.getAlignments().contains(alignment)) {
-//						correct += Math.pow(nGaps,2);
-						correct++;
-						break;
-					}
+				List<Sequence<T>> sequences = getSequences(baseAlignment);
+				AlignmentResult<T> result = algorithm.apply(sequences.get(0), sequences.get(1));
+				if (matches(alignments, result)) {
+					correct++;
 				}
-//				total += Math.pow(nGaps,2);
-				total++;
 			}
 		}
 
-		return correct / total;
+		return total == 0.0 ? 0.0 : correct / total;
 	}
 
 	@NonNull
-	private List<Sequence<T>> getSequences(Alignment<T> baseAlignment) {
+	private List<Sequence<T>> getSequences(Alignment<T> alignment) {
 		List<Sequence<T>> sequences = new ArrayList<>();
-		for (int i = 0; i < baseAlignment.rows(); i++) {
-			List<Segment<T>> list = baseAlignment.getRow(i)
+		for (int i = 0; i < alignment.rows(); i++) {
+			List<Segment<T>> list = alignment.getRow(i)
 					.stream()
 					.filter(segment -> !segment.equals(gap.get(0)))
 					.collect(Collectors.toList());
@@ -340,34 +437,60 @@ public final class Calibrator<T> {
 		return sequences;
 	}
 
+	private static <T> boolean matches(
+			Collection<Alignment<T>> alignments, AlignmentResult<T> result
+	) {
+		List<Alignment<T>> list = result.getAlignments();
+		return alignments.stream().anyMatch(list::contains);
+	}
+
+	private static void add(
+			Collection<? super Twin<String>> twins,
+			String left,
+			String right
+	) {
+		twins.add(new Twin<>(left, right));
+	}
+
+	private static <T> List<Twin<Integer>> toIndices(
+			SequenceFactory<T> factory,
+			Collection<? extends Twin<String>> correlatedFeatures
+	) {
+		FeatureMapping<T> featureMapping = factory.getFeatureMapping();
+		FeatureSpecification specification = featureMapping.getSpecification();
+		Map<String, Integer> featureIndices = specification.getFeatureIndices();
+		return correlatedFeatures.stream().map(twin -> {
+			String left = twin.getLeft();
+			String right = twin.getRight();
+			int indexLeft = featureIndices.getOrDefault(left, -1);
+			int indexRight = featureIndices.getOrDefault(right, -1);
+			return new Twin<>(indexLeft, indexRight);
+		}).collect(Collectors.toList());
+	}
+
 	private static void print(EvolutionResult<DoubleGene, Double> result) {
 		Phenotype<DoubleGene, Double> best = result.getBestPhenotype();
 
 		Genotype<DoubleGene> genotype = best.getGenotype();
 
-		List<Double> chromosomeA = toList(genotype.get(0));
-		List<Double> chromosomeB = toList(genotype.get(1));
-//		List<Double> chromosomeC = toList(genotype.get(2));
+		List<Double> chromosomeA = toList(genotype, 0);
+		List<Double> chromosomeB = toList(genotype, 1);
+		List<Double> chromosomeC = toList(genotype, 2);
 
-//		normalize(chromosomeA, chromosomeB, chromosomeC);
+		//		normalize(chromosomeA, chromosomeB, chromosomeC);
 
-		//noinspection UseOfSystemOutOrSystemErr
-		System.out.println(
-				result.getGeneration() + " ("
-				+ result.getPopulation().size()
-				+ ") "
-				+ DOUBLE_FORMAT.format(result.getWorstFitness())
-				+ " : "
-				+ DOUBLE_FORMAT.format(result.getBestFitness())
-				+ " -> "
-				+ formatList(chromosomeA)
-				+" | "
-				+ formatList(chromosomeB)
-//				+ " | "
-//				+ formatList(chromosomeC)
+		System.out.printf(
+				"%d (%d) %s : %s -> %s | %s | %s\n",
+				result.getGeneration(),
+				result.getPopulation().size(),
+				DOUBLE_FORMAT.format(result.getWorstFitness()),
+				DOUBLE_FORMAT.format(result.getBestFitness()),
+				formatList(chromosomeA),
+				formatList(chromosomeB),
+				formatList(chromosomeC)
 		);
 	}
-	
+
 	private static String formatList(Collection<? extends Number> collection) {
 		return collection.stream()
 				.map(DOUBLE_FORMAT::format)
@@ -378,7 +501,7 @@ public final class Calibrator<T> {
 	private static void normalize(List<Double>... lists) {
 		double sum = Arrays.stream(lists)
 				.flatMap(Collection::stream)
-				.mapToDouble(value -> Math.abs(value))
+				.mapToDouble(Math::abs)
 				.sum();
 		for (List<Double> list : lists) {
 			for (int i = 0; i < list.size(); i++) {
@@ -390,23 +513,24 @@ public final class Calibrator<T> {
 
 	@NonNull
 	private static <G extends Gene<Double, G>> List<Double> toList(
-			@NonNull Chromosome<G> chromosome
+			@NonNull Genotype<G> genotype, int i
 	) {
+		Chromosome<G> chromosome = genotype.get(i);
 		return chromosome.stream()
-				.map(gene -> gene.getAllele())
+				.map(Gene::getAllele)
 				.collect(Collectors.toList());
 	}
 
-	private static @NotNull <T> Alignment<T> toAlignment(
-			@NotNull Iterable<String> list, @NotNull SequenceFactory<T> factory
+	private static @NonNull <T> Alignment<T> toAlignment(
+			@NonNull Iterable<String> list, @NonNull SequenceFactory<T> factory
 	) {
 		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
 		List<Sequence<T>> sequences = toSequences(list, factory);
 		return new Alignment<>(sequences, model);
 	}
 
-	private static @NotNull <T> List<Sequence<T>> toSequences(
-			@NotNull Iterable<String> list, @NotNull SequenceFactory<T> factory
+	private static @NonNull <T> List<Sequence<T>> toSequences(
+			@NonNull Iterable<String> list, @NonNull SequenceFactory<T> factory
 	) {
 		List<Sequence<T>> sequences = new ArrayList<>();
 		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();

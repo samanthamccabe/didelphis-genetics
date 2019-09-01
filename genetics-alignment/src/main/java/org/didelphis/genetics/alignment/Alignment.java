@@ -20,6 +20,7 @@
 
 package org.didelphis.genetics.alignment;
 
+import lombok.NonNull;
 import org.didelphis.language.phonetic.ModelBearer;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
@@ -38,7 +39,7 @@ import java.util.List;
 /**
  * Created by samantha on 1/9/17.
  */
-public class  Alignment<T> extends RectangularTable<Segment<T>>
+public final class  Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
 
 	private final FeatureModel<T> featureModel;
@@ -87,8 +88,9 @@ public class  Alignment<T> extends RectangularTable<Segment<T>>
 		return featureModel.getSpecification();
 	}
 
+	@NonNull
 	@Override
-	public @NotNull String toString() {
+	public String toString() {
 		return getPrettyTable().replaceAll("\n", "\t");
 	}
 

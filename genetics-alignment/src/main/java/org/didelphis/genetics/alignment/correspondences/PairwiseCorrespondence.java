@@ -29,16 +29,16 @@ import java.util.List;
  * @author Samantha Fiona McCabe
  * Created: 4/10/2016
  */
-public class PairwiseCorrespondence<N> {
+public class PairwiseCorrespondence<T> {
 
-	private final Segment<N> leftSegment;
-	private final Segment<N> rightSegment;
+	private final Segment<T> leftSegment;
+	private final Segment<T> rightSegment;
 
 	private final List<Context> leftContexts;
 	private final List<Context> rightContexts;
 
-	public PairwiseCorrespondence(Segment<N> leftSegment,
-			Segment<N> rightSegment) {
+	public PairwiseCorrespondence(Segment<T> leftSegment,
+			Segment<T> rightSegment) {
 		this.leftSegment = leftSegment;
 		this.rightSegment = rightSegment;
 

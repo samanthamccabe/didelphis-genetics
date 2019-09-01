@@ -42,6 +42,7 @@ import java.io.Writer;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -66,6 +67,8 @@ public final class BrownAlignmentGenerator {
 
 	private static final Logger LOG = Logger.create(BrownAlignmentGenerator.class);
 
+	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
 	private static final Pattern     NEWLINE = Pattern.compile("\n");
 	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
 	private static final Random      RANDOM  = new Random();
@@ -76,8 +79,6 @@ public final class BrownAlignmentGenerator {
 	TwoKeyMultiMap<String, String, Correspondence> stkm;
 	NavigableMap<Double, Correspondence> treeMap;
 	SymmetricalTwoKeyMap<String, Double> scores;
-	
-	SecureRandom secureRandom;
 
 	public BrownAlignmentGenerator(String correspondencePath) {
 		this(correspondencePath, 1.0, 1.0);
@@ -86,8 +87,6 @@ public final class BrownAlignmentGenerator {
 	public BrownAlignmentGenerator(
 			String correspondencePath, double generaBias, double gapBias
 	) {
-		secureRandom = new SecureRandom();
-
 		this.generaBias = generaBias;
 		this.gapBias = gapBias;
 
@@ -121,11 +120,10 @@ public final class BrownAlignmentGenerator {
 		BrownAlignmentGenerator generator = new BrownAlignmentGenerator(
 				dataFile, 1.0, 3.0);
 
-		//		String string = generator.generate(patterns, maxIterations);
-		String string = generator.generate(3, 10, maxIterations);
+		String generatedString = generator.generate(3, 10, maxIterations);
 		try (Writer fileWriter = new BufferedWriter(
 				new FileWriter(outputFile))) {
-			fileWriter.write(string);
+			fileWriter.write(generatedString);
 		} catch (IOException ignored) {
 		}
 	}
@@ -134,7 +132,7 @@ public final class BrownAlignmentGenerator {
 		return scores;
 	}
 
-	public Supplier<Twin<String>> supplier(int min, int max) {
+	private Supplier<Twin<String>> supplier(int min, int max) {
 		int n = randomInt(min, max);
 		return () -> {
 			StringBuilder left = new StringBuilder("# ");
@@ -168,7 +166,7 @@ public final class BrownAlignmentGenerator {
 		return stringBuilder.toString();
 	}
 
-	public String generate(List<Tuple<String, String>> patterns, int n) {
+	public String generate(List<? extends Tuple<String, String>> patterns, int n) {
 		StringBuilder stringBuilder = new StringBuilder(n * 10);
 
 		stringBuilder.append("A\tB\n");
@@ -184,15 +182,20 @@ public final class BrownAlignmentGenerator {
 			StringBuilder left = new StringBuilder();
 			StringBuilder right = new StringBuilder();
 
-			int lengthL = tupleLeft.length();
-			int lengthR = tupleRight.length();
+			int lengthL = tupleLeft  == null ? 0 : tupleLeft.length();
+			int lengthR = tupleRight == null ? 0 : tupleRight.length();
 
 			for (int j = 0; j < lengthL && j < lengthR; j++) {
 
 				String k1 = tupleLeft.substring(j, j + 1);
 				String k2 = tupleRight.substring(j, j + 1);
 
-				List<Correspondence> list = new ArrayList<>(stkm.get(k1, k2));
+				Collection<Correspondence> correspondences = stkm.get(k1, k2);
+
+				List<Correspondence> list = (correspondences == null)
+						? Collections.emptyList()
+						: new ArrayList<>(correspondences);
+
 				List<Double> percentages = list.stream()
 						.map(Correspondence::getScore)
 						.collect(Collectors.toList());
@@ -200,11 +203,13 @@ public final class BrownAlignmentGenerator {
 				int pIndex = rouletteSelect(percentages);
 
 				Correspondence correspondence = list.get(pIndex);
-				String leftSymbol = correspondence.getLeftSymbol();
-				String rightSymbol = correspondence.getRightSymbol();
+				if (correspondence != null) {
+					String leftSymbol  = correspondence.getLeftSymbol();
+					String rightSymbol = correspondence.getRightSymbol();
 
-				left.append(leftSymbol).append(' ');
-				right.append(rightSymbol).append(' ');
+					left.append(leftSymbol).append(' ');
+					right.append(rightSymbol).append(' ');
+				}
 			}
 
 			stringBuilder.append(left).append('\t').append(right).append('\n');
@@ -249,8 +254,8 @@ public final class BrownAlignmentGenerator {
 					String left = strings[2];
 					String right = strings[3];
 
-					int count = Integer.valueOf(strings[4]);
-					double percent = Double.valueOf(strings[5]);
+					int count      = Integer.parseInt(strings[4]);
+					double percent = Double.parseDouble(strings[5]);
 
 					if (check(typeLeft, typeRight)) {
 						classToValue.add(typeLeft, left);
@@ -271,8 +276,8 @@ public final class BrownAlignmentGenerator {
 		return map;
 	}
 
-	private int randomInt(int min, int max) {
-		double random = secureRandom.nextDouble();
+	private static int randomInt(int min, int max) {
+		double random = SECURE_RANDOM.nextDouble();
 		return toIntExact(round(random * (max - min) + min));
 	}
 

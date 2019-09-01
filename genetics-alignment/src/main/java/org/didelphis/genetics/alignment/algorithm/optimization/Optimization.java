@@ -30,13 +30,13 @@ import java.util.function.BinaryOperator;
  * @since 0.1.0
  * 	Date: 2017-07-23
  */
-public interface Optimization<T> extends BinaryOperator<T>,
-		BiPredicate<T, T> {
+public interface Optimization extends BinaryOperator<Double>,
+		BiPredicate<Double, Double> {
 
-	T defaultValue();
+	double defaultValue();
 
 	@Override
-	default T apply(T t1, T t2) {
+	default Double apply(Double t1, Double t2) {
 		return test(t1, t2) ? t1 : t2;
 	}
 }

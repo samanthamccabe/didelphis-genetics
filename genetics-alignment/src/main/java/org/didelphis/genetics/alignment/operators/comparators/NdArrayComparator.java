@@ -20,6 +20,7 @@
 
 package org.didelphis.genetics.alignment.operators.comparators;
 
+import lombok.NonNull;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
@@ -46,7 +47,7 @@ public final class NdArrayComparator<T> implements SequenceComparator<T> {
 	}
 
 	@Override
-	public double apply(@NotNull Sequence<T> left, @NotNull Sequence<T> right, int i, int j) {
+	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j) {
 
 		INDArray lF = getNdFeatureArray(left.get(i));
 		INDArray rF = getNdFeatureArray(right.get(j));

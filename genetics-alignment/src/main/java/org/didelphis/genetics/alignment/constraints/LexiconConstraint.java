@@ -57,7 +57,7 @@ public class LexiconConstraint<T> implements Constraint<T> {
 		this.name = name;
 		this.factory = factory;
 		this.standard = standard;
-		this.data = dataParam;
+		data = dataParam;
 		strength = computeStrength();
 	}
 

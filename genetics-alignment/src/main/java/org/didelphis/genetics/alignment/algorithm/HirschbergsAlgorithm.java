@@ -18,22 +18,70 @@
  *                                                                            *
  ******************************************************************************/
 
-package org.didelphis.genetics.alignment.operators.gap;
+package org.didelphis.genetics.alignment.algorithm;
 
+import lombok.EqualsAndHashCode;
+import lombok.NonNull;
+import lombok.ToString;
+import org.didelphis.genetics.alignment.AlignmentResult;
+import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
+import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 6/3/2015
- */
-public class NullGapPenalty<T> extends AbstractGapPenalty<T> {
+import java.util.List;
 
-	public NullGapPenalty(Sequence<T> gap) {
-		super(gap);
+@ToString
+@EqualsAndHashCode
+public class HirschbergsAlgorithm<T> implements AlignmentAlgorithm<T> {
+
+	private final SequenceComparator<T> comparator;
+	private final Optimization optimization;
+	private final GapPenalty<T> gapPenalty;
+	private final SequenceFactory<T> factory;
+
+	public HirschbergsAlgorithm(
+			SequenceComparator<T> comparator,
+			Optimization optimization,
+			GapPenalty<T> gapPenalty,
+			SequenceFactory<T> factory
+	) {
+		this.comparator = comparator;
+		this.optimization = optimization;
+		this.gapPenalty = gapPenalty;
+		this.factory = factory;
 	}
 
+	@NonNull
 	@Override
-	public double applyAsDouble(int value) {
-		return 0.0;
+	public GapPenalty<T> getGapPenalty() {
+		return gapPenalty;
+	}
+
+	@NonNull
+	@Override
+	public SequenceFactory<T> getFactory() {
+		return factory;
+	}
+
+	@NonNull
+	@Override
+	public SequenceComparator<T> getComparator() {
+		return comparator;
+	}
+
+	@NonNull
+	@Override
+	public Optimization getOptimization() {
+		return optimization;
+	}
+
+	@NonNull
+	@Override
+	public AlignmentResult<T> apply(@NonNull Sequence<T>left, @NonNull Sequence<T> right) {
+		// TODO:
+
+		return null;
 	}
 }

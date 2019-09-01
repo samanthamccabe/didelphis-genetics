@@ -26,8 +26,8 @@ import java.util.List;
 
 public class AlignmentSlice<T> {
 
-	private Alignment<T> alignment;
-	private int index;
+	private final Alignment<T> alignment;
+	private final int index;
 
 	public AlignmentSlice(Alignment<T> alignment, int index) {
 		this.alignment = alignment;

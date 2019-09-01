@@ -23,6 +23,7 @@ package org.didelphis.genetics.alignment.correspondences;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import org.didelphis.language.phonetic.segments.Segment;
@@ -43,14 +44,15 @@ import java.util.List;
 public class PairCorrespondenceSet<T>
 		implements Iterable<PairCorrespondenceSet.CorrespondenceEntry<T>> {
 	
-	private List<CorrespondenceEntry<T>> list;
+	private final List<CorrespondenceEntry<T>> list;
 	
 	public PairCorrespondenceSet() {
 		list = new ArrayList<>();
 	}
 	
+	@NonNull
 	@Override
-	public @NotNull Iterator<CorrespondenceEntry<T>> iterator() {
+	public Iterator<CorrespondenceEntry<T>> iterator() {
 		return list.iterator();
 	}
 
