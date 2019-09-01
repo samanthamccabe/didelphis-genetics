@@ -24,7 +24,6 @@ import lombok.NonNull;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.structures.tuples.Twin;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;

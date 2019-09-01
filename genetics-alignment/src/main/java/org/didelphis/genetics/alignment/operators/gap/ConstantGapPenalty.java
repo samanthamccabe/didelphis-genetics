@@ -25,7 +25,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Samantha Fiona McCabe

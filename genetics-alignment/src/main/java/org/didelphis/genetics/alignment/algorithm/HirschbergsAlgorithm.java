@@ -30,8 +30,6 @@ import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-import java.util.List;
-
 @ToString
 @EqualsAndHashCode
 public class HirschbergsAlgorithm<T> implements AlignmentAlgorithm<T> {

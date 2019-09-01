@@ -23,7 +23,6 @@ package org.didelphis.genetics.alignment.algorithm.optimization;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.function.BiPredicate;
 /**

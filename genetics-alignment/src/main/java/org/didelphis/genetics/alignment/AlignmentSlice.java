@@ -20,10 +20,6 @@
 
 package org.didelphis.genetics.alignment;
 
-import org.didelphis.language.phonetic.sequences.Sequence;
-
-import java.util.List;
-
 public class AlignmentSlice<T> {
 
 	private final Alignment<T> alignment;

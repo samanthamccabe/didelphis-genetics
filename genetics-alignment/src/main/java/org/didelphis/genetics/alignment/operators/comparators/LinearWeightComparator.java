@@ -27,7 +27,6 @@ import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 

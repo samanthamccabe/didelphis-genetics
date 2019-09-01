@@ -28,7 +28,6 @@ import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
