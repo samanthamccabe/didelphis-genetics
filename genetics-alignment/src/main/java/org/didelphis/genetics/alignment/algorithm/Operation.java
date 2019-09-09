@@ -18,27 +18,10 @@
  *                                                                            *
  ******************************************************************************/
 
-package org.didelphis.genetics.alignment.algorithm.optimization;
+package org.didelphis.genetics.alignment.algorithm;
 
-import lombok.NonNull;
-
-import java.util.function.BiPredicate;
-import java.util.function.BinaryOperator;
-
-/**
- * Class {@code Optimization}
- *
- * @author Samantha Fiona McCabe
- * @since 0.1.0
- * 	Date: 2017-07-23
- */
-public interface Optimization
-		extends BinaryOperator<Double>, BiPredicate<Double, Double> {
-
-	double defaultValue();
-
-	@Override
-	default Double apply(Double t1, Double t2) {
-		return test(t1, t2) ? t1 : t2;
-	}
+public enum Operation {
+	INS,
+	DEL,
+	SUB
 }

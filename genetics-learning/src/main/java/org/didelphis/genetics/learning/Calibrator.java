@@ -23,10 +23,11 @@ package org.didelphis.genetics.learning;
 import io.jenetics.Chromosome;
 import io.jenetics.DoubleChromosome;
 import io.jenetics.DoubleGene;
+import io.jenetics.EliteSelector;
+import io.jenetics.GaussianMutator;
 import io.jenetics.Gene;
 import io.jenetics.Genotype;
 import io.jenetics.Phenotype;
-import io.jenetics.StochasticUniversalSelector;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import lombok.AccessLevel;
@@ -77,11 +78,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.stream.Collectors;
 
 import static io.jenetics.engine.EvolutionResult.toBestPhenotype;
-import static io.jenetics.engine.Limits.byFixedGeneration;
+import static io.jenetics.engine.Limits.bySteadyFitness;
 
 /**
  * Class {@code OptimizationEngine}
@@ -103,8 +103,6 @@ public final class Calibrator<T> {
 	List<Twin<Integer>> correlatedFeatures;
 	FeatureModel<T> featureModel;
 	Map<String, List<List<Alignment<T>>>> trainingData;
-
-	Map<Alignment<T>, List<Sequence<T>>> cache;
 
 	public static void main(String[] args) {
 		// Basic case for a static model
@@ -130,21 +128,19 @@ public final class Calibrator<T> {
 
 		Sequence<Integer> gap = factory.toSequence("░");
 
-		List<Twin<String>> correlatedFeatures = new ArrayList<>();
-		add(correlatedFeatures, "con", "son");
-//		add(correlatedFeatures, "con", "cnt");
-//		add(correlatedFeatures, "son", "cnt");
-//		add(correlatedFeatures, "con", "eje");
-//		add(correlatedFeatures, "son", "eje");
-//		add(correlatedFeatures, "cnt", "eje");
-//		add(correlatedFeatures, "lat", "nas");
+		List<Twin<String>> fCorrelation = new ArrayList<>();
+		add(fCorrelation, "con", "son");
+		add(fCorrelation, "con", "cnt");
+		add(fCorrelation, "son", "cnt");
+		add(fCorrelation, "lat", "nas");
+		add(fCorrelation, "vce", "son");
 
 		Calibrator<Integer> calibrator = new Calibrator<>(
 				handler,
 				gap,
 				factory,
 				2,
-				correlatedFeatures
+				fCorrelation
 		);
 
 		calibrator.addFile("/projects/data/training/training_synthetic.csv");
@@ -160,42 +156,12 @@ public final class Calibrator<T> {
 
 		//		normalize(chromosomeA, chromosomeB, chromosomeC);
 
-		AlignmentAlgorithm<Integer> algorithm = calibrator.genotypeToAlgorithm(genotype);
+		AlignmentAlgorithm<Integer> algorithm = calibrator.toAlgorithm(genotype);
 
 		long timestamp = System.currentTimeMillis();
 		for (String path : calibrator.trainingData.keySet()) {
 			String fileName = path.replaceAll("\\.csv$", "_" + timestamp);
-			try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName + ".csv"))) {
-				writer.write("Correct,Left,Right,Output Left, Output Right\n");
-				List<List<Alignment<Integer>>> alignmentGroup = calibrator.trainingData.get(path);
-				for (List<Alignment<Integer>> alignments : alignmentGroup) {
-					// Only retrieve the first alignment to create the sequences;
-					// Any second entry that exists should create the same sequence
-					Alignment<Integer> baseAlignment = alignments.get(0);
-
-					List<CharSequence> charSequences = baseAlignment.buildPrettyAlignments();
-					if (charSequences.size() != 2) {
-						continue;
-					}
-
-					List<Sequence<Integer>> sequences = calibrator.getSequences(baseAlignment);
-					AlignmentResult<Integer> result = algorithm.apply(sequences.get(0), sequences.get(1));
-					if (matches(alignments, result)) {
-						writer.write("1,");
-					} else {
-						writer.write("0,");
-					}
-					writer.write(charSequences.get(0)+","+charSequences.get(1)+",");
-					for (CharSequence sequence : result.getAlignments().get(0).buildPrettyAlignments()) {
-						writer.write(sequence+",");
-					}
-					writer.write("\""+result.getTable().formattedTable()+"\"");
-					writer.write("\n");
-
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			writeBestAlignments(path, fileName, calibrator, algorithm);
 		}
 
 		System.out.printf("F: %s -> %s | %s | %s%n",
@@ -204,6 +170,44 @@ public final class Calibrator<T> {
 				formatList(chromosomeB),
 				formatList(chromosomeC)
 		);
+	}
+
+	private static void writeBestAlignments(
+			String path,
+			String fileName,
+			Calibrator<Integer> calibrator,
+			AlignmentAlgorithm<Integer> algorithm
+	) {
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName + ".csv"))) {
+			writer.write("Correct,Left,Right,Output Left, Output Right\n");
+			List<List<Alignment<Integer>>> alignmentGroup = calibrator.trainingData.get(path);
+			for (List<Alignment<Integer>> alignments : alignmentGroup) {
+				// Only retrieve the first alignment to create the sequences;
+				// Any second entry that exists should create the same sequence
+				Alignment<Integer> baseAlignment = alignments.get(0);
+
+				List<CharSequence> charSequences = baseAlignment.buildPrettyAlignments();
+				if (charSequences.size() != 2) {
+					continue;
+				}
+
+				List<Sequence<Integer>> sequences = calibrator.getSequences(baseAlignment);
+				AlignmentResult<Integer> result = algorithm.apply(sequences.get(0), sequences.get(1));
+				writer.write(matches(alignments, result) ? "1," : "0,");
+				writer.write(charSequences.get(0)+","+charSequences.get(1)+",");
+				List<CharSequence> list = result.getAlignments()
+						.get(0)
+						.buildPrettyAlignments();
+				for (CharSequence sequence : list) {
+					writer.write(sequence+",");
+				}
+				writer.write("\""+result.getTable().formattedTable()+"\"");
+				writer.write("\n");
+
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public Calibrator(
@@ -220,8 +224,6 @@ public final class Calibrator<T> {
 		this.correlatedFeatures = toIndices(factory, correlatedFeatures);
 		trainingData = new LinkedHashMap<>();
 		featureModel = factory.getFeatureMapping().getFeatureModel();
-
-		cache = new WeakHashMap<>(1000);
 	}
 
 	/* TODO: fields needed for an instance
@@ -241,24 +243,27 @@ public final class Calibrator<T> {
 		int size = specification.size() - 1;
 
 		Engine<DoubleGene, Double> engine = Engine.builder(this::fitness,
-				DoubleChromosome.of(-10, 30, extraParams),
+				DoubleChromosome.of(-20, 30, extraParams),
 				DoubleChromosome.of(  0, 20, size),
-				DoubleChromosome.of(-10, 10, correlatedFeatures.size())
+				DoubleChromosome.of(-15, 15, correlatedFeatures.size())
 		)
 				.maximizing()
-				.populationSize(2000)
-				.maximalPhenotypeAge(20)
+				.populationSize(5000)
+//				.maximalPhenotypeAge(20)
 //				.survivorsFraction(0.8)
 //				.offspringSize(3)
 //				.selector(new MonteCarloSelector<>())
 //				.selector(new BoltzmannSelector<>(0.5))
-				.selector(new StochasticUniversalSelector<>())
-//				.selector(new EliteSelector<>())
+//				.selector(new StochasticUniversalSelector<>())
+				.selector(new EliteSelector<>(5))
 //				.alterers(new Mutator<>(0.4))
+				.alterers(new GaussianMutator<>(0.05))
 				.build();
 
 		return engine.stream()
-				.limit(byFixedGeneration(100))
+//				.limit(byFixedGeneration(100))
+//				.limit(byFitnessConvergence(shortFilterSize, longFilterSize, epsilon))
+				.limit(bySteadyFitness(50))
 //				.peek(EvolutionStatistics.ofNumber())
 				.peek(Calibrator::print)
 				.collect(toBestPhenotype());
@@ -272,7 +277,9 @@ public final class Calibrator<T> {
 			return;
 		}
 		List<List<Alignment<T>>> list = new ArrayList<>();
-		for (String line : Splitter.lines(fileData)) {
+		List<String> lines = Splitter.lines(fileData);
+		for (int i = 0; i < lines.size(); i++) {
+			String line = lines.get(i);
 
 			List<Alignment<T>> alignmentGroup = new ArrayList<>();
 			for (String group : line.split(";")) {
@@ -283,19 +290,20 @@ public final class Calibrator<T> {
 					String replaced = element.replaceAll("\"([^\"]+)\"", "$1");
 
 					if (!replaced.startsWith("#")) {
-						replaced = "# "+replaced;
+						replaced = "# " + replaced;
 					}
 
 					Sequence<T> sequence = new BasicSequence<>(featureModel);
-					for (String segment : Splitter.whitespace(
-							replaced,
-							Collections.emptyMap()
-					)) {
+					for (String segment : Splitter.whitespace(replaced, Collections.emptyMap())) {
 						sequence.add(factory.toSequence(segment));
 					}
 					sequences.add(sequence);
 				}
-				alignmentGroup.add(new Alignment<>(sequences, featureModel));
+				try {
+					alignmentGroup.add(new Alignment<>(sequences, featureModel));
+				} catch (IllegalArgumentException e) {
+					throw new RuntimeException("Error: Line " + (i + 1), e);
+				}
 			}
 			list.add(alignmentGroup);
 		}
@@ -308,12 +316,12 @@ public final class Calibrator<T> {
 
 	private <G extends Gene<Double, G>> double fitness(Genotype<G> genotype) {
 		Set<String> filePaths = trainingData.keySet();
-		AlignmentAlgorithm<T> algorithm = genotypeToAlgorithm(genotype);
+		AlignmentAlgorithm<T> algorithm = toAlgorithm(genotype);
 		return evaluate(filePaths, algorithm);
 	}
 
 	@NonNull
-	private <G extends Gene<Double, G>> AlignmentAlgorithm<T> genotypeToAlgorithm(
+	private <G extends Gene<Double, G>> AlignmentAlgorithm<T> toAlgorithm(
 			Genotype<G> genotype
 	) {
 		List<Double> listA = toList(genotype, 0);
@@ -351,7 +359,7 @@ public final class Calibrator<T> {
 
 	@NonNull
 	private SequenceComparator<T> getFlatComparator(List<Double> chromosome) {
-		chromosome.add(0, 10.0);
+		chromosome.add(0, 1.0);
 		FeatureType<T> type = featureModel.getFeatureType();
 		return new LinearWeightComparator<>(type, chromosome);
 	}
@@ -361,7 +369,7 @@ public final class Calibrator<T> {
 			List<Double> weights,
 			TwoKeyMap<Integer, Integer, Double> sparseWeights
 	) {
-		weights.add(0, 10.0);
+		weights.add(0, 1.0);
 		FeatureType<T> type = featureModel.getFeatureType();
 		return new SparseMatrixComparator<>(type, weights, sparseWeights);
 	}

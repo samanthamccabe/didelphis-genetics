@@ -20,66 +20,30 @@
 
 package org.didelphis.genetics.alignment.algorithm;
 
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
-import lombok.NonNull;
 import lombok.ToString;
-import org.didelphis.genetics.alignment.AlignmentResult;
-import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
-import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
-import org.didelphis.language.phonetic.SequenceFactory;
-import org.didelphis.language.phonetic.sequences.Sequence;
+import lombok.experimental.FieldDefaults;
+import org.didelphis.structures.tables.RectangularTable;
+import org.didelphis.structures.tables.Table;
+
+import java.util.Collections;
+import java.util.Set;
 
 @ToString
 @EqualsAndHashCode
-public class HirschbergsAlgorithm<T> implements AlignmentAlgorithm<T> {
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class AlignmentTable {
 
-	private final SequenceComparator<T> comparator;
-	private final Optimization optimization;
-	private final GapPenalty<T> gapPenalty;
-	private final SequenceFactory<T> factory;
+	Table<Set<Operation>> operations;
+	Table<Double>                  scores;
 
-	public HirschbergsAlgorithm(
-			SequenceComparator<T> comparator,
-			Optimization optimization,
-			GapPenalty<T> gapPenalty,
-			SequenceFactory<T> factory
+	public AlignmentTable(double defaultValue, int row, int col
 	) {
-		this.comparator = comparator;
-		this.optimization = optimization;
-		this.gapPenalty = gapPenalty;
-		this.factory = factory;
+//		super(defaultValue, row, col);
+		operations = new RectangularTable<>(Collections.emptySet(), row, col);
+		scores     = new RectangularTable<>(defaultValue, row, col);
 	}
 
-	@NonNull
-	@Override
-	public GapPenalty<T> getGapPenalty() {
-		return gapPenalty;
-	}
 
-	@NonNull
-	@Override
-	public SequenceFactory<T> getFactory() {
-		return factory;
-	}
-
-	@NonNull
-	@Override
-	public SequenceComparator<T> getComparator() {
-		return comparator;
-	}
-
-	@NonNull
-	@Override
-	public Optimization getOptimization() {
-		return optimization;
-	}
-
-	@NonNull
-	@Override
-	public AlignmentResult<T> apply(@NonNull Sequence<T>left, @NonNull Sequence<T> right) {
-		// TODO:
-
-		return null;
-	}
 }

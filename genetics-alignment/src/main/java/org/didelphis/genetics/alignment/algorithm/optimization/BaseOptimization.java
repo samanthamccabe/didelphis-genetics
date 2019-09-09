@@ -20,9 +20,11 @@
 
 package org.didelphis.genetics.alignment.algorithm.optimization;
 
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
+import lombok.experimental.FieldDefaults;
 
 import java.util.function.BiPredicate;
 /**
@@ -33,18 +35,19 @@ import java.util.function.BiPredicate;
  */
 @ToString
 @EqualsAndHashCode
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class BaseOptimization implements Optimization {
 
 	public static final Optimization MAX = new BaseOptimization(
-			(x, y) -> x >= y, Double.MIN_VALUE
+			(x, y) -> x > y, Double.MIN_VALUE
 	);
 
 	public static final Optimization MIN = new BaseOptimization(
-			(x, y) -> x <= y, Double.MAX_VALUE
+			(x, y) -> x < y, Double.MAX_VALUE
 	);
 
-	private final @NonNull BiPredicate<? super Double, ? super Double> predicate;
-	private final double defaultValue;
+	BiPredicate<? super Double, ? super Double> predicate;
+	double defaultValue;
 
 	/**
 	 * Creates a basic {@link Optimization} using the provided values
@@ -57,7 +60,7 @@ public final class BaseOptimization implements Optimization {
 			@NonNull BiPredicate<? super Double, ? super Double> predicate,
 			double defaultValue
 	) {
-		this.predicate = predicate;
+		this.predicate    = predicate;
 		this.defaultValue = defaultValue;
 	}
 

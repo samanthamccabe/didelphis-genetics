@@ -88,9 +88,6 @@ class NeedlemanWunschAlgorithmTest {
 
 	@Test
 	void getAlignment_01() {
-		List<Sequence<Integer>> sequences = Arrays.asList(
-
-		);
 		AlignmentResult<Integer> result = algorithm.apply(factory.toSequence("#amapar"),
 				factory.toSequence("#omber"));
 		Alignment<Integer> alignment = result.getAlignments().get(0);
@@ -100,9 +97,6 @@ class NeedlemanWunschAlgorithmTest {
 
 	@Test
 	void getAlignment_02() {
-		List<Sequence<Integer>> sequences = Arrays.asList(
-
-		);
 		AlignmentResult<Integer> alignmentResult = algorithm.apply(factory.toSequence("#amapar"),
 				factory.toSequence("#kombera"));
 		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
@@ -112,9 +106,6 @@ class NeedlemanWunschAlgorithmTest {
 
 	@Test
 	void getAlignment_03() {
-		List<Sequence<Integer>> sequences = Arrays.asList(
-
-		);
 		AlignmentResult<Integer> alignmentResult = algorithm.apply(factory.toSequence("#ammapar"),
 				factory.toSequence("#kamabra"));
 		Alignment<Integer> alignment = alignmentResult.getAlignments().get(0);
