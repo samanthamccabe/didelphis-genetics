@@ -127,6 +127,7 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 		SequenceComparator<T> comparator;
 		GapPenalty<T>         penalty;
 		Optimization          optimization;
+		private final Sequence<T> gap;
 
 		private AlgorithmRunner(
 				Sequence<T> left,
@@ -147,6 +148,7 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 			comparator   = algorithm.getComparator();
 			penalty      = algorithm.getGapPenalty();
 			optimization = algorithm.getOptimization();
+			gap = penalty.getGap();
 		}
 
 		@NonNull
@@ -178,12 +180,12 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 				if (i > 0 && check(del, ins, sub)) {
 					// Del
 					w.add(left.get(i));
-					z.add(penalty.getGap());
+					z.add(gap);
 					i--;
 //					trace(w, z, i - 1, j);
 				} else if (j > 0 && check(ins, sub, del)) {
 					// Ins
-					w.add(penalty.getGap());
+					w.add(gap);
 					z.add(right.get(j));
 					j--;
 //					trace(w, z, i, j - 1);
@@ -256,18 +258,18 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 		}
 
 		private double ins(int i, int j) {
-			Set<Operation> ops = operations.get(i, j);
+			Set<Operation> ops = operations.get(i, j - 1);
 			int gapSize = ops.contains(INS) ? 1 : 0;
 			double value = penalty.applyAsDouble(gapSize);
-			double score = comparator.apply(penalty.getGap(), right, 0, j);
+			double score = comparator.apply(gap, right, 0, j);
 			return get(i, j - 1) + score + value;
 		}
 
 		private double del(int i, int j) {
-			Set<Operation> ops = operations.get(i, j);
+			Set<Operation> ops = operations.get(i - 1, j);
 			int gapSize = ops.contains(DEL) ? 1 : 0;
 			double value = penalty.applyAsDouble(gapSize);
-			double score = comparator.apply(left, penalty.getGap(), i, 0);
+			double score = comparator.apply(left, gap, i, 0);
 			return get(i - 1, j) + score + value;
 		}
 

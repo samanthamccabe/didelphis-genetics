@@ -18,58 +18,64 @@
  *                                                                            *
  ******************************************************************************/
 
-package org.didelphis.genetics.alignment.operators.comparators;
+package org.didelphis.genetics.alignment.algorithm;
 
 import lombok.EqualsAndHashCode;
-import lombok.NonNull;
 import lombok.ToString;
-import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.didelphis.language.phonetic.features.FeatureArray;
-import org.didelphis.language.phonetic.features.FeatureType;
-import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.maps.interfaces.TwoKeyMap;
-import org.didelphis.structures.tuples.Triple;
+import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
+import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
+import org.didelphis.language.phonetic.segments.Segment;
+import org.didelphis.structures.tables.RectangularTable;
+import org.didelphis.structures.tables.Table;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 5/22/15
- */
+import static org.didelphis.genetics.alignment.algorithm.Operation.DEL;
+import static org.didelphis.genetics.alignment.algorithm.Operation.INS;
+import static org.didelphis.genetics.alignment.algorithm.Operation.SUB;
+
 @ToString
 @EqualsAndHashCode
-public class SparseMatrixComparator<T> implements SequenceComparator<T> {
+public class SimpleLevensteinDistance<T> {
 
-	private final List<Double> weights;
-	private final TwoKeyMap<Integer, Integer, Double> sparseWeights;
-	private final FeatureType<? super T> type;
+	public int distance(Alignment<T> thing1, Alignment<T> thing2) {
+		int m = thing1.columns();
+		int n = thing2.columns();
 
-	public SparseMatrixComparator(
-			FeatureType<? super T> type,
-			List<Double> weights,
-			TwoKeyMap<Integer, Integer, Double> sparseWeights
-	) {
-		this.weights = weights;
-		this.type = type;
-		this.sparseWeights = sparseWeights;
-	}
+		Table<Integer> table = new RectangularTable<>(0, m, n);
 
-	@Override
-	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j) {
-		double score = 0.0;
-		FeatureArray<T> lFeatures = left.get(i).getFeatures();
-		FeatureArray<T> rFeatures = right.get(j).getFeatures();
-		for (int k = 0; k < weights.size(); k++) {
-			T lF = lFeatures.get(k);
-			T rF = rFeatures.get(k);
-			Double d = type.difference(lF, rF);
-			Double w = weights.get(k);
-
-
-
-			score += w * d;
+		for (int j = 1; j < n; j++) {
+			table.set(0, j, j);
 		}
-		return score;
+
+		for (int i = 1; i < m; i++) {
+			table.set(i, 0, i);
+
+			for (int j = 1; j < n; j++) {
+				Map<Operation, Integer> ops = new EnumMap<>(Operation.class);
+
+				int v = thing1.getColumn(i).equals(thing2.getColumn(j)) ? 0 : 2;
+
+				ops.put(SUB, table.get(i - 1, j - 1) + v);
+				ops.put(DEL, table.get(i - 1, j) + 1);
+				ops.put(INS, table.get(i, j - 1) + 1);
+
+				int bestValue = ops.values()
+						.stream()
+						.min(Integer::compareTo)
+						.orElse(0);
+
+				table.set(i, j, bestValue);
+			}
+		}
+		return table.get(m -1, n-1);
 	}
 }
