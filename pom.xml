@@ -37,7 +37,8 @@
     <properties>
         <didelphis-genetics.version>0.3.3-SNAPSHOT</didelphis-genetics.version>
         <didelphis-common.version>0.3.3-SNAPSHOT</didelphis-common.version>
-        <nd4j-common.version>0.9.1</nd4j-common.version>
+<!--        <nd4j-common.version>0.9.1</nd4j-common.version>-->
+        <nd4j-common.version>1.0.0-beta5</nd4j-common.version>
     </properties>
 
     <packaging>pom</packaging>
@@ -75,6 +76,18 @@
                 <groupId>org.didelphis.common</groupId>
                 <artifactId>didelphis-common-utilities</artifactId>
                 <version>${didelphis-common.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.nd4j</groupId>
+                <artifactId>nd4j-api</artifactId>
+                <version>${nd4j-common.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.nd4j</groupId>
+                <artifactId>nd4j-common</artifactId>
+                <version>${nd4j-common.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

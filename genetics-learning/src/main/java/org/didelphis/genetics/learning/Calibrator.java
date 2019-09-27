@@ -27,7 +27,9 @@ import io.jenetics.EliteSelector;
 import io.jenetics.GaussianMutator;
 import io.jenetics.Gene;
 import io.jenetics.Genotype;
+import io.jenetics.MonteCarloSelector;
 import io.jenetics.Phenotype;
+import io.jenetics.StochasticUniversalSelector;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 import lombok.AccessLevel;
@@ -44,6 +46,7 @@ import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
 import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
+import org.didelphis.genetics.alignment.operators.comparators.NdArrayComparator;
 import org.didelphis.genetics.alignment.operators.comparators.SparseMatrixComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConvexGapPenalty;
 import org.didelphis.io.DiskFileHandler;
@@ -123,7 +126,8 @@ public final class Calibrator<T, P> {
 
 		// -----------------------------------------------
 		FeatureType<Integer> type = IntegerFeature.INSTANCE;
-		String modelPath = "/projects/data/AT_extended_x.model";
+		String dataPath = "/projects/data/";
+		String modelPath = dataPath + "AT_extended_x.model";
 		FormatterMode mode = FormatterMode.INTELLIGENT;
 
 		FileHandler handler = new DiskFileHandler("UTF-8");
@@ -147,8 +151,8 @@ public final class Calibrator<T, P> {
 		Calibrator<Integer, Phenotype<DoubleGene, Double>> calibrator
 				= new Calibrator<>(handler, gap, factory, 2, fCorrelation);
 
-		calibrator.addSDM("/projects/data/training/training_synthetic.sdm");
-		calibrator.addSDM("/projects/data/training/CHE_BCB.sdm");
+		calibrator.addSDM(dataPath + "training/training_synthetic.sdm");
+		calibrator.addSDM(dataPath + "training/CHE_BCB.sdm");
 
 		//		calibrator.addFile("/projects/data/training/training_synthetic.csv");
 //		calibrator.addFile("D:/git/data/training/training_CHM-TND_aligned.csv");
@@ -161,7 +165,7 @@ public final class Calibrator<T, P> {
 
 		long timestamp = System.currentTimeMillis();
 		for (String path : calibrator.trainingData.keySet()) {
-			String fileName = path.replaceAll("\\.csv$", "_" + timestamp);
+			String fileName = path.replaceAll("\\.sdm$", "_" + timestamp);
 			writeBestAlignments(path, fileName, calibrator, algorithm);
 		}
 
@@ -195,14 +199,14 @@ public final class Calibrator<T, P> {
 				? specification.size() : specification.size() - 1;
 
 		Engine<DoubleGene, Double> engine = Engine.builder(this::fitness,
-				DoubleChromosome.of( -2,  2 , extraParams),
+				DoubleChromosome.of( -2,  2, extraParams),
 				DoubleChromosome.of(  0,  1, size)
 //				DoubleChromosome.of(-10, 10, correlatedFeatures.size())
 //				DoubleChromosome.of( -5,  5, ((size * size)-size)/2)
 
 		)
 				.maximizing()
-				.populationSize(2000)
+				.populationSize(1000)
 //				.maximalPhenotypeAge(20)
 //				.survivorsFraction(0.8)
 //				.offspringSize(3)
@@ -281,10 +285,11 @@ public final class Calibrator<T, P> {
 				Collection<String> strings = new ArrayList<>();
 				for (int j = 0; j <  size; j++) {
 					String item = lists.get(j).get(i).trim();
-					if (!item.startsWith("#")) {
-						item = "# " + item;
+					if (item.startsWith("#")) {
+						strings.add(item);
+					} else {
+						strings.add("# " + item);
 					}
-					strings.add(item);
 				}
 				alignments.add(toAlignment(strings, factory));
 			}

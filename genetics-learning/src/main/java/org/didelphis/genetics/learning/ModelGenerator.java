@@ -65,7 +65,6 @@ import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.utilities.Logger;
-import org.joda.time.DateTime;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -155,11 +154,11 @@ public final class ModelGenerator<T> {
 		String trainingPath = dataPath + "training/";
 		String dataSetName = "out.sample_1k.txt";
 
-		String timeStamp = new DateTime().toString(DATE_FORMAT);
+//		String timeStamp = new DateTime().toString(DATE_FORMAT);
 
 		String dataSetFolder = EXTENSION.matcher(dataSetName).replaceAll("/");
 
-		Path logPath = new File(trainingPath + dataSetFolder + timeStamp +
+		Path logPath = new File(trainingPath + dataSetFolder +
 				"-fitness.log").toPath();
 
 		Files.createDirectories(logPath.getParent());
@@ -230,7 +229,7 @@ public final class ModelGenerator<T> {
 
 		Genotype<DoubleGene> genotype = best.getGenotype();
 		String inputPath = trainingPath + dataSetName;
-		String outputPath = trainingPath + dataSetFolder + timeStamp;
+		String outputPath = trainingPath + dataSetFolder ;
 		ColumnTable<String> table = loadTable(inputPath, TRANSFORMER);
 		generator.writeBestGenome(outputPath, table, genotype);
 	}

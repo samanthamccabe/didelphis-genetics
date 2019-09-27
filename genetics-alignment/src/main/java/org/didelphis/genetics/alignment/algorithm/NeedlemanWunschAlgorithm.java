@@ -172,7 +172,6 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 			// Leaving these in for now; Recursive tracing is probably needed
 			// in order to find multiple paths
-//			if (i > 0 || j > 0) {
 			while (i > 0 || j > 0) {
 				double sub = get(i - 1, j - 1);
 				double del = get(i - 1, j    );
@@ -182,20 +181,17 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 					w.add(left.get(i));
 					z.add(gap);
 					i--;
-//					trace(w, z, i - 1, j);
 				} else if (j > 0 && check(ins, sub, del)) {
 					// Ins
 					w.add(gap);
 					z.add(right.get(j));
 					j--;
-//					trace(w, z, i, j - 1);
 				} else {
 					// Sub
 					w.add(left.get(i));
 					z.add(right.get(j));
 					i--;
 					j--;
-//					trace(w, z, i - 1, j - 1);
 				}
 			}
 
@@ -281,93 +277,5 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 			return table;
 		}
 
-/*
-		private List<Alignment<T>> hirschberg(Sequence<T> x, Sequence<T> y) {
-
-			Sequence<T> w = new BasicSequence<>(model);
-			Sequence<T> z = new BasicSequence<>(model);
-
-			if (x.isEmpty()) {
-				for (int i = 0; i < y.size(); i++) {
-					z.add(penalty.getGap());
-					w.add(y.get(i));
-				}
-			} else if (y.isEmpty()) {
-				for (int i = 0; i < x.size(); i++) {
-					z.add(x.get(i));
-					w.add(penalty.getGap());
-				}
-			} else if (x.size() == 1 || y.size() == 1) {
-
-			} else {
-				int xMid = x.size() / 2;
-
-				Sequence<T> revX = x.getReverseSequence();
-				Sequence<T> revY = y.getReverseSequence();
-
-				List<Double> scoreL = nwScore(x.subsequence(0, xMid), y);
-				List<Double> scoreR = nwScore(x.subsequence(xMid + 1).getReverseSequence(), revY);
-
-				Collections.reverse(scoreR);
-
-				int yMid = 0;
-				//				int mid = 0;
-				double max = Double.MIN_VALUE;
-				List<Double> values = new ArrayList<>();
-				for (int i = 0; i < scoreL.size(); i++) {
-					double v = scoreL.get(i) + scoreR.get(i);
-					if (max < v) {
-						yMid = i;
-					}
-				}
-
-
-				List<Alignment<T>> h1 = hirschberg(x.subsequence(0, xMid),  y.subsequence(0, yMid));
-				List<Alignment<T>> h2 = hirschberg(x.subsequence(xMid + 1), y.subsequence(yMid + 1));
-
-				h1.get(0);
-			}
-
-			List<Alignment<T>> alignments = new ArrayList<>();
-			alignments.add(new Alignment<>(new Twin<>(w, z), model));
-			return alignments;
-		}
-
-		private List<Double> nwScore(Sequence<T> left, Sequence<T> right) {
-			int m = left.size();
-			int n = right.size();
-
-			Table<Double> t = new RectangularTable<>(0.0, m, n);
-
-			BiFunction<Sequence<T>, Integer, Double> del = (q, i)
-					-> comparator.apply(q,  penalty.getGap(), i, 0);
-
-			BiFunction<Sequence<T>, Integer, Double> ins = (q, j)
-					-> comparator.apply(q,  penalty.getGap(), 0, j);
-
-			for (int j = 1; j < n; j++) {
-				t.set(0, j, t.get(0, j - 1) + ins.apply(right, j) + penalty.applyAsDouble(j));
-			}
-
-			for (int i = 1; i < m; i++) {
-				t.set(i, 0, t.get(i - 1, 0) + del.apply(left,  i) + penalty.applyAsDouble(i));
-				for (int j = 1; j < n; j++) {
-					double v1 = penalty.applyAsDouble(0);
-					Collection<Double> candidates = Arrays.asList(
-							t.get(i - 1, j - 1) + comparator.apply(left, right, i, j),
-							t.get(i - 1, j    ) + del.apply(left,  i) + v1,
-							t.get(i,     j - 1) + ins.apply(right, j) + v1
-					);
-
-					Double score = candidates.stream()
-							.reduce(optimization)
-							.orElse(optimization.defaultValue());
-					t.set(i, j, score);
-				}
-			}
-
-			return t.getRow(t.rows());
-		}
-*/
 	}
 }

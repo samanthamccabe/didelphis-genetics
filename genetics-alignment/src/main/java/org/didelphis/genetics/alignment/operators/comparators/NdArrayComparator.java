@@ -20,52 +20,91 @@
 
 package org.didelphis.genetics.alignment.operators.comparators;
 
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+import lombok.ToString;
+import org.didelphis.language.phonetic.features.EmptyFeatureArray;
 import org.didelphis.language.phonetic.features.FeatureArray;
+import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.api.ops.impl.transforms.same.Abs;
 import org.nd4j.linalg.factory.Nd4j;
-import org.slf4j.Logger;
+import org.nd4j.nativeblas.Nd4jCpu;
+
+import java.util.List;
+import java.util.stream.IntStream;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Created by samantha on 8/4/16.
  */
+@ToString
+@EqualsAndHashCode
 public final class NdArrayComparator<T> implements SequenceComparator<T> {
 
-	private static final transient Logger LOGGER =
-			getLogger(NdArrayComparator.class);
-
 	private final INDArray weights;
+	private final INDArray emptyArray;
+	private final FeatureType<? super T> type;
 
-	public NdArrayComparator(double[] array) {
-		weights = Nd4j.create(array);
+	public NdArrayComparator(FeatureType<? super T> type, List<Double> list) {
+		this.type = type;
+		double[] array = list.stream()
+				.mapToDouble(Double::doubleValue)
+				.toArray();
+
+		double[] baseArray = IntStream.range(0, array.length)
+				.mapToDouble(i -> 0)
+				.toArray();
+
+		weights    = Nd4j.create(array,     new int[]{array.length});
+		emptyArray = Nd4j.create(baseArray, new int[]{array.length});
+	}
+
+	public NdArrayComparator(FeatureType<? super T> type, double[] array) {
+		this.type = type;
+
+		double[] baseArray = IntStream.range(0, array.length)
+				.mapToDouble(i -> type.doubleValue(null))
+				.toArray();
+
+		weights = Nd4j.create(array, new int[]{array.length});
+		emptyArray = Nd4j.create(baseArray, new int[]{array.length});
 	}
 
 	@Override
-	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j) {
+	public double apply(
+			@NonNull Sequence<T> left,
+			@NonNull Sequence<T> right,
+			int i,
+			int j
+	) {
 
 		INDArray lF = getNdFeatureArray(left.get(i));
 		INDArray rF = getNdFeatureArray(right.get(j));
 
+		// TODO: this doesn't compute absolute value
 		INDArray dif = lF.sub(rF);
+
 		// in-place element-wise multiplication
 		dif.muli(weights);
-		return dif.sumNumber().doubleValue();
+		double v = dif.sumNumber().doubleValue();
+		return v;
 	}
 
 	private INDArray getNdFeatureArray(Segment<T> segment) {
 		FeatureArray<T> featureArray = segment.getFeatures();
-		INDArray ndArray;
-		//		if (featureArray instanceof NdFeatureArray) {
-		//			ndArray = ((NdFeatureArray) featureArray).getNdArray();
-		//		} else {
-		//			ndArray = new NdFeatureArray(featureArray).getNdArray();
-		//		}
-		//		return ndArray;
-		return null; // TODO:
+
+		if (featureArray instanceof EmptyFeatureArray) {
+			return emptyArray;
+		}
+
+		double[] array = featureArray.stream()
+				.mapToDouble(type::doubleValue)
+				.toArray();
+		return Nd4j.create(array, new int[] {featureArray.size()});
 	}
 }
