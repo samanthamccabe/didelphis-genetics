@@ -18,27 +18,46 @@
  *                                                                            *
  ******************************************************************************/
 
-package org.didelphis.genetics.alignment.algorithm;
+package org.didelphis.genetics.alignment.operators.comparators;
 
 import lombok.NonNull;
-
-import org.didelphis.genetics.alignment.AlignmentResult;
-import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
-import org.didelphis.language.phonetic.SequenceFactory;
+import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 
-import java.util.function.BiFunction;
+public class ReinforcementComparator<T> implements SequenceComparator<T> {
 
-public interface AlignmentAlgorithm<T>
-		extends BiFunction<Sequence<T>, Sequence<T>, AlignmentResult<T>> {
+	private final SequenceComparator<T> comparator;
+	private final @NonNull TwoKeyMap<? super Segment<T>, ? super Segment<T>, Double> corrMap;
+	private final double weight;
 
-	@NonNull GapPenalty<T> getGapPenalty();
+	public ReinforcementComparator(
+			@NonNull SequenceComparator<T> comparator,
+			@NonNull TwoKeyMap<? super Segment<T>, ? super Segment<T>, Double> corrMap,
+			double weight
+	) {
+		this.comparator = comparator;
+		this.corrMap = corrMap;
+		this.weight = weight;
+	}
 
-	@NonNull SequenceFactory<T> getFactory();
+	@Override
+	public double apply(
+			@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j
+	) {
+		Segment<T> s1 = left.get(i);
+		Segment<T> s2 = right.get(j);
 
-	@NonNull SequenceComparator<T> getComparator();
+		double factor;
+		if (corrMap.contains(s1, s2)) {
+			Double value = corrMap.get(s1, s2);
+			factor = value == null ? 1.0 : -Math.log(value);
+		} else {
+			factor = 1.0;
+		}
 
-	@NonNull Optimization getOptimization();
+		double apply = comparator.apply(left, right, i, j);
+		return apply + weight * factor;
+	}
 }

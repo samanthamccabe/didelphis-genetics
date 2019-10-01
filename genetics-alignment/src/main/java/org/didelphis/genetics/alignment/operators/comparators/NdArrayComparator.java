@@ -23,21 +23,17 @@ package org.didelphis.genetics.alignment.operators.comparators;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.language.phonetic.features.EmptyFeatureArray;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.api.ops.impl.transforms.same.Abs;
 import org.nd4j.linalg.factory.Nd4j;
-import org.nd4j.nativeblas.Nd4jCpu;
 
 import java.util.List;
 import java.util.stream.IntStream;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Created by samantha on 8/4/16.

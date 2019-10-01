@@ -28,6 +28,7 @@ import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparator;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
+import org.didelphis.language.automata.Regex;
 import org.didelphis.language.parsing.ParseException;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
@@ -64,11 +65,15 @@ import static java.util.Arrays.stream;
 @UtilityClass
 public final class Utilities {
 
-	private final Pattern SPACE = Pattern.compile("\\s+");
-	private final Pattern PATTERN = Pattern.compile("\n|\r?\n");
-
 	public final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
+
+	private static final Regex PIPE     = new Regex("\\s+\\|\\s+");
+	private static final Regex NEWLINES = new Regex("\r\n|\n|\r");
+	private static final Regex BLOCK    = new Regex("(\r\n\r\n)|(\n\n)|(\r\r)");
+	private static final Regex COMMENT  = new Regex("%[^\n\r]*(\r\n|\n|\r)");
+
+	private final Pattern SPACE = Pattern.compile("\\s+");
 
 	@NonNull
 	public ColumnTable<String> loadTable(String path) {
@@ -77,10 +82,9 @@ public final class Utilities {
 
 	@NonNull
 	public ColumnTable<String> toTable(
-			CharSequence payload, Function<? super String, String> transformer
+			String payload, Function<? super String, String> transformer
 	) throws ParseException {
-		List<String> lines
-				= stream(PATTERN.split(payload)).collect(Collectors.toList());
+		List<String> lines = NEWLINES.split(payload);
 		if (!lines.isEmpty()) {
 			List<String> keys = asList(lines.remove(0).split("\t", -1));
 			int numCol = keys.size();
@@ -104,7 +108,7 @@ public final class Utilities {
 			String path, Function<String, String> transformer
 	) {
 		FileHandler handler = new DiskFileHandler("UTF-8");
-		CharSequence chars = null;
+		CharSequence chars;
 		try {
 			chars = handler.read(path);
 		} catch (IOException e) {
@@ -113,7 +117,7 @@ public final class Utilities {
 		if (chars.length() == 0) {
 			throw new ParseException("Unable to read table, file was empty: " + path);
 		} else {
-			return toTable(chars, transformer);
+			return toTable(chars.toString(), transformer);
 		}
 	}
 
@@ -266,23 +270,6 @@ public final class Utilities {
 		}
 	}
 
-	private <T> double getD(
-			SequenceComparator<T> comparator,
-			Sequence<T> gap,
-			Sequence<T> q1,
-			Sequence<T> q2
-	) {
-		double d = 0.0;
-		if (!(q1.isEmpty() || q2.isEmpty())) {
-			d += comparator.apply(q1, q2, 0, 0);
-		} else if (q1.isEmpty() && !q2.isEmpty()) {
-			d += comparator.apply(gap, q2, 0, 0);
-		} else if (!q1.isEmpty()) {
-			d += comparator.apply(q1, gap, 0, 0);
-		}
-		return d;
-	}
-
 	public <T> Map<String, Map<Segment<T>, Integer>> computeSegmentCounts(
 			ColumnTable<Sequence<T>> data
 	) {
@@ -305,5 +292,106 @@ public final class Utilities {
 		}
 
 		return map;
+	}
+
+	@NonNull
+	public <T> List<List<Alignment<T>>> loadSDM(
+			@NonNull String fileData,
+			@NonNull SequenceFactory<T> factory
+	) {
+		List<List<Alignment<T>>> alignmentSet = new ArrayList<>();
+
+		int size = 0;
+
+		// Each block should represent a single alignment or set of equivalent
+		// alignments:
+		// a a b | a a b
+		// a - b | - a b
+		// These are not *necessarily* equivalent in all cases - under a global
+		// alignment they could be equivalent, but would not be so under a
+		// local alignment where gaps at the beginning and end of a sequence do
+		// not incur a cost
+		for (String block : BLOCK.split(fileData)) {
+			block = COMMENT.replace(block,"").trim();
+
+			if (block.isEmpty()) continue;
+
+			// The first block should contain the language headers and however
+			// many headers there are should be set as the correct number later.
+			// Any subsequence block with too many or too few headers will be
+			// skipped and logged.
+			if (size == 0) {
+				size = NEWLINES.split(block).size();
+				continue;
+			}
+
+			int blockWidth = 0;
+			List<List<String>> lists = new ArrayList<>();
+			for (String line : NEWLINES.split(block)) {
+				List<String> list = PIPE.split(line);
+				if (blockWidth == 0) {
+					blockWidth = list.size();
+				}
+				lists.add(list);
+			}
+
+			List<Alignment<T>> alignments = new ArrayList<>();
+			for (int i = 0; i < blockWidth; i++) {
+				Collection<String> strings = new ArrayList<>();
+				for (int j = 0; j <  size; j++) {
+					String item = lists.get(j).get(i).trim();
+					if (item.startsWith("#")) {
+						strings.add(item);
+					} else {
+						strings.add("# " + item);
+					}
+				}
+				alignments.add(toAlignment(strings, factory));
+			}
+			alignmentSet.add(alignments);
+		}
+		return alignmentSet;
+	}
+
+	public static @NonNull <T> Alignment<T> toAlignment(
+			@NonNull Iterable<String> list,
+			@NonNull SequenceFactory<T> factory
+	) {
+		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
+		List<Sequence<T>> sequences = toSequences(list, factory);
+		return new Alignment<>(sequences, model);
+	}
+
+	public static @NonNull <T> List<Sequence<T>> toSequences(
+			@NonNull Iterable<String> list,
+			@NonNull SequenceFactory<T> factory
+	) {
+		List<Sequence<T>> sequences = new ArrayList<>();
+		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
+		for (String string : list) {
+			Sequence<T> sequence = new BasicSequence<>(model);
+			for (String s : string.split("\\s+")) {
+				sequence.add(factory.toSegment(s));
+			}
+			sequences.add(sequence);
+		}
+		return sequences;
+	}
+
+	private <T> double getD(
+			SequenceComparator<T> comparator,
+			Sequence<T> gap,
+			Sequence<T> q1,
+			Sequence<T> q2
+	) {
+		double d = 0.0;
+		if (!(q1.isEmpty() || q2.isEmpty())) {
+			d += comparator.apply(q1, q2, 0, 0);
+		} else if (q1.isEmpty() && !q2.isEmpty()) {
+			d += comparator.apply(gap, q2, 0, 0);
+		} else if (!q1.isEmpty()) {
+			d += comparator.apply(q1, gap, 0, 0);
+		}
+		return d;
 	}
 }

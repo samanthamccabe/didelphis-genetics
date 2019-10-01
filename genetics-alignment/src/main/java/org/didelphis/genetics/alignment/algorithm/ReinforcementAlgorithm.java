@@ -25,20 +25,43 @@ import lombok.NonNull;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.genetics.alignment.operators.comparators.ReinforcementComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-import java.util.function.BiFunction;
+public class ReinforcementAlgorithm<T> implements AlignmentAlgorithm<T>  {
 
-public interface AlignmentAlgorithm<T>
-		extends BiFunction<Sequence<T>, Sequence<T>, AlignmentResult<T>> {
+	private final AlignmentAlgorithm<T> algorithm;
 
-	@NonNull GapPenalty<T> getGapPenalty();
+	public ReinforcementAlgorithm(AlignmentAlgorithm<T> algorithm) {
+		this.algorithm = algorithm;
+	}
 
-	@NonNull SequenceFactory<T> getFactory();
+	@Override
+	public @NonNull GapPenalty<T> getGapPenalty() {
+		return algorithm.getGapPenalty();
+	}
 
-	@NonNull SequenceComparator<T> getComparator();
+	@Override
+	public @NonNull SequenceFactory<T> getFactory() {
+		return algorithm.getFactory();
+	}
 
-	@NonNull Optimization getOptimization();
+	@Override
+	public @NonNull SequenceComparator<T> getComparator() {
+		return algorithm.getComparator();
+	}
+
+	@Override
+	public @NonNull Optimization getOptimization() {
+		return algorithm.getOptimization();
+	}
+
+	@Override
+	public AlignmentResult<T> apply(
+			Sequence<T> left, Sequence<T> right
+	) {
+		return algorithm.apply(left, right);
+	}
 }
