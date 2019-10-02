@@ -20,53 +20,50 @@
 
 package org.didelphis.genetics.alignment.operators.comparators;
 
-import lombok.EqualsAndHashCode;
 import lombok.NonNull;
-import lombok.ToString;
+
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.didelphis.language.phonetic.features.FeatureArray;
-import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.maps.interfaces.TwoKeyMap;
-import org.didelphis.structures.tuples.Triple;
 
-import java.util.List;
-import java.util.Map;
+public final class ContextComparator<T> implements SequenceComparator<T> {
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 5/22/15
- */
-@ToString
-@EqualsAndHashCode
-public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
+	private final SequenceComparator<T> comparator;
+	private final double p1;
+	private final double p2;
+	private final double p3;
+	private final double p4;
 
-	private final List<Double> weights;
-	private final TwoKeyMap<Integer, Integer, Double> sparseWeights;
-	private final FeatureType<? super T> type;
+	public ContextComparator(SequenceComparator<T> comparator, double p1, double p2, double p3, double p4) {
 
-	public SparseMatrixComparator(
-			FeatureType<? super T> type,
-			List<Double> weights,
-			TwoKeyMap<Integer, Integer, Double> sparseWeights
-	) {
-		this.weights = weights;
-		this.type = type;
-		this.sparseWeights = sparseWeights;
+		this.comparator = comparator;
+		this.p1 = p1;
+		this.p2 = p2;
+		this.p3 = p3;
+		this.p4 = p4;
 	}
 
 	@Override
-	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j) {
-		double score = 0.0;
-		FeatureArray<T> lFeatures = left.get(i).getFeatures();
-		FeatureArray<T> rFeatures = right.get(j).getFeatures();
-		for (int k = 0; k < weights.size(); k++) {
-			T lF = lFeatures.get(k);
-			T rF = rFeatures.get(k);
-			Double d = type.difference(lF, rF);
-			Double w = weights.get(k);
-			score += w * d;
+	public double apply(
+			@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j
+	) {
+		double score = comparator.apply(left, right, i, j);
+
+		if (i - 1 >= 0) {
+			score += comparator.apply(left, right, i - 1, j) * p1;
 		}
+
+		if (i + 1 < left.size()) {
+			score += comparator.apply(left, right, i + 1, j) * p2;
+		}
+
+		if (j - 1 >= 0) {
+			score += comparator.apply(left, right, i, j - 1) * p3;
+		}
+
+		if (j + 1 < right.size()) {
+			score += comparator.apply(left, right, i, j) + 1 * p4;
+		}
+
 		return score;
 	}
 }

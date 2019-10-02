@@ -31,6 +31,7 @@ import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.genetics.alignment.operators.comparators.ContextComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
 import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
 import org.didelphis.genetics.alignment.operators.comparators.SparseMatrixComparator;
@@ -56,10 +57,10 @@ import org.didelphis.structures.tuples.Twin;
 import io.jenetics.Chromosome;
 import io.jenetics.DoubleChromosome;
 import io.jenetics.DoubleGene;
+import io.jenetics.EliteSelector;
 import io.jenetics.GaussianMutator;
 import io.jenetics.Gene;
 import io.jenetics.Genotype;
-import io.jenetics.StochasticUniversalSelector;
 import io.jenetics.engine.Engine;
 import io.jenetics.engine.EvolutionResult;
 
@@ -94,7 +95,6 @@ public final class GeneCalibrator<T>
 	private static final double FIXED_WEIGHT = 1.00;
 	private static final int FIXED_POSITION = 1;
 
-	int extraParams;
 	FeatureModel<T> featureModel;
 	Map<String, List<List<Alignment<T>>>> trainingData;
 
@@ -118,20 +118,15 @@ public final class GeneCalibrator<T>
 				handler,
 				modelPath
 		);
-		FeatureMapping<Integer> featureMapping = loader.getFeatureMapping();
-		SequenceFactory<Integer> factory = new SequenceFactory<>(
-				featureMapping,
-				mode
-		);
+		FeatureMapping<Integer> mapping = loader.getFeatureMapping();
+		SequenceFactory<Integer> factory = new SequenceFactory<>(mapping, mode);
 
 		Sequence<Integer> gap = factory.toSequence("░");
 
+		boolean useReinforcement = true;
+
 		GeneCalibrator<Integer> calibrator = new GeneCalibrator<>(
-				handler,
-				gap,
-				factory,
-				2,
-				false
+				handler, gap, factory, useReinforcement
 		);
 
 		calibrator.addCorrelation("con", "son");
@@ -170,12 +165,10 @@ public final class GeneCalibrator<T>
 			FileHandler handler,
 			Sequence<T> gap,
 			SequenceFactory<T> factory,
-			int extraParams,
 			boolean useReinforcement
 	) {
 		super(handler, gap, factory, useReinforcement);
 
-		this.extraParams = extraParams;
 		trainingData = new LinkedHashMap<>();
 		featureModel = factory.getFeatureMapping().getFeatureModel();
 	}
@@ -183,6 +176,7 @@ public final class GeneCalibrator<T>
 	@NonNull
 	@Override
 	public Genotype<DoubleGene> optimize() {
+
 		FeatureMapping<T> featureMapping = getFactory().getFeatureMapping();
 		FeatureSpecification specification = featureMapping.getSpecification();
 
@@ -190,15 +184,19 @@ public final class GeneCalibrator<T>
 				? specification.size()
 				: specification.size() - 1;
 
+		int fSize = getCorrelatedFeatures().size();
+
 		Engine<DoubleGene, Double> engine = Engine.builder(
 				this::fitness,
-				DoubleChromosome.of(-2, 2, extraParams),
-				DoubleChromosome.of(0, 1, size),
-				DoubleChromosome.of(0, 10, 1)
+				DoubleChromosome.of( -2,  2,     2), // Gaps
+				DoubleChromosome.of(  0,  1,  size), // Main Features
+				DoubleChromosome.of( -2,  2, fSize), // Correlated Features
+				DoubleChromosome.of( -2,  2,     4), // Context Re-weighting
+				DoubleChromosome.of(  0, 10,     1)  // Reinforcement weight
 		)
 				.maximizing()
-				.populationSize(200)
-				.selector(new StochasticUniversalSelector<>())
+				.populationSize(100)
+				.selector(new EliteSelector<>())
 				.alterers(new GaussianMutator<>())
 				.build();
 
@@ -220,31 +218,32 @@ public final class GeneCalibrator<T>
 	@Override
 	@NonNull
 	public AlignmentAlgorithm<T> toAlgorithm(
-			@NonNull Genotype<DoubleGene> genotype
+			@NonNull Genotype<DoubleGene> parameters
 	) {
-		List<Double> listA = toList(genotype, 0);
-		List<Double> listB = toList(genotype, 1);
-
-		double openPenalty = listA.get(0);
-		double growPenalty = listA.get(1);
-
-		SequenceComparator<T> comparator;
-		if (genotype.length() == 4) {
-			List<Double> listC = toList(genotype, 3);
-			comparator = getSparseComparator(listB, toSparseWeights(listC));
-		} else {
-			comparator = getFlatComparator(listB);
-		}
-
+		List<Double> listA = toList(parameters, 0);
 		ConvexGapPenalty<T> gapPenalty = new ConvexGapPenalty<>(
 				getGap(),
-				openPenalty,
-				growPenalty
+				listA.get(0),
+				listA.get(1)
+		);
+
+		List<Double> listB = toList(parameters, 1);
+		List<Double> listC = toList(parameters, 2);
+		TwoKeyMap<Integer, Integer, Double> sparseWeights = toSparseWeights(listC);
+		SequenceComparator<T> comparator = getSparseComparator(listB, sparseWeights);
+
+		Chromosome<DoubleGene> chromosome = parameters.getChromosome(3);
+		ContextComparator<T> contextComparator = new ContextComparator<>(
+				comparator,
+				chromosome.getGene(0).doubleValue(),
+				chromosome.getGene(1).doubleValue(),
+				chromosome.getGene(2).doubleValue(),
+				chromosome.getGene(3).doubleValue()
 		);
 
 		return new NeedlemanWunschAlgorithm<>(
 				BaseOptimization.MIN,
-				comparator,
+				contextComparator,
 				gapPenalty,
 				getFactory()
 		);
@@ -252,7 +251,9 @@ public final class GeneCalibrator<T>
 
 	@Override
 	public double getReinforcementWeight(@NonNull Genotype<DoubleGene> parameter) {
-		return parameter.getChromosome(2).getGene(0).doubleValue();
+		return parameter.getChromosome(parameter.length() - 1)
+				.getGene(0)
+				.doubleValue();
 	}
 
 	@NonNull
@@ -306,22 +307,6 @@ public final class GeneCalibrator<T>
 		}
 		FeatureType<T> type = featureModel.getFeatureType();
 		return new MatrixComparator<>(type, table);
-	}
-
-	private static <T> List<Twin<Integer>> toIndices(
-			SequenceFactory<T> factory,
-			Collection<? extends Twin<String>> correlatedFeatures
-	) {
-		FeatureMapping<T> featureMapping = factory.getFeatureMapping();
-		FeatureSpecification specification = featureMapping.getSpecification();
-		Map<String, Integer> featureIndices = specification.getFeatureIndices();
-		return correlatedFeatures.stream().map(twin -> {
-			String left = twin.getLeft();
-			String right = twin.getRight();
-			int indexLeft = featureIndices.getOrDefault(left, -1);
-			int indexRight = featureIndices.getOrDefault(right, -1);
-			return new Twin<>(indexLeft, indexRight);
-		}).collect(Collectors.toList());
 	}
 
 	private static void print(EvolutionResult<DoubleGene, Double> result) {

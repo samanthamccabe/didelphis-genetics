@@ -193,25 +193,24 @@ public abstract class AbstractCalibrator<T, P> {
 	) {
 		List<Alignment<T>> resultAlignments = result.getAlignments();
 		int size = resultAlignments.size();
-		if (size == 1) {
-			Alignment<T> alignment = resultAlignments.get(0);
-			for (int i = 0; i < alignment.columns(); i++) {
-				List<Segment<T>> column = alignment.getColumn(i);
-				Segment<T> s1 = column.get(0);
-				Segment<T> s2 = column.get(1);
-				if (corrMap.contains(s1, s2)) {
-					Double value = corrMap.get(s1, s2);
-					if (value == null) {
-						corrMap.put(s1, s1, 1.0);
-					} else {
-						corrMap.put(s1, s1, value + 1);
-					}
+		if (size <= 0) {
+			return;
+		}
+		Alignment<T> alignment = resultAlignments.get(0);
+		for (int i = 0; i < alignment.columns(); i++) {
+			List<Segment<T>> column = alignment.getColumn(i);
+			Segment<T> s1 = column.get(0);
+			Segment<T> s2 = column.get(1);
+			if (corrMap.contains(s1, s2)) {
+				Double value = corrMap.get(s1, s2);
+				if (value == null) {
+					corrMap.put(s1, s1, 1.0);
 				} else {
-					corrMap.put(s1, s2, 1.0);
+					corrMap.put(s1, s1, value + 1);
 				}
+			} else {
+				corrMap.put(s1, s2, 1.0);
 			}
-		} else {
-			// TODO: maybe average over the counts`
 		}
 	}
 
