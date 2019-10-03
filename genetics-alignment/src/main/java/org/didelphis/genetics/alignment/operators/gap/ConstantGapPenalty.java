@@ -27,7 +27,7 @@ import lombok.ToString;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = true)
 public class ConstantGapPenalty<T> extends AbstractGapPenalty<T> {
 
 	private final double penalty;

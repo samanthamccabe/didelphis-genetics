@@ -58,9 +58,6 @@ import static java.lang.Math.random;
 import static java.lang.Math.round;
 import static java.lang.Math.toIntExact;
 
-/**
- * Created by samantha on 4/22/17.
- */
 @ToString
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class BrownAlignmentGenerator {

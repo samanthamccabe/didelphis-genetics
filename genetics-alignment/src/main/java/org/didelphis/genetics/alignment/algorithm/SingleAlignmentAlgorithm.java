@@ -71,7 +71,7 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 		int n = right.size();
 
 		Table<Alignment<T>> matrix = new RectangularTable<>(
-				(Alignment<T>) null,
+				null,
 				m,
 				n
 		);

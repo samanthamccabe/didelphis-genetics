@@ -20,9 +20,6 @@
 
 package org.didelphis.genetic.data.generation;
 
-/**
- * Created by samantha on 4/24/17.
- */
 public final class Correspondence {
 
 	private final String leftSymbol;

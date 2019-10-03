@@ -30,9 +30,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.TreeSet;
 
-/**
- * Created by samantha on 9/20/15.
- */
 public class Environment<T> implements Iterable<Twin<Sequence<T>>> {
 
 	private final Collection<Twin<Sequence<T>>> environment;

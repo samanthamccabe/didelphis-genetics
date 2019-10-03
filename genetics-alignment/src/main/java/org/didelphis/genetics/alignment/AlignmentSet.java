@@ -24,18 +24,24 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@ToString(of = "keys")
-@EqualsAndHashCode(callSuper = true)
+@FieldDefaults (makeFinal = true, level = AccessLevel.PRIVATE)
+@ToString (of = "keys")
+@EqualsAndHashCode (callSuper = true)
 public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 
 	private static final Pattern PATTERN = Pattern.compile("\n|\r\n?");
@@ -48,8 +54,9 @@ public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 		this.keys = keys;
 	}
 
-	public static <T> AlignmentSet<T> loadFromFile(String file,
-			SequenceFactory<T> factory) throws IOException {
+	public static <T> AlignmentSet<T> loadFromFile(
+			String file, SequenceFactory<T> factory
+	) throws IOException {
 
 		CharSequence input = new DiskFileHandler("UTF-8").read(file);
 		List<String> list = Arrays.stream(PATTERN.split(input))
@@ -89,12 +96,13 @@ public final class AlignmentSet<T> extends ArrayList<Alignment<T>> {
 			for (int i = 0; i < data.size(); i++) {
 				List<Sequence<T>> object = data.get(i);
 				if (object == null) {
-					List<Sequence<T>> sequences = Collections.nCopies(length, factory.toSequence(""));
+					List<Sequence<T>> sequences = Collections.nCopies(
+							length,
+							factory.toSequence("")
+					);
 					data.set(i, sequences);
 				}
 			}
-// TODO:
-//			alignments.add(new Alignment<>(data, factory));
 		}
 		return alignments;
 	}

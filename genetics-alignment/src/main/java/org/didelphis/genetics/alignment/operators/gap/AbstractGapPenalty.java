@@ -20,12 +20,14 @@
 
 package org.didelphis.genetics.alignment.operators.gap;
 
+import lombok.ToString;
+
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-public abstract class AbstractGapPenalty<T>
-		implements GapPenalty<T> {
+@ToString
+public abstract class AbstractGapPenalty<T> implements GapPenalty<T> {
 
 	private final Sequence<T> gap;
 
@@ -34,13 +36,13 @@ public abstract class AbstractGapPenalty<T>
 	}
 
 	@Override
-	public FeatureSpecification getSpecification() {
-		return gap.getSpecification();
+	public FeatureModel<T> getFeatureModel() {
+		return gap.getFeatureModel();
 	}
 
 	@Override
-	public FeatureModel<T> getFeatureModel() {
-		return gap.getFeatureModel();
+	public FeatureSpecification getSpecification() {
+		return gap.getSpecification();
 	}
 
 	@Override

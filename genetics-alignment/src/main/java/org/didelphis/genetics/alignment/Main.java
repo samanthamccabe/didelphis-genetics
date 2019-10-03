@@ -20,20 +20,14 @@
 
 package org.didelphis.genetics.alignment;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.common.StringTransformer;
 import org.didelphis.genetics.alignment.common.Utilities;
-import org.didelphis.genetics.alignment.correspondences.Context;
-import org.didelphis.genetics.alignment.correspondences.ContextPair;
-import org.didelphis.genetics.alignment.correspondences.PairCorrespondenceSet;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
 import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
@@ -47,7 +41,6 @@ import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.IntegerFeature;
 import org.didelphis.language.phonetic.model.FeatureMapping;
-import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
@@ -64,13 +57,17 @@ import org.didelphis.structures.tables.SymmetricTable;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.utilities.Logger;
 import org.didelphis.utilities.Splitter;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.Normalizer;
@@ -133,7 +130,7 @@ public final class Main {
 				? configPath.replaceAll("/[^/]+$", "/") 
 				: "";
 
-		String configData = String.valueOf(HANDLER.read(configPath));
+		String configData = HANDLER.read(configPath);
 
 		// Read Configuration
 		JsonNode configNode = OBJECT_MAPPER.readTree(configData);
@@ -199,10 +196,6 @@ public final class Main {
 				String rootPath = EXTENSION_PATTERN.matcher(tablePath)
 						.replaceAll("/aligned/");
 				writeAlignments(rootPath, alignmentMap);
-
-				Map<String, PairCorrespondenceSet<Integer>> contexts
-						= buildContexts(factory, gap.get(0), alignmentMap);
-				writeContexts(contexts, rootPath);
 			}
 		}
 	}
@@ -234,7 +227,7 @@ public final class Main {
 		String pathFieldName = key + "_path";
 		if (configNode.has(pathFieldName)) {
 			String path = configNode.get(pathFieldName).asText();
-			return String.valueOf(HANDLER.read(path));
+			return HANDLER.read(path);
 		} else if (configNode.has(key)) {
 			JsonNode jsonNode = configNode.get(key);
 			return jsonNode.asText();
@@ -252,7 +245,7 @@ public final class Main {
 		String pathFieldName = key + "_path";
 		if (configNode.has(pathFieldName)) {
 			String path = configNode.get(pathFieldName).asText();
-			String value = String.valueOf(HANDLER.read(path));
+			String value = HANDLER.read(path);
 			return Splitter.lines(value);
 		} else if (configNode.has(key)) {
 			JsonNode jsonNode = configNode.get(key);
@@ -273,7 +266,7 @@ public final class Main {
 	private static @NonNull SequenceComparator<Integer> readWeightsComparator(
 			FeatureType<Integer> type, String path
 	) {
-		String payload = null;
+		String payload;
 		try {
 			payload = HANDLER.read(path);
 		} catch (IOException e) {
@@ -299,63 +292,6 @@ public final class Main {
 				j++;
 			}
 			return new MatrixComparator<>(type, table);
-		}
-	}
-
-	private static <T> void writeContexts(
-			Map<String, PairCorrespondenceSet<T>> contexts,
-			String rootPath
-	) throws IOException {
-		for (Entry<String, PairCorrespondenceSet<T>> entry : contexts.entrySet()) {
-			String key = entry.getKey();
-
-			File file = new File(rootPath + "contexts_" + key + ".tab");
-
-			Writer writer = new BufferedWriter(new FileWriter(file));
-			writer.write("L_orig\tR_orig\tL_a\tLeft\tL_p\tR_a\tRight\tR_p\n");
-
-			PairCorrespondenceSet<T> set = entry.getValue();
-
-			set.iterator().forEachRemaining(element -> {
-
-				Sequence<T> leftSource = element.getLeftSource();
-				Sequence<T> rightSource = element.getRightSource();
-
-				Segment<T> left = element.getLeft();
-				Segment<T> right = element.getRight();
-
-				ContextPair<T> contextPair = element.getContextPair();
-
-				Context<T> lContext = contextPair.getLeft();
-				Context<T> rContext = contextPair.getRight();
-
-				Sequence<T> lA = lContext.getLeft();
-				Sequence<T> lP = lContext.getRight();
-				Sequence<T> rA = rContext.getLeft();
-				Sequence<T> rP = rContext.getRight();
-
-				try {
-					writer.write(leftSource.toString());
-					writer.write("\t");
-					writer.write(rightSource.toString());
-					writer.write("\t");
-					writer.write(collect(lA));
-					writer.write("\t");
-					writer.write(left.toString());
-					writer.write("\t");
-					writer.write(collect(lP));
-					writer.write("\t");
-					writer.write(collect(rA));
-					writer.write("\t");
-					writer.write(right.toString());
-					writer.write("\t");
-					writer.write(collect(rP));
-					writer.write("\n");
-				} catch (IOException e) {
-					LOGGER.error("Failed to write output", e);
-				}
-			});
-			writer.close();
 		}
 	}
 
@@ -438,59 +374,6 @@ public final class Main {
 				LOGGER.error("{}", e);
 			}
 		}
-	}
-
-	private static <T> Map<String, PairCorrespondenceSet<T>> buildContexts(
-			SequenceFactory<T> factory,
-			Segment<T> gap,
-			MultiMap<String, AlignmentResult<T>> alignmentMap
-	) {
-		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
-		Map<String, PairCorrespondenceSet<T>> contexts = new LinkedHashMap<>();
-		for (Tuple<String, Collection<AlignmentResult<T>>> e : alignmentMap) {
-
-			String key = e.getLeft();
-
-			PairCorrespondenceSet<T> set = new PairCorrespondenceSet<>();
-			for (AlignmentResult<T> alignmentResult : e.getRight()) {
-
-				List<Alignment<T>> alignments = alignmentResult.getAlignments();
-
-				for (Alignment<T> alignment : alignments) {
-					
-					if (alignment.columns() > 0) {
-						List<Segment<T>> left = new ArrayList<>(alignment.getRow(0));
-						List<Segment<T>> right = new ArrayList<>(alignment.getRow(1));
-
-						left.add(factory.toSegment("#"));
-						right.add(factory.toSegment("#"));
-
-						Sequence<T> lSource = new BasicSequence<>(left, model);
-						Sequence<T> rSource = new BasicSequence<>(right, model);
-
-						for (int i = 1; i < alignment.columns() - 1; i++) {
-							Segment<T> l = left.get(i);
-							Segment<T> r = right.get(i);
-
-								Sequence<T> lA = lookBack(left, i, gap);
-								Sequence<T> rA = lookBack(right, i, gap);
-
-								Sequence<T> lP = lookForward(left, i, gap);
-								Sequence<T> rP = lookForward(right, i, gap);
-
-								ContextPair<T> pair = new ContextPair<>(
-										new Context<>(lA, lP),
-										new Context<>(rA, rP)
-								);
-
-								set.add(lSource, rSource, l, r, pair);
-						}
-					}
-				}
-			}
-			contexts.put(key, set);
-		}
-		return contexts;
 	}
 
 	@NonNull

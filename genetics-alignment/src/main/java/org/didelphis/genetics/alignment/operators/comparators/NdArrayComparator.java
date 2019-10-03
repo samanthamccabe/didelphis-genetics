@@ -35,9 +35,6 @@ import org.nd4j.linalg.factory.Nd4j;
 import java.util.List;
 import java.util.stream.IntStream;
 
-/**
- * Created by samantha on 8/4/16.
- */
 @ToString
 @EqualsAndHashCode
 public final class NdArrayComparator<T> implements SequenceComparator<T> {
@@ -56,8 +53,8 @@ public final class NdArrayComparator<T> implements SequenceComparator<T> {
 				.mapToDouble(i -> 0)
 				.toArray();
 
-		weights    = Nd4j.create(array,     new int[]{array.length});
-		emptyArray = Nd4j.create(baseArray, new int[]{array.length});
+		weights    = Nd4j.create(array, array.length);
+		emptyArray = Nd4j.create(baseArray, array.length);
 	}
 
 	public NdArrayComparator(FeatureType<? super T> type, double[] array) {
@@ -67,8 +64,8 @@ public final class NdArrayComparator<T> implements SequenceComparator<T> {
 				.mapToDouble(i -> type.doubleValue(null))
 				.toArray();
 
-		weights = Nd4j.create(array, new int[]{array.length});
-		emptyArray = Nd4j.create(baseArray, new int[]{array.length});
+		weights = Nd4j.create(array, array.length);
+		emptyArray = Nd4j.create(baseArray, array.length);
 	}
 
 	@Override
@@ -101,6 +98,6 @@ public final class NdArrayComparator<T> implements SequenceComparator<T> {
 		double[] array = featureArray.stream()
 				.mapToDouble(type::doubleValue)
 				.toArray();
-		return Nd4j.create(array, new int[] {featureArray.size()});
+		return Nd4j.create(array, featureArray.size());
 	}
 }

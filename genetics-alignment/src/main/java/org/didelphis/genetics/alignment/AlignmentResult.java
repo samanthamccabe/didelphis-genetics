@@ -24,6 +24,7 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.Table;
 
@@ -32,10 +33,11 @@ import java.util.List;
 
 /**
  * Class {@code AlignmentResult}
- *@since 0.1.0
+ *
+ * @since 0.1.0
  */
-@SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@SuppressWarnings ("AssignmentOrReturnOfFieldWithMutableType")
+@FieldDefaults (makeFinal = true, level = AccessLevel.PRIVATE)
 @ToString
 @EqualsAndHashCode
 public class AlignmentResult<T> {

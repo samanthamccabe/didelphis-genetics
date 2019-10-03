@@ -35,9 +35,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Created by samantha on 1/9/17.
- */
 public final class  Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
 
