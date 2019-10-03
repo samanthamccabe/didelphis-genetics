@@ -31,8 +31,7 @@ import java.util.stream.IntStream;
 /**
  * Class {@code SimpleComparator}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-06-30
+ * @since 0.1.0
  */
 public class SimpleComparator<T> implements SequenceComparator<T> {
 	private static final Function<Integer, Double> FUNCTION = i -> 1.0;

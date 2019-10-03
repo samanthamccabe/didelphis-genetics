@@ -35,9 +35,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 
-/**
- * @author Samantha Fiona McCabe Created: 5/3/2015
- */
 public class LexiconConstraint<T> implements Constraint<T> {
 
 	private static final Pattern EXTENSION = Pattern.compile("\\.[^.]*");

@@ -30,10 +30,6 @@ import org.didelphis.genetics.alignment.operators.SequenceComparator;
 
 import java.util.List;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 5/22/15
- */
 @ToString
 @EqualsAndHashCode
 public class LinearWeightComparator<T> implements SequenceComparator<T> {

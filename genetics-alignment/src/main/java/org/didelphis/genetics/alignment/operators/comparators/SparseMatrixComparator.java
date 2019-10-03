@@ -33,10 +33,6 @@ import org.didelphis.structures.tuples.Triple;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 5/22/15
- */
 @ToString
 @EqualsAndHashCode
 public final class SparseMatrixComparator<T> implements SequenceComparator<T> {

@@ -31,8 +31,7 @@ import org.didelphis.structures.tuples.Triple;
 /**
  * Class {@code MatrixComparator}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-07-04
+ * @since 0.1.0
  */
 public class BrownEtAlComparator<T> implements SequenceComparator<T> {
 

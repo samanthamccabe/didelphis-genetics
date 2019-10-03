@@ -32,8 +32,7 @@ import java.util.regex.Pattern;
 /**
  * Class {@code StringTransformer}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-06-27
+ * @since 0.1.0
  */
 @ToString
 @EqualsAndHashCode

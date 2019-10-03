@@ -27,10 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 6/8/2015
- */
 public class CorrespondenceSet<T> {
 
 	private final Map<List<T>, ContextSet> countMap;

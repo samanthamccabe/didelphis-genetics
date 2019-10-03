@@ -33,10 +33,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 11/14/2015
- */
 @ToString
 @EqualsAndHashCode
 public class BaseModelTester<T> {

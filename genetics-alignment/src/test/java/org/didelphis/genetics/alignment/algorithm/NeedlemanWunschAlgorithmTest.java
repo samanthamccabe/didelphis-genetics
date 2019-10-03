@@ -49,8 +49,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Class {@code NeedlemanWunschAlgorithmTest}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-06-25
+ * @since 0.1.0
  */
 class NeedlemanWunschAlgorithmTest {
 

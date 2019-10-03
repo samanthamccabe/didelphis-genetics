@@ -47,8 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Class {@code NeedlemanWunchAlgorithmTestBasic}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-07-13
+ * @since 0.1.0
  */
 public class NeedlemanWunchAlgorithmTestBasic {
 

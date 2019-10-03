@@ -97,8 +97,7 @@ import static org.didelphis.genetics.alignment.common.Utilities.toTable;
 /**
  * Class {@code ModelGenerator}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-06-28
+ * @since 0.1.0
  */
 @ToString
 public final class ModelGenerator<T> {

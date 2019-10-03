@@ -26,10 +26,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 6/9/2015
- */
 public class ContextSet<T> {
 
 	private final Collection<AlignmentContext<T>> environments;

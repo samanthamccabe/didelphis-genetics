@@ -37,10 +37,6 @@ import java.util.function.Supplier;
 /**
  * Class {@code AlignmentSupplier}
  *
- * 
- * 
- * @author Samantha Fiona McCabe
- * @date 7/16/2018
  */
 @ToString
 public class FileAlignmentSupplier implements Supplier<List<String>> {

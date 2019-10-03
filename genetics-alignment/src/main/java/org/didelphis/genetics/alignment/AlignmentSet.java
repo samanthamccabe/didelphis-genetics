@@ -33,10 +33,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 11/6/2015
- */
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @ToString(of = "keys")
 @EqualsAndHashCode(callSuper = true)

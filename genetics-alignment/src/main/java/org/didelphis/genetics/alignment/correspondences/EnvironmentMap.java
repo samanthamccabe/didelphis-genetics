@@ -31,10 +31,6 @@ import org.didelphis.structures.tuples.Twin;
 import java.util.Map;
 import java.util.TreeMap;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 8/31/2015
- */
 public class EnvironmentMap<T> {
 	private final Map<Segment<T>, Environment<T>> environments;
 	private final SequenceFactory<T> factory;

@@ -80,7 +80,6 @@ import static io.jenetics.engine.Limits.bySteadyFitness;
 /**
  * Class {@code OptimizationEngine}
  *
- * @author Samantha Fiona McCabe Date: 2017-08-01
  * @since 0.1.0
  */
 @ToString
@@ -95,6 +94,7 @@ public final class GeneCalibrator<T>
 	private static final double FIXED_WEIGHT = 1.00;
 	private static final int FIXED_POSITION = 1;
 
+	long startTime;
 	FeatureModel<T> featureModel;
 	Map<String, List<List<Alignment<T>>>> trainingData;
 
@@ -105,6 +105,8 @@ public final class GeneCalibrator<T>
 		// 3. Generate Algorithm
 		// 4. Align Data
 		// 5. Score Data
+
+		boolean useReinforcement = false;
 
 		// -----------------------------------------------
 		FeatureType<Integer> type = IntegerFeature.INSTANCE;
@@ -123,8 +125,6 @@ public final class GeneCalibrator<T>
 
 		Sequence<Integer> gap = factory.toSequence("░");
 
-		boolean useReinforcement = true;
-
 		GeneCalibrator<Integer> calibrator = new GeneCalibrator<>(
 				handler, gap, factory, useReinforcement
 		);
@@ -139,7 +139,7 @@ public final class GeneCalibrator<T>
 		for (File file : new File(sdmPath).listFiles()) {
 			try {
 				calibrator.addSDM(file.getAbsolutePath());
-			} catch (Exception e) {
+			} catch (RuntimeException e) {
 				throw new ParseException("Error reading " + file.getName(), e);
 			}
 		}
@@ -168,7 +168,7 @@ public final class GeneCalibrator<T>
 			boolean useReinforcement
 	) {
 		super(handler, gap, factory, useReinforcement);
-
+		startTime = System.nanoTime();
 		trainingData = new LinkedHashMap<>();
 		featureModel = factory.getFeatureMapping().getFeatureModel();
 	}
@@ -188,21 +188,22 @@ public final class GeneCalibrator<T>
 
 		Engine<DoubleGene, Double> engine = Engine.builder(
 				this::fitness,
-				DoubleChromosome.of( -2,  2,     2), // Gaps
-				DoubleChromosome.of(  0,  1,  size), // Main Features
-				DoubleChromosome.of( -2,  2, fSize), // Correlated Features
-				DoubleChromosome.of( -2,  2,     4), // Context Re-weighting
-				DoubleChromosome.of(  0, 10,     1)  // Reinforcement weight
+				DoubleChromosome.of( -3,  3,      2), // Gaps
+				DoubleChromosome.of(  0,  1,   size), // Main Features
+				DoubleChromosome.of( -3,  3,  fSize), // Correlated Features
+				DoubleChromosome.of(  0, 0.00001, 4), // Context Re-weighting
+				DoubleChromosome.of(  0, 0.00001, 1)  // Reinforcement weight
 		)
 				.maximizing()
-				.populationSize(100)
+				.populationSize(200)
 				.selector(new EliteSelector<>())
 				.alterers(new GaussianMutator<>())
 				.build();
 
 		return engine.stream()
 				.limit(bySteadyFitness(100))
-				.peek(GeneCalibrator::print).collect(toBestGenotype());
+				.peek(this::print)
+				.collect(toBestGenotype());
 	}
 
 	/* TODO: fields needed for an instance
@@ -243,7 +244,7 @@ public final class GeneCalibrator<T>
 
 		return new NeedlemanWunschAlgorithm<>(
 				BaseOptimization.MIN,
-				contextComparator,
+				comparator,
 				gapPenalty,
 				getFactory()
 		);
@@ -309,11 +310,12 @@ public final class GeneCalibrator<T>
 		return new MatrixComparator<>(type, table);
 	}
 
-	private static void print(EvolutionResult<DoubleGene, Double> result) {
+	private void print(EvolutionResult<DoubleGene, Double> result) {
 		Genotype<DoubleGene> genotype = result.getBestPhenotype().getGenotype();
 		String join = toParameterString(genotype, DOUBLE_FORMAT);
-		System.out.printf("%d (%d) %s : %s -> %s%n",
+		System.out.printf("[%d] %d (%d) %s : %s -> %s%n",
 				result.getGeneration(),
+				(System.nanoTime() - startTime) / 1000000,
 				result.getPopulation().size(),
 				DOUBLE_FORMAT.format(result.getWorstFitness()),
 				DOUBLE_FORMAT.format(result.getBestFitness()),

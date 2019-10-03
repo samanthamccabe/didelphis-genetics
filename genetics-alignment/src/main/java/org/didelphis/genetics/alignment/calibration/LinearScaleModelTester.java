@@ -48,10 +48,6 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 6/6/2015
- */
 public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 
 	private static final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");

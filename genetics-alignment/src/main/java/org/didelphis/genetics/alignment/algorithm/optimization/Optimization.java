@@ -20,17 +20,13 @@
 
 package org.didelphis.genetics.alignment.algorithm.optimization;
 
-import lombok.NonNull;
-
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 
 /**
  * Class {@code Optimization}
  *
- * @author Samantha Fiona McCabe
  * @since 0.1.0
- * 	Date: 2017-07-23
  */
 public interface Optimization
 		extends BinaryOperator<Double>, BiPredicate<Double, Double> {

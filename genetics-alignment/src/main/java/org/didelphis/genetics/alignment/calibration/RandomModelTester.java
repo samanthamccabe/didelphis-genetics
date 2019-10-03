@@ -52,10 +52,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 5/6/2015
- */
 public final class RandomModelTester<T> extends BaseModelTester<T> {
 
 	private static final Pattern SPACE = Pattern.compile("\\s+");

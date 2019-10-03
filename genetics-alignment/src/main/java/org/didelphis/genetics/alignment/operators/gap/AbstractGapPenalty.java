@@ -24,10 +24,6 @@ import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 6/3/2015
- */
 public abstract class AbstractGapPenalty<T>
 		implements GapPenalty<T> {
 

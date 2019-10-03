@@ -39,9 +39,6 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-/**
- * @author Samantha Fiona McCabe Created: 4/12/2016
- */
 public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 	private final Segment<T> boundary;

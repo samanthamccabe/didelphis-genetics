@@ -22,6 +22,7 @@ package org.didelphis.genetics.alignment.common;
 
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.correspondences.EnvironmentMap;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
@@ -57,11 +58,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
 
-/**
- * @author Samantha Fiona McCabe Created: 6/6/2015
- */
 @UtilityClass
 public final class Utilities {
 
@@ -204,7 +201,8 @@ public final class Utilities {
 	}
 
 	public <T> List<Alignment<T>> toAlignments(
-			Table<Sequence<T>> table, SequenceFactory<T> factory
+			Table<Sequence<T>> table,
+			SequenceFactory<T> factory
 	) {
 		FeatureModel<T> featureModel = factory.getFeatureMapping()
 				.getFeatureModel();

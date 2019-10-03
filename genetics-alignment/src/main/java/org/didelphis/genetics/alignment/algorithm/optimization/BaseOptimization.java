@@ -30,8 +30,7 @@ import java.util.function.BiPredicate;
 /**
  * Class {@code Optimization}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-07-05
+ * @since 0.1.0
  */
 @ToString
 @EqualsAndHashCode

@@ -56,7 +56,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @ToString
@@ -184,7 +183,7 @@ public abstract class AbstractCalibrator<T, P> {
 
 	@NonNull
 	private TwoKeyMap<Segment<T>, Segment<T>, Double> initMap() {
-		return new GeneralTwoKeyMap<>(new TreeMap<>(), Suppliers.ofTreeMap());
+		return new GeneralTwoKeyMap<>(new HashMap<>(), Suppliers.ofHashMap());
 	}
 
 	private void populateCorrespondences(
@@ -269,7 +268,7 @@ public abstract class AbstractCalibrator<T, P> {
 			@NonNull TwoKeyMap<Segment<T>, Segment<T>, Double> map,
 			double reinforcementWeight
 	) {
-		double sum = map.stream().mapToDouble(Triple::getThirdElement).sum();
+		double sum = map.stream().mapToDouble(Triple::third).sum();
 
 		// Probability map
 		TwoKeyMap<Segment<T>, Segment<T>, Double> pMap = getTriples(map, sum);
@@ -290,17 +289,22 @@ public abstract class AbstractCalibrator<T, P> {
 
 	@NonNull
 	private TwoKeyMap<Segment<T>, Segment<T>, Double> getTriples(
-			@NonNull Map<Segment<T>, Map<Segment<T>, Double>> map, double sum
+			@NonNull TwoKeyMap<Segment<T>, Segment<T>, Double> map, double sum
 	) {
-		TwoKeyMap<Segment<T>, Segment<T>, Double> corrMap2 = initMap();
-		for (Map.Entry<Segment<T>, Map<Segment<T>, Double>> e1 : map.entrySet()) {
-			Segment<T> key1 = e1.getKey();
-			for (Map.Entry<Segment<T>, Double> e2 : e1.getValue().entrySet()) {
-				Segment<T> key2 = e2.getKey();
-				corrMap2.put(key1, key2, e2.getValue() / sum);
-			}
-		}
-		return corrMap2;
+
+		List<Double> values = new ArrayList<>();
+		map.values().stream().map(Map::values).forEach(values::addAll);
+
+		double max = values.stream().mapToDouble(d -> d).max().orElse(0);
+		double min = values.stream().mapToDouble(d -> d).min().orElse(0);
+
+		double mid = (max - min) / 2 + min;
+
+		TwoKeyMap<Segment<T>, Segment<T>, Double> pMap = initMap();
+		map.stream()
+				.filter(t -> t.third() >= mid)
+				.forEach(t -> pMap.put(t.first(), t.second(), t.third() / sum));
+		return pMap;
 	}
 
 	@NonNull

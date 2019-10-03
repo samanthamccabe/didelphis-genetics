@@ -25,10 +25,6 @@ import org.didelphis.language.phonetic.segments.Segment;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 4/10/2016
- */
 public class PairwiseCorrespondence<T> {
 
 	private final Segment<T> leftSegment;

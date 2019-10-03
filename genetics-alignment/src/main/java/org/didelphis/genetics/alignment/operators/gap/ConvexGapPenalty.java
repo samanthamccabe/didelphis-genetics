@@ -25,10 +25,6 @@ import lombok.NonNull;
 import lombok.ToString;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 6/4/15
- */
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class ConvexGapPenalty<T> extends AbstractGapPenalty<T> {

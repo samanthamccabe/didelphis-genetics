@@ -26,10 +26,6 @@ import lombok.NonNull;
 import lombok.ToString;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 6/3/2015
- */
 @ToString
 @EqualsAndHashCode
 public class ConstantGapPenalty<T> extends AbstractGapPenalty<T> {

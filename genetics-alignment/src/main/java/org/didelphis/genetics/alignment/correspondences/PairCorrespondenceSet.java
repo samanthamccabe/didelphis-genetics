@@ -35,9 +35,8 @@ import java.util.List;
 
 
 /**
- * @author Samantha Fiona McCabe
- * Created: 4/10/2016
- */
+ *
+ * /
 @ToString
 @EqualsAndHashCode
 public class PairCorrespondenceSet<T>

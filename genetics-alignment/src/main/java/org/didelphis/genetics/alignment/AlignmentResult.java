@@ -32,9 +32,7 @@ import java.util.List;
 
 /**
  * Class {@code AlignmentResult}
- *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-07-03
+ *@since 0.1.0
  */
 @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)

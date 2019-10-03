@@ -29,11 +29,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 8/17/2015
- */
-
 public class AlignmentContext<T> extends Twin<Alignment<T>> {
 	
 	private static final int HASH_ID = 0x732a970b;

@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
 /**
  * Class {@code StatsTracker}
  *
- * @author Samantha Fiona McCabe
- * @since 0.1.0 Date: 2017-06-28
+ * @since 0.1.0
  */
 @ToString
 final class StatsTracker

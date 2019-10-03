@@ -54,8 +54,6 @@ import static org.didelphis.genetics.alignment.algorithm.Operation.SUB;
 /**
  * Class {@code NeedlemanWunsch}
  *
- * @author Samantha Fiona McCabe
- * @since 06/05/2017
  */
 @ToString
 @EqualsAndHashCode

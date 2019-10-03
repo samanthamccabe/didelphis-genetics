@@ -28,10 +28,6 @@ import org.didelphis.genetics.alignment.correspondences.ContextSet;
 import java.util.ArrayList;
 import java.util.Collection;
 
-/**
- * @author Samantha Fiona McCabe
- * Created: 4/9/2016
- */
 public class SingleLayerReconstructor implements Reconstructor {
 
 	private final int n; // number of features

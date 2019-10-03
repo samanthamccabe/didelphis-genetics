@@ -27,9 +27,7 @@ import org.didelphis.language.phonetic.model.FeatureSpecification;
 /**
  * Class {@code Dataset}
  *
- * @author Samantha Fiona McCabe
  * @since 0.1.0
- * 		Date: 2017-08-02
  */
 public class Dataset<T> implements ModelBearer<T> {
 
