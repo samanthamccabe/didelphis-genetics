@@ -428,9 +428,9 @@ public final class ModelGenerator<T> {
 		SymmetricalTwoKeyMap<Segment<T>, Double> scores = new SymmetricalTwoKeyMap<>();
 		for (Triple<String, String, Double> triple : generator.getScores()) {
 			scores.put(
-					factory.toSegment(triple.getFirstElement()),
-					factory.toSegment(triple.getSecondElement()),
-					triple.getThirdElement());
+					factory.toSegment(triple.first()),
+					factory.toSegment(triple.second()),
+					triple.third());
 		}
 
 		BrownEtAlComparator<T> comparator = new BrownEtAlComparator<>(scores);

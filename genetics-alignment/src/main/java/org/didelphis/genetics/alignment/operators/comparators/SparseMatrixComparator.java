@@ -26,10 +26,13 @@ import lombok.ToString;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
+import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.maps.GeneralTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.didelphis.structures.tuples.Triple;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +44,8 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 	private final TwoKeyMap<Integer, Integer, Double> sparseWeights;
 	private final FeatureType<? super T> type;
 
+	private final TwoKeyMap<String, String, Double> cache;
+
 	public SparseMatrixComparator(
 			FeatureType<? super T> type,
 			List<Double> weights,
@@ -49,13 +54,44 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 		this.weights = weights;
 		this.type = type;
 		this.sparseWeights = sparseWeights;
+
+		cache=new GeneralTwoKeyMap<>();
 	}
 
 	@Override
 	public double apply(@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j) {
+
+		Segment<T> lSegment = left.get(i);
+		Segment<T> rSegment = right.get(j);
+
+		String lSymbol = lSegment.getSymbol();
+		String rSymbol = rSegment.getSymbol();
+
+		FeatureArray<T> lFeatures = lSegment.getFeatures();
+		FeatureArray<T> rFeatures = rSegment.getFeatures();
+
+		if (cache.contains(lSymbol, rSymbol)) {
+			return cache.get(lSymbol,rSymbol);
+		}
+
 		double score = 0.0;
-		FeatureArray<T> lFeatures = left.get(i).getFeatures();
-		FeatureArray<T> rFeatures = right.get(j).getFeatures();
+		for (Map.Entry<Integer, Map<Integer, Double>> e : sparseWeights.entrySet()) {
+			Integer i1 = e.getKey();
+			Map<Integer, Double> map = e.getValue();
+			for (Map.Entry<Integer, Double> entry : map.entrySet()) {
+				Integer i2 = entry.getKey();
+				T lFeature1 = lFeatures.get(i1);
+				T lFeature2 = lFeatures.get(i2);
+				T rFeature1 = rFeatures.get(i1);
+				T rFeature2 = rFeatures.get(i2);
+
+				double d1 = type.difference(lFeature1, rFeature2);
+				double d2 = type.difference(lFeature2, rFeature1);
+
+				score += (d1 + d2) * entry.getValue();
+			}
+		}
+
 		for (int k = 0; k < weights.size(); k++) {
 			T lF = lFeatures.get(k);
 			T rF = rFeatures.get(k);
@@ -63,6 +99,12 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 			Double w = weights.get(k);
 			score += w * d;
 		}
+
+		if (score < 0.0) {
+			score = 0.0;
+		}
+
+		cache.put(lSymbol,rSymbol, score);
 		return score;
 	}
 }

@@ -34,9 +34,6 @@ import java.util.Iterator;
 import java.util.List;
 
 
-/**
- *
- * /
 @ToString
 @EqualsAndHashCode
 public class PairCorrespondenceSet<T>

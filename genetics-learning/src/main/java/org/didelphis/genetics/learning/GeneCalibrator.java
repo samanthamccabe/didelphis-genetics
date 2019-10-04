@@ -134,6 +134,10 @@ public final class GeneCalibrator<T>
 		calibrator.addCorrelation("son", "cnt");
 		calibrator.addCorrelation("lat", "nas");
 		calibrator.addCorrelation("vce", "son");
+		calibrator.addCorrelation("lab", "rnd");
+		calibrator.addCorrelation("eje", "rel");
+		calibrator.addCorrelation("con", "eje");
+		calibrator.addCorrelation("con", "rel");
 
 		// Load all SDM training data
 		for (File file : new File(sdmPath).listFiles()) {
@@ -155,9 +159,7 @@ public final class GeneCalibrator<T>
 
 		double fitness = calibrator.fitness(genotype);
 
-		System.out.printf("%s | %s%n",
-				DOUBLE_FORMAT_LONG.format(fitness).trim(),
-				toParameterString(genotype, DOUBLE_FORMAT_LONG)
+		System.out.printf("│ %s | %s │%n", DOUBLE_FORMAT_LONG.format(fitness).trim(), toParameterString(genotype, DOUBLE_FORMAT_LONG)
 		);
 	}
 
@@ -188,14 +190,14 @@ public final class GeneCalibrator<T>
 
 		Engine<DoubleGene, Double> engine = Engine.builder(
 				this::fitness,
-				DoubleChromosome.of( -3,  3,      2), // Gaps
+				DoubleChromosome.of( -2,  2,      2), // Gaps
 				DoubleChromosome.of(  0,  1,   size), // Main Features
 				DoubleChromosome.of( -3,  3,  fSize), // Correlated Features
-				DoubleChromosome.of(  0, 0.00001, 4), // Context Re-weighting
-				DoubleChromosome.of(  0, 0.00001, 1)  // Reinforcement weight
+				DoubleChromosome.of(  0, 0.000001, 4), // Context Re-weighting
+				DoubleChromosome.of(  0, isUseReinforcement() ? 20 : 0.000001,      1)  // Reinforcement weight
 		)
 				.maximizing()
-				.populationSize(200)
+				.populationSize(300)
 				.selector(new EliteSelector<>())
 				.alterers(new GaussianMutator<>())
 				.build();
@@ -330,9 +332,13 @@ public final class GeneCalibrator<T>
 	) {
 		Collection<String> parameterGroups = new ArrayList<>();
 		for (int i = 0; i < genotype.length(); i++) {
-			parameterGroups.add(formatList(toList(genotype, i), format));
+			List<Double> collection = toList(genotype, i);
+			if (i == 1 && Double.isFinite(FIXED_WEIGHT)) {
+				collection.add(FIXED_POSITION, FIXED_WEIGHT);
+			}
+			parameterGroups.add(formatList(collection, format));
 		}
-		return String.join(" | ", parameterGroups);
+		return String.join(" │ ", parameterGroups);
 	}
 
 	private static String formatList(

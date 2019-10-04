@@ -22,6 +22,7 @@ package org.didelphis.genetics.learning;
 
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
@@ -63,7 +64,8 @@ import java.util.stream.Collectors;
 @FieldDefaults (level = AccessLevel.PRIVATE, makeFinal = true)
 public abstract class AbstractCalibrator<T, P> {
 
-	boolean useReinforcement;
+	@Getter boolean useReinforcement;
+
 	FileHandler handler;
 	Sequence<T> gap;
 	SequenceFactory<T> factory;
@@ -165,8 +167,7 @@ public abstract class AbstractCalibrator<T, P> {
 						sequences.get(1)
 				);
 				writer.write(matches(alignments, result) ? "1," : "0,");
-				writer.write(charSequences.get(0) + "," + charSequences.get(1) +
-						",");
+				writer.write(charSequences.get(0) + "," + charSequences.get(1) + ",");
 				List<CharSequence> list = result.getAlignments()
 						.get(0)
 						.buildPrettyAlignments();
@@ -229,7 +230,8 @@ public abstract class AbstractCalibrator<T, P> {
 				// Only retrieve the first alignment to create the sequences;
 				// Any second entry that exists should create the same sequence
 				List<Sequence<T>> sequences = getSequences(alignments.get(0));
-				AlignmentResult<T> result = algorithm.apply(sequences.get(0),
+				AlignmentResult<T> result = algorithm.apply(
+						sequences.get(0),
 						sequences.get(1)
 				);
 

@@ -43,13 +43,13 @@ public class BrownEtAlComparator<T> implements SequenceComparator<T> {
 	) {
 		map = new SymmetricalTwoKeyMap<>();
 		max = streamable.stream()
-				.map(Triple::getThirdElement)
+				.map(Triple::third)
 				.max(Double::compare)
 				.orElse(100.0);
 		streamable.stream().forEach(t -> map.put(
-				t.getFirstElement(),
-				t.getSecondElement(),
-				(max - t.getThirdElement()) / 10.0));
+				t.first(),
+				t.second(),
+				(max - t.third()) / 10.0));
 	}
 
 	@Override
