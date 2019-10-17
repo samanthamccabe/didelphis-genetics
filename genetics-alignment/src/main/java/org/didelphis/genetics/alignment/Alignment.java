@@ -21,6 +21,8 @@
 package org.didelphis.genetics.alignment;
 
 import lombok.NonNull;
+import lombok.ToString;
+
 import org.didelphis.language.phonetic.ModelBearer;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
@@ -35,6 +37,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+@ToString
 public final class  Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
 
@@ -84,25 +87,8 @@ public final class  Alignment<T> extends RectangularTable<Segment<T>>
 		return featureModel.getSpecification();
 	}
 
-	@NonNull
-	@Override
-	public String toString() {
-		return getPrettyTable().replaceAll("\n", "\t");
-	}
-
 	public void add(Collection<Segment<T>> list) {
 		insertColumn(rows(), list);
-	}
-
-	@Deprecated
-	public String getPrettyTable() {
-
-		StringBuilder stringBuilder = new StringBuilder();
-		for (CharSequence charSequence: buildPrettyAlignments()) {
-			stringBuilder.append(charSequence);
-			stringBuilder.append('\n');
-		}
-		return stringBuilder.toString();
 	}
 
 	/**
@@ -114,33 +100,17 @@ public final class  Alignment<T> extends RectangularTable<Segment<T>>
 	 *  d  a lh a n a
 	 * }
 	 *
-	 * @return a {@link List} where each entry is a single row of the
-	 * 		alignment
+	 * @return a {@link List} where each entry is a single row of the alignment
 	 */
-	public List<CharSequence> buildPrettyAlignments() {
-
-		List<CharSequence> builders = new ArrayList<>(rows());
-		int rows = rows();
-		int columns = columns();
-
-		List<Integer> maxima = new ArrayList<>(Collections.nCopies(columns, 0));
-		for (int j = 0; j < columns(); j++) {
-			for (int i = 0; i < rows(); i++) {
-				int v = maxima.get(j);
-				Segment<T> segment = get(i, j);
-				String s = segment.getSymbol();
-				int size = getPrintableLength(s);
-				if (v < size) {
-					maxima.set(j, size);
-				}
-			}
-		}
-
-		for (int i = 0; i < rows; i++) {
+	public static List<String> buildPrettyAlignments(Alignment<?> alignment) {
+		List<Integer> maxima = findMaxima(alignment);
+		List<String> builders = new ArrayList<>(alignment.rows());
+		for (int i = 0; i < alignment.rows(); i++) {
 			StringBuilder builder = new StringBuilder();
-			for (int j = 0; j < columns; j++) {
-				Segment<T> segment = get(i, j);
-				String s = segment == null ? "null" : segment.getSymbol();
+			// Start at 1 to remove the anchor character #
+			for (int j = 1; j < alignment.columns(); j++) {
+				Segment<?> segment = alignment.get(i, j);
+				String s = segment.getSymbol();
 				int maximum = maxima.get(j);
 				int visible = getPrintableLength(s);
 				builder.append(s).append(' ');
@@ -149,9 +119,26 @@ public final class  Alignment<T> extends RectangularTable<Segment<T>>
 					visible++;
 				}
 			}
-			builders.add(builder);
+			builders.add(builder.toString());
 		}
 		return builders;
+	}
+
+	@NonNull
+	private static List<Integer> findMaxima(Alignment<?> alignment) {
+		List<Integer> maxima = new ArrayList<>(Collections.nCopies(alignment.columns(), 0));
+		for (int j = 0; j < alignment.columns(); j++) {
+			for (int i = 0; i < alignment.rows(); i++) {
+				int v = maxima.get(j);
+				Segment<?> segment = alignment.get(i, j);
+				String s = segment.getSymbol();
+				int size = getPrintableLength(s);
+				if (v < size) {
+					maxima.set(j, size);
+				}
+			}
+		}
+		return maxima;
 	}
 
 	private static int getPrintableLength(String string) {

@@ -34,19 +34,25 @@ import java.util.function.BiPredicate;
  */
 @ToString
 @EqualsAndHashCode
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+	@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class BaseOptimization implements Optimization {
 
-	public static final Optimization MAX = new BaseOptimization(
+	public static final BaseOptimization MAX = new BaseOptimization(
 			(x, y) -> x > y, Double.MIN_VALUE
 	);
 
-	public static final Optimization MIN = new BaseOptimization(
+	public static final BaseOptimization MIN = new BaseOptimization(
 			(x, y) -> x < y, Double.MAX_VALUE
 	);
 
 	BiPredicate<? super Double, ? super Double> predicate;
 	double defaultValue;
+
+	public static BaseOptimization byName(String name) {
+		if (name.equals("MAX")) return MAX;
+		if (name.equals("MIN")) return MIN;
+		throw new IllegalArgumentException("Unknown optimization name " + name);
+	}
 
 	/**
 	 * Creates a basic {@link Optimization} using the provided values

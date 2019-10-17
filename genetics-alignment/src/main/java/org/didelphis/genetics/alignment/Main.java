@@ -24,44 +24,30 @@ import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
-import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
+import org.didelphis.genetics.alignment.analysis.UnmappedSymbolFinder;
 import org.didelphis.genetics.alignment.common.StringTransformer;
 import org.didelphis.genetics.alignment.common.Utilities;
-import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.didelphis.genetics.alignment.operators.comparators.LinearWeightComparator;
-import org.didelphis.genetics.alignment.operators.comparators.MatrixComparator;
-import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
-import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
+import org.didelphis.genetics.alignment.configuration.AlgorithmConfig;
+import org.didelphis.genetics.alignment.configuration.ConfigObject;
+import org.didelphis.genetics.alignment.configuration.DataFile;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.language.parsing.FormatterMode;
-import org.didelphis.language.parsing.ParseException;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.features.IntegerFeature;
-import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.Suppliers;
-import org.didelphis.structures.maps.GeneralMultiMap;
-import org.didelphis.structures.maps.GeneralTwoKeyMap;
-import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
-import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMap;
-import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
 import org.didelphis.structures.tables.ColumnTable;
-import org.didelphis.structures.tables.SymmetricTable;
+import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.utilities.Logger;
-import org.didelphis.utilities.Splitter;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
@@ -70,35 +56,34 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static java.util.regex.Pattern.LITERAL;
-import static java.util.regex.Pattern.compile;
+import static java.util.regex.Pattern.*;
 
 @UtilityClass
 public final class Main {
 
-	private static final Logger LOGGER = Logger.create(Main.class);
+	private static final Logger LOG = Logger.create(Main.class);
+
 	private static final Pattern EXTENSION_PATTERN = compile("\\.[^.]*?$");
 	private static final Pattern HYPHEN = compile("-");
 	private static final Pattern WHITESPACE = compile("(\n|\r\n?|\\s)+");
 	private static final Pattern HASH = compile("#", LITERAL);
 	private static final Pattern ZERO = compile("0");
 
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	private static final ObjectMapper OM = new ObjectMapper()
+			.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
 	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
 
 	static {
@@ -120,186 +105,193 @@ public final class Main {
 	public static void main(String[] args) throws IOException {
 
 		if (args.length == 0) {
-			LOGGER.error("You must provide a JSON configuration");
+			LOG.error("You must provide a JSON configuration");
 			System.exit(-1);
 		}
 
-		String configPath = args[0];
+		ConfigObject runConfig = OM.readValue(
+				HANDLER.read(args[0]),
+				ConfigObject.class);
 
-		String basePath = configPath.contains("/") 
-				? configPath.replaceAll("/[^/]+$", "/") 
-				: "";
+		File outputFolder = new File(runConfig.getDestinationPath());
 
-		String configData = HANDLER.read(configPath);
+		AlgorithmConfig algConfig = OM.readValue(
+				HANDLER.read(args[1]),
+				AlgorithmConfig.class);
 
-		// Read Configuration
-		JsonNode configNode = OBJECT_MAPPER.readTree(configData);
-		String modelPath   = basePath + configNode.get("model_path").asText();
-		String weightsPath = basePath + configNode.get("weights_path").asText();
+		FormatterMode mode = FormatterMode.INTELLIGENT;
 
-		List<String> transformPayload = readConfigArray("transformations", configNode);
-		String gapSymbol = readConfigString("gap_symbol", configNode);
+		Function<String, String> transformer = new StringTransformer(runConfig.getTransformations(), mode);
 
-		Map<File, List<List<String>>> files = loadData(basePath, configNode);
+		IntegerFeature instance = IntegerFeature.INSTANCE;
 
-		Function<String, String> transformer = new StringTransformer(transformPayload);
+		AlignmentAlgorithm<Integer> algorithm = buildAlgorithm(instance, algConfig);
 
-		FeatureType<Integer> type = IntegerFeature.INSTANCE;
+		SequenceFactory<Integer> factory = algorithm.getFactory();
 
-		FeatureModelLoader<Integer> loader = new FeatureModelLoader<>(
-				type,
-				HANDLER,
-				modelPath
+		UnmappedSymbolFinder<Integer> finder = new UnmappedSymbolFinder<>(
+				algConfig.getGapSymbol(),
+				factory,
+				true
 		);
 
-		FeatureMapping<Integer> mapping = loader.getFeatureMapping();
+		for (DataFile dataFile : runConfig.getFiles()) {
 
-		SequenceFactory<Integer> factory = new SequenceFactory<>(
-				mapping, FormatterMode.INTELLIGENT);
-		
-		Sequence<Integer> gap = factory.toSequence(gapSymbol);
-		GapPenalty<Integer> gapPenalty = new NullGapPenalty<>(gap);
+			Collection<String> allKeys = new HashSet<>();
+			dataFile.getKeys().forEach(allKeys::addAll);
 
-		SequenceComparator<Integer> comparator = readWeightsComparator(
-				type, weightsPath
-		);
-		
-		AlignmentAlgorithm<Integer> algorithm = new NeedlemanWunschAlgorithm<>(
-				BaseOptimization.MIN,
-				comparator,
-				gapPenalty,
-				factory
-		);
+			ColumnTable<String> table = parseDataFile(dataFile, mode, allKeys);
+			if (table == null) return;
 
-		Function<String,String> bFunc = new StringTransformer("^[^#] >> #$0");
-		for (Entry<File, List<List<String>>> languageEntry : files.entrySet()) {
-			File tableFile = languageEntry.getKey();
-			List<List<String>> keyList = languageEntry.getValue();
-			String path = tableFile.getPath();
-			ColumnTable<String> table = Utilities.loadTable(path, bFunc);
+			table.apply(transformer);
+			finder.countStringInTable(table);
+			finder.write(System.out);
+			finder.reset();
 
-			for (List<String> keys : keyList) {
-				ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
-						table,
-						factory,
-						transformer,
-						keys
-				);
+			ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
+					table,
+					factory,
+					transformer
+			);
 
-				MultiMap<String, AlignmentResult<Integer>> alignmentMap = align(
-						algorithm,
+			finder.countInTable(data);
+			finder.write(System.out);
+			finder.reset();
+
+			for (List<String> keys : dataFile.getKeys()) {
+
+				Collection<AlignmentResult<Integer>> results = align(algorithm,
 						keys,
 						data
 				);
 
-				String tablePath = tableFile.getCanonicalPath();
-				String rootPath = EXTENSION_PATTERN.matcher(tablePath)
-						.replaceAll("/aligned/");
-				writeAlignments(rootPath, alignmentMap);
+				writeResults(outputFolder, keys, results);
+			}
+		}
+	}
+
+	private static <T> void writeResults(
+			File outputFolder,
+			List<String> keys,
+			Collection<AlignmentResult<T>> results
+	) throws IOException {
+
+		if (!outputFolder.exists()) {
+			boolean failed = !outputFolder.mkdirs();
+			if (failed) {
+				LOG.error("Failed to create folder {}", outputFolder);
+			}
+		}
+
+		DecimalFormat decimalFormat = new DecimalFormat("0.00");
+		String fileName = String.join("-", keys) + ".sdm";
+		try(BufferedWriter writer = openWriter(outputFolder, fileName)) {
+
+			writer.write("%% "+fileName+"\n");
+			writer.write(keys.get(0) + "\n");
+			writer.write(keys.get(1) + "\n");
+			writer.write("\n");
+
+			for (AlignmentResult<T> result : results) {
+				Collection<String> leftList = new ArrayList<>();
+				Collection<String> rightList = new ArrayList<>();
+				for (Alignment<T> alignment : result.getAlignments()) {
+					List<String> charSequences = Alignment.buildPrettyAlignments(alignment);
+					leftList.add(charSequences.get(0));
+					rightList.add(charSequences.get(1));
+				}
+				String leftGroup = String.join(" | ", leftList);
+				String rightGroup = String.join(" | ", rightList);
+
+				Sequence<T> left  = result.getLeft();
+				Sequence<T> right = result.getRight();
+
+				writer.write(leftGroup + "\n");
+				writer.write(rightGroup + "\n");
+				writer.write("\n");
+				writer.flush();
+
+				// Write alignment table in SDM comment block
+				String collect1 = right.stream()
+						.map(Segment::getSymbol)
+						.map((String s) -> pad(s, 5))
+						.collect(Collectors.joining(" "));
+				writer.write("%      " + collect1 + "\n");
+				Table<Double> table = result.getTable();
+				for (int i = 0; i < table.rows(); i++) {
+					writer.write("% ");
+					writer.write(pad(left.get(i).getSymbol(), -5));
+					List<Double> row = table.getRow(i);
+					String collect = row.stream()
+							.map(decimalFormat::format)
+							.map((String string) -> pad(string, 5))
+							.collect(Collectors.joining(" "));
+					writer.write(collect);
+					writer.write("\n");
+				}
+				writer.write("\n");
+				writer.write("\n");
+				writer.flush();
 			}
 		}
 	}
 
 	@NonNull
-	private static Map<File, List<List<String>>> loadData(
-			String basePath, JsonNode configNode
-	) {
-		Map<File, List<List<String>>> files = new LinkedHashMap<>();
-		for (JsonNode file : configNode.get("files")) {
-			String path = file.get("path").asText();
-
-			List<List<String>> list = new ArrayList<>();
-			JsonNode jsonNode = file.get("cols");
-			for (JsonNode node : jsonNode) {
-				List<String> cols = new ArrayList<>();
-				for (JsonNode colNode : node) {
-					cols.add(colNode.asText());
-				}
-				list.add(cols);
-			}
-			files.put(new File(basePath + path), list);
-		}
-		return files;
-	}
-
-	private static String readConfigString(String key, JsonNode configNode)
+	private static BufferedWriter openWriter(File outputFolder, String fileName)
 			throws IOException {
-		String pathFieldName = key + "_path";
-		if (configNode.has(pathFieldName)) {
-			String path = configNode.get(pathFieldName).asText();
-			return HANDLER.read(path);
-		} else if (configNode.has(key)) {
-			JsonNode jsonNode = configNode.get(key);
-			return jsonNode.asText();
-		} else {
-			throw new IllegalArgumentException("Configuration item "
-					+ key
-					+ " and "
-					+ pathFieldName
-					+ " not found");
-		}
-	}
-	
-	private static List<String> readConfigArray(String key, JsonNode configNode)
-			throws IOException {
-		String pathFieldName = key + "_path";
-		if (configNode.has(pathFieldName)) {
-			String path = configNode.get(pathFieldName).asText();
-			String value = HANDLER.read(path);
-			return Splitter.lines(value);
-		} else if (configNode.has(key)) {
-			JsonNode jsonNode = configNode.get(key);
-			List<String> list = new ArrayList<>();
-			for (JsonNode node : jsonNode) {
-				list.add(node.asText(""));
-			}
-			return list;
-		} else {
-			throw new IllegalArgumentException("Configuration item "
-					+ key
-					+ " and "
-					+ pathFieldName
-					+ " not found");
-		}
+		return new BufferedWriter(new FileWriter(new File(outputFolder, fileName)));
 	}
 
-	private static @NonNull SequenceComparator<Integer> readWeightsComparator(
-			FeatureType<Integer> type, String path
+	@NonNull
+	private static String pad(String string, int width) {
+		StringBuilder stringBuilder = new StringBuilder(string);
+		if (width < 0) {
+			while (stringBuilder.length() < -width) {
+				stringBuilder.append(" ");
+			}
+		} else {
+			while (stringBuilder.length() < width) {
+				stringBuilder.insert(0, " ");
+			}
+		}
+		return stringBuilder.toString();
+	}
+
+	@NonNull
+	private static <T> AlignmentAlgorithm<T> buildAlgorithm(FeatureType<T> type, AlgorithmConfig config) {
+
+		FeatureModelLoader<T> loader = new FeatureModelLoader<>(
+				type,
+				HANDLER,
+				config.getModelPath()
+		);
+
+		SequenceFactory<T> factory = new SequenceFactory<>(
+				loader.getFeatureMapping(),
+				FormatterMode.INTELLIGENT
+		);
+
+		return config.buildAlgorithm(factory);
+	}
+
+	@Nullable
+	private static ColumnTable<String> parseDataFile(
+			@NonNull DataFile data, FormatterMode form, Collection<String> allKeys
 	) {
-		String payload;
-		try {
-			payload = HANDLER.read(path);
-		} catch (IOException e) {
-			throw new ParseException("Failed to load file from path " + path, e);
-		}
-
-		List<String> lines = Splitter.lines(payload.trim());
-		if (lines.size() == 1) {
-			List<Double> weights = new ArrayList<>();
-			for (String string : WHITESPACE.split(payload, -1)) {
-				weights.add(Double.parseDouble(string));
-			}
-			return new LinearWeightComparator<>(type, weights);
+		String path = data.getPath();
+		String format = data.getType();
+		ColumnTable<String> table;
+		if (format.equals("csv")) {
+			table = Utilities.csvToTable(path, form, allKeys);
+		} else if (format.equals("tsv")) {
+			table = Utilities.tsvToTable(path, form, allKeys);
+		} else if (format.equals("dsv")) {
+			table = Utilities.dsvToTable(path, form, allKeys);
 		} else {
-			int size = lines.size();
-			SymmetricTable<Double> table = new SymmetricTable<>(0.0, size);
-			int j = 0;
-			for (String line : lines) {
-				String[] split = WHITESPACE.split(line, -1);
-				for (int i = 0; i < split.length; i++) {
-					table.set(i, j, Double.parseDouble(split[i]));
-				}
-				j++;
-			}
-			return new MatrixComparator<>(type, table);
+			LOG.error("Unsupported file type {}", format);
+			return null;
 		}
-	}
-
-	private static <T> String collect(@Nullable Collection<Segment<T>> sequence) {
-		if (sequence == null) return "";
-		return sequence.stream()
-				.map(Objects::toString)
-				.collect(Collectors.joining(" "));
+		return table;
 	}
 
 	private static <T> void writeAlignments(String rootPath,
@@ -312,8 +304,8 @@ public final class Main {
 			sb1.append('\n');
 			for (AlignmentResult<T> result : entry.getRight()) {
 				Iterator<Alignment<T>> list = result.getAlignments().iterator();
-				List<CharSequence> charSequences = list.hasNext()
-						? list.next().buildPrettyAlignments()
+				List<String> charSequences = list.hasNext()
+						? Alignment.buildPrettyAlignments(list.next())
 						: Collections.emptyList();
 				for (CharSequence sequence : charSequences) {
 					String normal = Normalizer.normalize(sequence, Form.NFC);
@@ -329,120 +321,80 @@ public final class Main {
 				sb1.append(stackedSequences);
 				sb1.append('\n');
 
-				ObjectNode node = new ObjectNode(OBJECT_MAPPER.getNodeFactory());
-				node.put("left",result.getLeft().toString());
-				node.put("right",result.getRight().toString());
-				List<Object> objects = new ArrayList<>();
-				for (Alignment<T> alignment : result.getAlignments()) {
-					objects.add(alignment.getPrettyTable().split("\n"));
-				}
-				List<Object> table = new ArrayList<>();
-				Iterator<Collection<Double>> it = result.getTable().rowIterator();
-				while (it.hasNext()) {
-					table.add(it.next());
-				}
-				node.putPOJO("alignments",objects);
-				node.putPOJO("table", table);
-				try {
-					String value = OBJECT_MAPPER
-							.writerWithDefaultPrettyPrinter()
-							.writeValueAsString(node);
-					sb2.append(value);
-				} catch (JsonProcessingException e) {
-					LOGGER.error("{}", e);
-				}
+//				ObjectNode node = new ObjectNode(OM.getNodeFactory());
+//				node.put("left",result.getLeft().toString());
+//				node.put("right",result.getRight().toString());
+//				List<Object> objects = new ArrayList<>();
+//				for (Alignment<T> alignment : result.getAlignments()) {
+//					objects.add(alignment.getPrettyTable().split("\n"));
+//				}
+//				List<Object> table = new ArrayList<>();
+//				Iterator<Collection<Double>> it = result.getTable().rowIterator();
+//				while (it.hasNext()) {
+//					table.add(it.next());
+//				}
+//				node.putPOJO("alignments",objects);
+//				node.putPOJO("table", table);
+//				try {
+//					String value = OM
+//							.writerWithDefaultPrettyPrinter()
+//							.writeValueAsString(node);
+//					sb2.append(value);
+//				} catch (JsonProcessingException e) {
+//					LOG.error("{}", e);
+//				}
 			}
 
 			File file1 = new File(rootPath + "alignments_" + key + ".csv");
-			File file2 = new File(rootPath + "alignments_" + key + ".json");
+//			File file2 = new File(rootPath + "alignments_" + key + ".json");
 			Path path = file1.toPath();
 			try {
 				Files.createDirectories(path.getParent());
 			} catch (IOException e) {
-				LOGGER.error("{}", e);
+				LOG.error("{}", e);
 			}
 
 			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file1))) {
 				writer.write(sb1.toString());
 			} catch (IOException e) {
-				LOGGER.error("{}", e);
+				LOG.error("{}", e);
 			}
 
-			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file2))) {
-				writer.write(sb2.toString());
-			} catch (IOException e) {
-				LOGGER.error("{}", e);
-			}
+//			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file2))) {
+//				writer.write(sb2.toString());
+//			} catch (IOException e) {
+//				LOG.error("{}", e);
+//			}
 		}
 	}
 
 	@NonNull
-	private static <T> MultiMap<String, AlignmentResult<T>> align(
+	private static <T> Collection<AlignmentResult<T>> align(
 			@NonNull AlignmentAlgorithm<T> algorithm,
 			@NonNull List<String> keyList,
 			@NonNull ColumnTable<Sequence<T>> data
 	) {
-		MultiMap<String, AlignmentResult<T>> alignmentMap = new GeneralMultiMap<>(
-				new LinkedHashMap<>(),
-				Suppliers.ofList()
-		);
-		for (int i = 0; i < keyList.size(); i++) {
-			String k1 = keyList.get(i);
-			List<Sequence<T>> d1 = data.getColumn(k1);
-			for (int j = 1; j < keyList.size() && j != i; j++) {
-				String k2 = keyList.get(j);
-				List<Sequence<T>> d2 = data.getColumn(k2);
+		String k1 = keyList.get(0);
+		String k2 = keyList.get(1);
 
-				if (d1 == null || d2 == null || d1.size() != d2.size()) {
-					continue;
-				}
+		List<Sequence<T>> d1 = data.getColumn(k1);
+		List<Sequence<T>> d2 = data.getColumn(k2);
 
-				Collection<AlignmentResult<T>> alignments = new ArrayList<>();
-				Iterator<Sequence<T>> it1 = d1.iterator();
-				Iterator<Sequence<T>> it2 = d2.iterator();
-				while (it1.hasNext() && it2.hasNext()) {
-					Sequence<T> e1 = it1.next();
-					Sequence<T> e2 = it2.next();
+		Collection<AlignmentResult<T>> alignments = new ArrayList<>();
+		Iterator<Sequence<T>> it1 = d1.iterator();
+		Iterator<Sequence<T>> it2 = d2.iterator();
+		while (it1.hasNext() && it2.hasNext()) {
+			Sequence<T> e1 = it1.next();
+			Sequence<T> e2 = it2.next();
 
-					if (e1.isEmpty() || e2.isEmpty()) {
-						continue;
-					}
-
-					AlignmentResult<T> result = algorithm.apply(e1, e2);
-					alignments.add(result);
-				}
-
-				// Start assembling alignments
-				TwoKeyMap<Segment<T>, Segment<T>, Integer> correspondenceCounts = new GeneralTwoKeyMap<>();
-				TwoKeyMultiMap<Segment<T>, Segment<T>, AlignmentSlice<T>> correspondences = new GeneralTwoKeyMultiMap<>();
-
-				alignments.forEach(result -> {
-					for (Alignment<T> alignment : result.getAlignments()) {
-						for (int k = 0; k < alignment.columns(); k++) {
-							List<Segment<T>> column = alignment.getColumn(k);
-							Segment<T> s1 = column.get(0);
-							Segment<T> s2 = column.get(1);
-							add(correspondenceCounts, s1, s2);
-						}
-					}
-				});
-
-				alignments.forEach(result -> {
-					for (Alignment<T> alignment : result.getAlignments()) {
-						for (int k = 0; k < alignment.columns(); k++) {
-							List<Segment<T>> column = alignment.getColumn(k);
-							Segment<T> s1 = column.get(0);
-							Segment<T> s2 = column.get(1);
-							AlignmentSlice<T> slice = new AlignmentSlice<>(alignment, k);
-							correspondences.add(s1, s2, slice);
-						}
-					}
-				});
-
-				alignmentMap.addAll(k1 + '-' + k2, alignments);
+			if (e1.isEmpty() || e2.isEmpty()) {
+				continue;
 			}
+
+			AlignmentResult<T> result = algorithm.apply(e1, e2);
+			alignments.add(result);
 		}
-		return alignmentMap;
+		return alignments;
 	}
 
 	private static <E> void add(TwoKeyMap<E, E, Integer> map, E s1, E s2) {

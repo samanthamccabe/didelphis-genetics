@@ -30,6 +30,8 @@ import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparato
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.language.automata.Regex;
+import org.didelphis.language.parsing.Formatter;
+import org.didelphis.language.parsing.FormatterMode;
 import org.didelphis.language.parsing.ParseException;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
@@ -41,10 +43,16 @@ import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.DataTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
+import org.didelphis.utilities.Logger;
 import org.didelphis.utilities.Splitter;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,65 +65,51 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static java.util.Arrays.asList;
-
 @UtilityClass
 public final class Utilities {
 
 	public final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
 
+	private static final Logger LOG = Logger.create(Utilities.class);
 	private static final Regex PIPE     = new Regex("\\s+\\|\\s+");
 	private static final Regex NEWLINES = new Regex("\r\n|\n|\r");
 	private static final Regex BLOCK    = new Regex("(\r\n\r\n)|(\n\n)|(\r\r)");
 	private static final Regex COMMENT  = new Regex("%[^\n\r]*(\r\n|\n|\r)");
 
 	private final Pattern SPACE = Pattern.compile("\\s+");
+	private final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader();
+	private final CSVFormat TSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader().withDelimiter('\t');
+	private final CSVFormat DSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader().withDelimiter('|');
 
 	@NonNull
-	public ColumnTable<String> loadTable(String path) {
-		return loadTable(path, Function.identity());
+	public ColumnTable<String> dsvToTable(@NonNull String path) {
+		return loadTable(path, null, Collections.emptyList(), DSV_FORMAT);
 	}
 
 	@NonNull
-	public ColumnTable<String> toTable(
-			String payload, Function<? super String, String> transformer
-	) throws ParseException {
-		List<String> lines = NEWLINES.split(payload);
-		if (!lines.isEmpty()) {
-			List<String> keys = asList(lines.remove(0).split("\t", -1));
-			int numCol = keys.size();
-			List<List<String>> table = new ArrayList<>();
-			for (String line: lines) {
-				String[] cells = line.split("\t", -1);
-				List<String> list = asList(cells).subList(0, numCol);
-				List<String> collected = list.stream()
-						.map(transformer)
-						.collect(Collectors.toList());
-				table.add(collected);
-			}
-			return new DataTable<>(keys, table);
-		}
-		throw new ParseException("Unable to read table, payload was empty"+
-				payload);
+	public ColumnTable<String> csvToTable(@NonNull String path) {
+		return loadTable(path, null, Collections.emptyList(), CSV_FORMAT);
 	}
 
 	@NonNull
-	public ColumnTable<String> loadTable(
-			String path, Function<String, String> transformer
-	) {
-		FileHandler handler = new DiskFileHandler("UTF-8");
-		CharSequence chars;
-		try {
-			chars = handler.read(path);
-		} catch (IOException e) {
-			throw new ParseException("Unable to read table", e);
-		}
-		if (chars.length() == 0) {
-			throw new ParseException("Unable to read table, file was empty: " + path);
-		} else {
-			return toTable(chars.toString(), transformer);
-		}
+	public ColumnTable<String> tsvToTable(@NonNull String path) {
+		return loadTable(path, null, Collections.emptyList(), TSV_FORMAT);
+	}
+
+	@NonNull
+	public ColumnTable<String> dsvToTable(@NonNull String path, FormatterMode form, Collection<String> keys) {
+		return loadTable(path, form, keys, DSV_FORMAT);
+	}
+
+	@NonNull
+	public ColumnTable<String> csvToTable(@NonNull String path, FormatterMode form, Collection<String> keys) {
+		return loadTable(path, form, keys, CSV_FORMAT);
+	}
+
+	@NonNull
+	public ColumnTable<String> tsvToTable(@NonNull String path, FormatterMode form, Collection<String> keys) {
+		return loadTable(path, form, keys, TSV_FORMAT);
 	}
 
 	public <T> ColumnTable<Sequence<T>> toPhoneticTable(
@@ -186,7 +180,7 @@ public final class Utilities {
 		SymmetricalTwoKeyMap<Segment<T>, Double> map
 				= new SymmetricalTwoKeyMap<>();
 		String lines = handler.read(matrixPath);
-		
+
 		for (String line: Splitter.lines(lines)) {
 			String[] matcher = line.split("\t");
 			String s1 = matcher[0];
@@ -271,9 +265,7 @@ public final class Utilities {
 	public <T> Map<String, Map<Segment<T>, Integer>> computeSegmentCounts(
 			ColumnTable<Sequence<T>> data
 	) {
-
 		Map<String, Map<Segment<T>, Integer>> map = new HashMap<>();
-
 		for (String key: data.getKeys()) {
 			Map<Segment<T>, Integer> counts = new HashMap<>();
 			for (Sequence<T> sequence: data.getColumn(key)) {
@@ -374,6 +366,46 @@ public final class Utilities {
 			sequences.add(sequence);
 		}
 		return sequences;
+	}
+
+	@NonNull
+	private static ColumnTable<String> loadTable(
+			@NonNull String path,
+			@NonNull Formatter norm,
+			@NonNull Collection<String> keys,
+			@NonNull CSVFormat format
+	) {
+		FileHandler handler = new DiskFileHandler("UTF-8");
+		String payload;
+		try {
+			payload = handler.read(path);
+		} catch (IOException e) {
+			throw new ParseException("Unable to read table", e);
+		}
+		List<List<String>> table = new ArrayList<>();
+		try (CSVParser parser = CSVParser.parse(payload, format)){
+			List<String> headerNames = parser.getHeaderNames();
+			List<Integer> collect = keys.stream()
+					.filter(headerNames::contains)
+					.map(headerNames::indexOf)
+					.collect(Collectors.toList());
+			for (CSVRecord csvRecord : parser) {
+				List<String> row = new ArrayList<>();
+				for (int i = 0; i < csvRecord.size(); i++) {
+					if (keys.isEmpty() || collect.contains(i)) {
+						String entry = csvRecord.get(i);
+						row.add(norm.normalize(entry));
+					}
+				}
+				table.add(row);
+			}
+			List<String> strings = new ArrayList<>(headerNames);
+			strings.retainAll(keys);
+			return new DataTable<>(strings, table);
+		} catch (IOException e) {
+			LOG.error("Failed to read CSV from payload", e);
+		}
+		throw new ParseException("Unable to read table");
 	}
 
 	private <T> double getD(

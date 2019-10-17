@@ -33,6 +33,7 @@ import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModel;
+import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
@@ -59,21 +60,27 @@ import static org.didelphis.genetics.alignment.algorithm.Operation.SUB;
 @EqualsAndHashCode
 public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 
+	private final AlignmentMode         alignmentMode;
 	private final SequenceComparator<T> comparator;
 	private final Optimization          optimization;
 	private final GapPenalty<T>         gapPenalty;
 	private final SequenceFactory<T>    factory;
+	private final Segment<T>            anchor;
 
 	public NeedlemanWunschAlgorithm(
 			Optimization optimization,
+			AlignmentMode alignmentMode,
 			SequenceComparator<T> comparator,
 			GapPenalty<T> gapPenalty,
 			SequenceFactory<T> factory
 	) {
 		this.optimization = optimization;
+		this.alignmentMode = alignmentMode;
 		this.comparator   = comparator;
 		this.gapPenalty   = gapPenalty;
 		this.factory      = factory;
+
+		anchor = factory.toSegment("#");
 	}
 
 	@NonNull
@@ -81,6 +88,9 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 	public AlignmentResult<T> apply(
 			@NonNull Sequence<T> left, @NonNull Sequence<T> right
 	) {
+		if (!left.startsWith(anchor)) left.add(0, anchor);
+		if (!right.startsWith(anchor)) right.add(0, anchor);
+
 		AlgorithmRunner<T> runner = new AlgorithmRunner<>(left, right, this);
 		List<Alignment<T>> alignments = runner.align();
 		Table<Double> table = runner.getTable();

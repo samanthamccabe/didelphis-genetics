@@ -40,7 +40,7 @@ import java.util.Map;
 @EqualsAndHashCode
 public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 
-	private final List<Double> weights;
+	private final SequenceComparator<T> sequenceComparator;
 	private final TwoKeyMap<Integer, Integer, Double> sparseWeights;
 	private final FeatureType<? super T> type;
 
@@ -48,13 +48,12 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 
 	public SparseMatrixComparator(
 			FeatureType<? super T> type,
-			List<Double> weights,
+			SequenceComparator<T> sequenceComparator,
 			TwoKeyMap<Integer, Integer, Double> sparseWeights
 	) {
-		this.weights = weights;
 		this.type = type;
+		this.sequenceComparator = sequenceComparator;
 		this.sparseWeights = sparseWeights;
-
 		cache=new GeneralTwoKeyMap<>();
 	}
 
@@ -64,17 +63,20 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 		Segment<T> lSegment = left.get(i);
 		Segment<T> rSegment = right.get(j);
 
+		if (lSegment.equals(rSegment)) return 0.0;
+
 		String lSymbol = lSegment.getSymbol();
 		String rSymbol = rSegment.getSymbol();
-
-		FeatureArray<T> lFeatures = lSegment.getFeatures();
-		FeatureArray<T> rFeatures = rSegment.getFeatures();
 
 		if (cache.contains(lSymbol, rSymbol)) {
 			return cache.get(lSymbol,rSymbol);
 		}
 
-		double score = 0.0;
+		double score = sequenceComparator.apply(left, right, i, j);
+
+		FeatureArray<T> lFeatures = lSegment.getFeatures();
+		FeatureArray<T> rFeatures = rSegment.getFeatures();
+
 		for (Map.Entry<Integer, Map<Integer, Double>> e : sparseWeights.entrySet()) {
 			Integer i1 = e.getKey();
 			Map<Integer, Double> map = e.getValue();
@@ -90,14 +92,6 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 
 				score += (d1 + d2) * entry.getValue();
 			}
-		}
-
-		for (int k = 0; k < weights.size(); k++) {
-			T lF = lFeatures.get(k);
-			T rF = rFeatures.get(k);
-			Double d = type.difference(lF, rF);
-			Double w = weights.get(k);
-			score += w * d;
 		}
 
 		if (score < 0.0) {

@@ -21,6 +21,7 @@
 package org.didelphis.genetics.alignment.calibration;
 
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.AlignmentMode;
 import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
@@ -149,6 +150,7 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 			AlignmentAlgorithm<Integer> algorithm =
 					new NeedlemanWunschAlgorithm<>(
 							optimization,
+							AlignmentMode.GLOBAL,
 							sequenceComparator,
 							gapPenalty, factory);
 

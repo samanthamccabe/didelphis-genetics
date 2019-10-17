@@ -23,9 +23,13 @@ package org.didelphis.genetics.alignment.common;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import org.didelphis.language.automata.Regex;
+import org.didelphis.language.parsing.FormatterMode;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
@@ -46,14 +50,27 @@ public class StringTransformer implements UnaryOperator<String> {
 		expressions = Collections.emptyList();
 	}
 
-	public StringTransformer(Iterable<String> lines) {
+	public StringTransformer(
+			Iterable<List<String>> lines, FormatterMode mode
+	) {
 		expressions = new ArrayList<>();
-		for (String string : lines) {
-			String[] split = OPERATOR.split(string, -1);
-			expressions.add(new Expression(split[0], split[1]));
+		for (List<String> line : lines) {
+			String source = mode.normalize(line.get(0));
+			String target = mode.normalize(line.get(1));
+			expressions.add(new Expression(source, target));
 		}
 	}
-	
+
+	public StringTransformer(
+			Iterable<List<String>> lines) {
+		expressions = new ArrayList<>();
+		for (List<String> line : lines) {
+			String source = line.get(0);
+			String target = line.get(1);
+			expressions.add(new Expression(source, target));
+		}
+	}
+
 	public StringTransformer(CharSequence payload) {
 		expressions = new ArrayList<>();
 		for (String string : NEWLINE.split(payload)) {
@@ -73,16 +90,16 @@ public class StringTransformer implements UnaryOperator<String> {
 
 	private static final class Expression {
 
-		private final Pattern pattern;
+		private final Regex regex;
 		private final String replacement;
 
-		private Expression(String pattern, String replacement) {
-			this.pattern = Pattern.compile(pattern.trim());
+		private Expression(String regex, String replacement) {
+			this.regex = new Regex(regex.trim());
 			this.replacement = replacement.trim();
 		}
 
-		private String apply(CharSequence input) {
-			return pattern.matcher(input).replaceAll(replacement);
+		private String apply(String input) {
+			return regex.replace(input, replacement);
 		}
 	}
 }

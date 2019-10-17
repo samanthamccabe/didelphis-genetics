@@ -18,65 +18,19 @@
  *                                                                            *
  ******************************************************************************/
 
-package org.didelphis.genetics.alignment.correspondences;
+package org.didelphis.genetics.alignment.configuration;
 
-import lombok.NonNull;
-import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.genetics.alignment.Alignment;
-import org.didelphis.structures.tuples.Twin;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.experimental.FieldDefaults;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
-public class AlignmentContext<T> extends Twin<Alignment<T>> {
-	
-	private static final int HASH_ID = 0x732a970b;
-	
-	public AlignmentContext(Alignment<T> pre, Alignment<T> post) {
-		super(pre, post);
-	}
-
-	@Override
-	public int hashCode() {
-		return HASH_ID ^ super.hashCode();
-	}
-
-	@Override
-	public boolean equals(Object object) {
-		if (object == this) {
-			return true;
-		}
-		if (!(object instanceof AlignmentContext)) {
-			return false;
-		}
-		return super.equals(object);
-	}
-
-	@NonNull
-	@Override
-	public String toString() {
-
-		StringBuilder sb = new StringBuilder();
-
-		Collection<String> anteSequence = Alignment.buildPrettyAlignments(getLeft());
-		Collection<String> postSequence = Alignment.buildPrettyAlignments(getRight());
-
-		for (int i = 0; i < anteSequence.size(); i++) {
-			sb.append(anteSequence);
-			sb.append('_');
-			sb.append(postSequence);
-			sb.append('\n');
-		}
-		return sb.toString();
-	}
-
-	private static List<String> getStringList(
-			Collection<Sequence<Integer>> sequences) {
-		List<String> strings = new ArrayList<>(sequences.size());
-		for (Sequence<Integer> sequence : sequences) {
-			strings.add(sequence.toString());
-		}
-		return strings;
-	}
+@Data
+@FieldDefaults (level = AccessLevel.PRIVATE)
+public class ConfigObject {
+	String destinationPath;
+	List<List<String>> transformations;
+	List<DataFile> files;
 }
+

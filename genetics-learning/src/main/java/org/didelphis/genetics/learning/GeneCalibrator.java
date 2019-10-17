@@ -28,6 +28,7 @@ import lombok.experimental.FieldDefaults;
 
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.AlignmentMode;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
@@ -91,7 +92,7 @@ public final class GeneCalibrator<T>
 	private static final NumberFormat DOUBLE_FORMAT = new DecimalFormat("0.000");
 	private static final NumberFormat DOUBLE_FORMAT_LONG = new DecimalFormat(" 0.00000;-0.00000");
 
-	private static final double FIXED_WEIGHT = 1.00;
+	private static final double FIXED_WEIGHT = 1.10;
 	private static final int FIXED_POSITION = 1;
 
 	long startTime;
@@ -138,6 +139,12 @@ public final class GeneCalibrator<T>
 		calibrator.addCorrelation("eje", "rel");
 		calibrator.addCorrelation("con", "eje");
 		calibrator.addCorrelation("con", "rel");
+
+//		calibrator.addCorrelation("frn", "bck");
+//		calibrator.addCorrelation("frn", "hgt");
+//		calibrator.addCorrelation("hgt", "bck");
+//		calibrator.addCorrelation("hgt", "low");
+//		calibrator.addCorrelation("bck", "low");
 
 		// Load all SDM training data
 		for (File file : new File(sdmPath).listFiles()) {
@@ -246,6 +253,7 @@ public final class GeneCalibrator<T>
 
 		return new NeedlemanWunschAlgorithm<>(
 				BaseOptimization.MIN,
+				AlignmentMode.GLOBAL,
 				comparator,
 				gapPenalty,
 				getFactory()
@@ -289,7 +297,8 @@ public final class GeneCalibrator<T>
 			weights.add(FIXED_POSITION, FIXED_WEIGHT);
 		}
 		FeatureType<T> type = featureModel.getFeatureType();
-		return new SparseMatrixComparator<>(type, weights, sparseWeights);
+		SequenceComparator<T> comparator = new LinearWeightComparator<>(type, weights);
+		return new SparseMatrixComparator<>(type, comparator, sparseWeights);
 	}
 
 	@NonNull

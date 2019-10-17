@@ -38,9 +38,11 @@ import org.didelphis.genetic.data.generation.BrownAlignmentGenerator;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.AlignmentMode;
 import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.common.StringTransformer;
+import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConstantGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
@@ -62,6 +64,8 @@ import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tables.ColumnTable;
+import org.didelphis.structures.tables.DataTable;
+import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.utilities.Logger;
@@ -92,7 +96,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static org.didelphis.genetics.alignment.common.Utilities.loadTable;
 import static org.didelphis.genetics.alignment.common.Utilities.toAlignments;
 import static org.didelphis.genetics.alignment.common.Utilities.toPhoneticTable;
-import static org.didelphis.genetics.alignment.common.Utilities.toTable;
+import static org.didelphis.genetics.alignment.common.Utilities.tsvToTable;
 
 /**
  * Class {@code ModelGenerator}
@@ -229,8 +233,8 @@ public final class ModelGenerator<T> {
 		Genotype<DoubleGene> genotype = best.getGenotype();
 		String inputPath = trainingPath + dataSetName;
 		String outputPath = trainingPath + dataSetFolder ;
-		ColumnTable<String> table = loadTable(inputPath, TRANSFORMER);
-		generator.writeBestGenome(outputPath, table, genotype);
+//		ColumnTable<String> table = loadTable(inputPath, TRANSFORMER);
+//		generator.writeBestGenome(outputPath, table, genotype);
 	}
 
 	private <G extends Gene<T, G>> void writeBestGenome(String outputPath,
@@ -263,7 +267,8 @@ public final class ModelGenerator<T> {
 
 		String generate = alignmentGenerator.generate(3, 10, ITERATIONS);
 
-		ColumnTable<String> table = toTable(generate, TRANSFORMER);
+//		ColumnTable<String> table = Utilities.tsvToTable(generate, TRANSFORMER);
+		ColumnTable<String>table = new DataTable<String>(Collections.emptyList()); // TODO:
 		ColumnTable<Sequence<T>> testWords = toPhoneticTable(table, factory,
 				DELETE_GAP
 		);
@@ -442,6 +447,7 @@ public final class ModelGenerator<T> {
 				factory.toSequence("⬚"), gap1);
 		//		GapPenalty<T> penalty = new ConvexGapPenalty<>(factory.toSequence("⬚"), gap1, gap2);
 		return new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+				AlignmentMode.GLOBAL,
 				comparator,
 				penalty, factory
 		);
