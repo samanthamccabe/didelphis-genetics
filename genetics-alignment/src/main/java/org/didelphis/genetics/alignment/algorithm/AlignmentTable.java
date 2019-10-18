@@ -22,8 +22,11 @@ package org.didelphis.genetics.alignment.algorithm;
 
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+
+import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 
@@ -32,18 +35,61 @@ import java.util.Set;
 
 @ToString
 @EqualsAndHashCode
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class AlignmentTable {
+@FieldDefaults (level = AccessLevel.PRIVATE, makeFinal = true)
+public class AlignmentTable<T> {
 
 	Table<Set<Operation>> operations;
-	Table<Double>                  scores;
+	Table<Double> scores;
 
-	public AlignmentTable(double defaultValue, int row, int col
-	) {
-//		super(defaultValue, row, col);
-		operations = new RectangularTable<>(Collections.emptySet(), row, col);
-		scores     = new RectangularTable<>(defaultValue, row, col);
+	Sequence<T> left;
+	Sequence<T> right;
+
+	public AlignmentTable(Sequence<T> left, Sequence<T> right) {
+
+		int rows = left.size();
+		int cols = right.size();
+
+		this.left = left;
+		this.right = right;
+
+		Set<Operation> set = Collections.emptySet();
+		operations = new RectangularTable<>(set, rows, cols);
+		scores = new RectangularTable<>(0.0, rows, cols);
 	}
 
+	public void setScore(int i, int j, double value) {
+		scores.set(i, j, value);
+	}
 
+	public int rows() {
+		return left.size();
+	}
+
+	public int cols() {
+		return right.size();
+	}
+
+	public double getScore(int i, int j) {
+		return scores.get(i,j);
+	}
+
+	public Set<Operation> getOperations(int i, int j) {
+		return operations.get(i,j);
+	}
+
+	public void setOperations(int i, int j, Set<Operation> opSet) {
+		operations.set(i,j,opSet);
+	}
+
+	public Table<Double> getScores() {
+		return scores;
+	}
+
+	public @NonNull Sequence<T> getLeft() {
+		return left;
+	}
+
+	public @NonNull Sequence<T> getRight() {
+		return right;
+	}
 }

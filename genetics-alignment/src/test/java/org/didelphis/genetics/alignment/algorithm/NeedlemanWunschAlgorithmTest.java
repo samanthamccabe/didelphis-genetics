@@ -121,10 +121,13 @@ class NeedlemanWunschAlgorithmTest {
 		SequenceComparator<Boolean> comparator = (left, right, i, j) ->
 				Objects.equals(left.get(i),right.get(j)) ? 0 : 1;
 
-		AlignmentAlgorithm<Boolean> algorithm = new NeedlemanWunschAlgorithm<>(BaseOptimization.MIN,
+		Sequence<Boolean> segments = factory.toSequence("_");
+		GapPenalty<Boolean> gapPenalty = new NullGapPenalty<>(segments);
+		AlignmentAlgorithm<Boolean> algorithm = new NeedlemanWunschAlgorithm<>(
+				BaseOptimization.MIN,
 				AlignmentMode.GLOBAL,
 				comparator,
-				new NullGapPenalty<>(factory.toSequence("_")),
+				gapPenalty,
 				factory
 		);
 
@@ -134,7 +137,9 @@ class NeedlemanWunschAlgorithmTest {
 
 		assertFalse(result.getAlignments().isEmpty());
 		assertEquals(2.0, result.getScore());
-		String expected = "# _ b a b a \t# a b a b b \t";
-		assertEquals(expected, result.getAlignments().get(0).toString());
+
+		List<String> expected = Arrays.asList("_ b a b a ", "a b a b b ");
+		Alignment<Boolean> received = result.getAlignments().get(0);
+		assertEquals(expected, Alignment.buildPrettyAlignments(received));
 	}
 }
