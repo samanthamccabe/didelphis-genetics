@@ -49,6 +49,7 @@ import org.didelphis.utilities.Splitter;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.csv.QuoteMode;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -80,35 +81,35 @@ public final class Utilities {
 	private final Pattern SPACE = Pattern.compile("\\s+");
 	private final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader();
 	private final CSVFormat TSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader().withDelimiter('\t');
-	private final CSVFormat DSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader().withDelimiter('|');
+	private final CSVFormat DSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader().withDelimiter('|').withQuote(null);
 
 	@NonNull
 	public ColumnTable<String> dsvToTable(@NonNull String path) {
-		return loadTable(path, null, Collections.emptyList(), DSV_FORMAT);
+		return loadTable(path, FormatterMode.NONE, Collections.emptyList(), DSV_FORMAT);
 	}
 
 	@NonNull
 	public ColumnTable<String> csvToTable(@NonNull String path) {
-		return loadTable(path, null, Collections.emptyList(), CSV_FORMAT);
+		return loadTable(path, FormatterMode.NONE, Collections.emptyList(), CSV_FORMAT);
 	}
 
 	@NonNull
 	public ColumnTable<String> tsvToTable(@NonNull String path) {
-		return loadTable(path, null, Collections.emptyList(), TSV_FORMAT);
+		return loadTable(path, FormatterMode.NONE, Collections.emptyList(), TSV_FORMAT);
 	}
 
 	@NonNull
-	public ColumnTable<String> dsvToTable(@NonNull String path, FormatterMode form, Collection<String> keys) {
+	public ColumnTable<String> dsvToTable(@NonNull String path, Formatter form, Collection<String> keys) {
 		return loadTable(path, form, keys, DSV_FORMAT);
 	}
 
 	@NonNull
-	public ColumnTable<String> csvToTable(@NonNull String path, FormatterMode form, Collection<String> keys) {
+	public ColumnTable<String> csvToTable(@NonNull String path, Formatter form, Collection<String> keys) {
 		return loadTable(path, form, keys, CSV_FORMAT);
 	}
 
 	@NonNull
-	public ColumnTable<String> tsvToTable(@NonNull String path, FormatterMode form, Collection<String> keys) {
+	public ColumnTable<String> tsvToTable(@NonNull String path, Formatter form, Collection<String> keys) {
 		return loadTable(path, form, keys, TSV_FORMAT);
 	}
 

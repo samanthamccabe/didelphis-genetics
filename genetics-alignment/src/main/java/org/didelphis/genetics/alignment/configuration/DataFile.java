@@ -24,6 +24,10 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+import org.didelphis.genetics.alignment.common.StringTransformer;
+import org.didelphis.language.parsing.FormatterMode;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,5 +37,17 @@ public class DataFile {
 	String path;
 	String type;
 	Map<String, String> displayNames;
+	Map<String, StringTransformer> transformations;
 	List<List<String>> keys;
+
+	public void setTransformations(Map<String, List<List<String>>> map) {
+		transformations = new HashMap<>();
+		for (Map.Entry<String, List<List<String>>> entry : map.entrySet()) {
+			String key = entry.getKey();
+			List<List<String>> value = entry.getValue();
+			FormatterMode mode = FormatterMode.INTELLIGENT;
+			StringTransformer transformer = new StringTransformer(value, mode);
+			transformations.put(key, transformer);
+		}
+	}
 }

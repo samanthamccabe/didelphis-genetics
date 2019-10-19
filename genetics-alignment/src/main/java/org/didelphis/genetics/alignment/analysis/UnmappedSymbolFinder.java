@@ -25,6 +25,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.genetics.alignment.Main;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
@@ -40,6 +41,7 @@ import org.didelphis.language.phonetic.segments.UndefinedSegment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tuples.Couple;
+import org.didelphis.utilities.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,10 +59,13 @@ import java.util.Set;
 @EqualsAndHashCode
 public final class UnmappedSymbolFinder<T> {
 
+	private static final Logger LOG = Logger.create(Main.class);
+
 	private final String gap;
 	private final SequenceFactory<T> factory;
 	private final boolean countWholeSymbols;
 	private final Map<String, Integer> counts;
+	private final Map<String, Boolean> isMapped;
 
 	public static void main(String[] args) {
 
@@ -107,7 +112,7 @@ public final class UnmappedSymbolFinder<T> {
 		this.factory = factory;
 		this.countWholeSymbols = countWholeSymbols;
 		counts = new HashMap<>();
-
+		isMapped = new HashMap<>();
 	}
 
 	public void countStringInTable(ColumnTable<String> table) {
@@ -154,17 +159,26 @@ public final class UnmappedSymbolFinder<T> {
 				.forEach(couple -> {
 					String symbol = couple.getLeft();
 					Integer count = couple.getRight();
-					String s = " " + symbol + "\t" + count+"\n";
+					String flag = (isMapped.get(symbol) ? "" : "\t!!!");
+					String s = " " + symbol + "\t" + count + flag +"\n";
 					try {
 						out.write(s.getBytes());
 					} catch (IOException e) {
-//						LOG
+						LOG.error("Unable to write to stream {}", out, e);
 					}
 				});
 	}
 
 	public void reset() {
 		counts.clear();
+	}
+
+	public void countInSequences(List<Sequence<T>> column) {
+		for (Sequence<T> segments : column) {
+			for (Segment<T> segment : segments) {
+				update(segment);
+			}
+		}
 	}
 
 	private void update(String seg) {
@@ -174,33 +188,40 @@ public final class UnmappedSymbolFinder<T> {
 		Set<String> keys = featureMapping.getFeatureMap().keySet();
 		Set<String> mods = featureMapping.getModifiers().keySet();
 
+		counts.put(seg, counts.getOrDefault(seg, 0) + 1);
 		if (!keys.contains(seg) && !mods.contains(seg)) {
-			counts.put(seg, counts.getOrDefault(seg, 0) + 1);
+			isMapped.put(seg, false);
+		} else {
+			isMapped.put(seg, true);
 		}
 	}
 
 	private void update(Segment<T> seg) {
 		String symbol = seg.getSymbol();
 
-		if (symbol.equals("#") || symbol.equals("░")) return;
+		counts.put(symbol, counts.getOrDefault(symbol, 0) + 1);
 
 		//noinspection ChainOfInstanceofChecks
 		if (seg instanceof UndefinedSegment) {
-			counts.put(symbol, counts.getOrDefault(symbol, 0) + 1);
+			isMapped.put(symbol, false);
 		} else if (seg instanceof SemidefinedSegment) {
 			SemidefinedSegment<T> sdg = (SemidefinedSegment<T>) seg;
 			if (countWholeSymbols) {
-				counts.put(symbol, counts.getOrDefault(symbol, 0) + 1);
+				isMapped.put(symbol, false);
 			} else {
 				String prefix = sdg.getPrefix();
 				String suffix = sdg.getSuffix();
 				if (!prefix.isEmpty()) {
 					counts.put(prefix, counts.getOrDefault(prefix, 0) + 1);
+					isMapped.put(symbol, false);
 				}
 				if (!suffix.isEmpty()) {
 					counts.put(suffix, counts.getOrDefault(suffix, 0) + 1);
+					isMapped.put(symbol, false);
 				}
 			}
+		} else {
+			isMapped.put(symbol, true);
 		}
 	}
 

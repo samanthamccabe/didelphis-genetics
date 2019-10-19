@@ -34,6 +34,7 @@ import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
+import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Twin;
 
 import java.util.ArrayList;
@@ -137,6 +138,25 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 		int i = table.rows() - 1;
 		int j = table.cols() - 1;
 
+		if (alignmentMode == AlignmentMode.LOCAL) {
+			double max = optimization.defaultValue();
+			int iMax = i;
+			int jMax = j;
+			Table<Double> scores = table.getScores();
+			for (int p = 0; p <= i; p++) {
+				for (int q = 0; q <= j; q++) {
+					double v = scores.get(p, q);
+					if (v > max) {
+						max = v;
+						iMax = p;
+						jMax = q;
+					}
+				}
+			}
+			i = iMax;
+			j = jMax;
+		}
+
 		// Leaving these in for now; Recursive tracing is probably needed
 		// in order to find multiple paths
 		Sequence<T> right = table.getRight();
@@ -174,16 +194,18 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 	private void populateTable(AlignmentTable<T> table) {
 		int m = table.rows();
 		int n = table.cols();
-		for (int j = 1; j < n; j++) {
-			double v = ins(table, 0, j);
-			table.setScore(0, j, v);
-			table.setOperations(0, j, Collections.singleton(INS));
-		}
 
-		for (int i = 1; i < m; i++) {
-			double v = del(table, i, 0);
-			table.setScore(i, 0, v);
-			table.setOperations(i, 0, Collections.singleton(DEL));
+		if (alignmentMode != AlignmentMode.LOCAL) {
+			for (int j = 1; j < n; j++) {
+				double v = ins(table, 0, j);
+				table.setScore(0, j, v);
+				table.setOperations(0, j, Collections.singleton(INS));
+			}
+			for (int i = 1; i < m; i++) {
+				double v = del(table, i, 0);
+				table.setScore(i, 0, v);
+				table.setOperations(i, 0, Collections.singleton(DEL));
+			}
 		}
 
 		for (int i = 1; i < m; i++) {

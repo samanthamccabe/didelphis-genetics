@@ -129,12 +129,6 @@ public final class Main {
 
 		SequenceFactory<Integer> factory = algorithm.getFactory();
 
-		UnmappedSymbolFinder<Integer> finder = new UnmappedSymbolFinder<>(
-				algConfig.getGapSymbol(),
-				factory,
-				true
-		);
-
 		for (DataFile dataFile : runConfig.getFiles()) {
 
 			Collection<String> allKeys = new HashSet<>();
@@ -143,28 +137,26 @@ public final class Main {
 			ColumnTable<String> table = parseDataFile(dataFile, mode, allKeys);
 			if (table == null) return;
 
-			table.apply(transformer);
-			finder.countStringInTable(table);
-			finder.write(System.out);
-			finder.reset();
-
 			ColumnTable<Sequence<Integer>> data = Utilities.toPhoneticTable(
 					table,
 					factory,
 					transformer
 			);
 
-			finder.countInTable(data);
-			finder.write(System.out);
-			finder.reset();
+			for (String headerKey : data.getKeys()) {
+				String gapSymbol = algConfig.getGapSymbol();
+				UnmappedSymbolFinder<Integer> finder = new UnmappedSymbolFinder<>(gapSymbol, factory, true);
+				List<Sequence<Integer>> column = data.getColumn(headerKey);
+				finder.countInSequences(column);
+				System.out.println(dataFile.getDisplayNames().get(headerKey));
+				finder.write(System.out);
+			}
 
 			for (List<String> keys : dataFile.getKeys()) {
-
 				Collection<AlignmentResult<Integer>> results = align(algorithm,
 						keys,
 						data
 				);
-
 				writeResults(outputFolder, keys, results);
 			}
 		}
@@ -174,7 +166,7 @@ public final class Main {
 			File outputFolder,
 			List<String> keys,
 			Collection<AlignmentResult<T>> results
-	) throws IOException {
+	) {
 
 		if (!outputFolder.exists()) {
 			boolean failed = !outputFolder.mkdirs();
@@ -200,6 +192,7 @@ public final class Main {
 					leftList.add(charSequences.get(0));
 					rightList.add(charSequences.get(1));
 				}
+
 				String leftGroup = String.join(" | ", leftList);
 				String rightGroup = String.join(" | ", rightList);
 
@@ -233,6 +226,8 @@ public final class Main {
 				writer.write("\n");
 				writer.flush();
 			}
+		} catch (IOException e) {
+			LOG.error("Unable to write outputs", e);
 		}
 	}
 
