@@ -32,6 +32,7 @@ import org.didelphis.structures.maps.GeneralTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.didelphis.structures.tuples.Triple;
 
+import javax.swing.table.TableRowSorter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,21 +78,19 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 		FeatureArray<T> lFeatures = lSegment.getFeatures();
 		FeatureArray<T> rFeatures = rSegment.getFeatures();
 
-		for (Map.Entry<Integer, Map<Integer, Double>> e : sparseWeights.entrySet()) {
-			Integer i1 = e.getKey();
-			Map<Integer, Double> map = e.getValue();
-			for (Map.Entry<Integer, Double> entry : map.entrySet()) {
-				Integer i2 = entry.getKey();
-				T lFeature1 = lFeatures.get(i1);
-				T lFeature2 = lFeatures.get(i2);
-				T rFeature1 = rFeatures.get(i1);
-				T rFeature2 = rFeatures.get(i2);
+		for (Triple<Integer, Integer, Double> triple : sparseWeights) {
+			int i1 = triple.first();
+			int i2 = triple.second();
 
-				double d1 = type.difference(lFeature1, rFeature2);
-				double d2 = type.difference(lFeature2, rFeature1);
+			T lFeature1 = lFeatures.get(i1);
+			T lFeature2 = lFeatures.get(i2);
+			T rFeature1 = rFeatures.get(i1);
+			T rFeature2 = rFeatures.get(i2);
 
-				score += (d1 + d2) * entry.getValue();
-			}
+			double d1 = type.difference(lFeature1, rFeature2);
+			double d2 = type.difference(lFeature2, rFeature1);
+
+			score += (d1 + d2) * triple.third();
 		}
 
 		if (score < 0.0) {

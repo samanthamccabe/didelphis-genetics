@@ -30,6 +30,7 @@ import lombok.experimental.FieldDefaults;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.AlignmentMode;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
 import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
@@ -157,7 +158,7 @@ public abstract class AbstractCalibrator<T, P> {
 				// Any second entry that exists should create the same sequence
 				Alignment<T> baseAlignment = alignments.get(0);
 
-				List<CharSequence> charSequences = baseAlignment.buildPrettyAlignments();
+				List<String> charSequences = Alignment.buildPrettyAlignments(baseAlignment);
 				if (charSequences.size() != 2) {
 					continue;
 				}
@@ -168,13 +169,12 @@ public abstract class AbstractCalibrator<T, P> {
 				);
 				writer.write(matches(alignments, result) ? "1," : "0,");
 				writer.write(charSequences.get(0) + "," + charSequences.get(1) + ",");
-				List<CharSequence> list = result.getAlignments()
-						.get(0)
-						.buildPrettyAlignments();
+				List<String> list = Alignment.buildPrettyAlignments(result.getAlignments().get(0));
 				for (CharSequence sequence : list) {
 					writer.write(sequence + ",");
 				}
-				writer.write("\"" + result.getTable().formattedTable() + "\"");
+				// TODO: fill this if we are ever going to use it
+//				writer.write("\"" + result.getTable().formattedTable() + "\"");
 				writer.write("\n");
 			}
 		} catch (IOException e) {
@@ -184,7 +184,7 @@ public abstract class AbstractCalibrator<T, P> {
 
 	@NonNull
 	private TwoKeyMap<Segment<T>, Segment<T>, Double> initMap() {
-		return new GeneralTwoKeyMap<>(new HashMap<>(), Suppliers.ofHashMap());
+		return new GeneralTwoKeyMap<>(HashMap.class);
 	}
 
 	private void populateCorrespondences(
@@ -282,7 +282,9 @@ public abstract class AbstractCalibrator<T, P> {
 				reinforcementWeight
 		);
 
-		return new NeedlemanWunschAlgorithm<>(algorithm.getOptimization(),
+		return new NeedlemanWunschAlgorithm<>(
+				algorithm.getOptimization(),
+				AlignmentMode.GLOBAL,
 				rlComparator,
 				algorithm.getGapPenalty(),
 				algorithm.getFactory()
@@ -294,8 +296,9 @@ public abstract class AbstractCalibrator<T, P> {
 			@NonNull TwoKeyMap<Segment<T>, Segment<T>, Double> map, double sum
 	) {
 
-		List<Double> values = new ArrayList<>();
-		map.values().stream().map(Map::values).forEach(values::addAll);
+		List<Double> values = map.stream()
+				.map(Triple::third)
+				.collect(Collectors.toList());
 
 		double max = values.stream().mapToDouble(d -> d).max().orElse(0);
 		double min = values.stream().mapToDouble(d -> d).min().orElse(0);

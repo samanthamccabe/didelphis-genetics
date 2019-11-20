@@ -38,7 +38,7 @@ import java.util.Collections;
 import java.util.List;
 
 @ToString
-public final class  Alignment<T> extends RectangularTable<Segment<T>>
+public final class Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
 
 	private final FeatureModel<T> featureModel;
@@ -77,6 +77,7 @@ public final class  Alignment<T> extends RectangularTable<Segment<T>>
 		featureModel = left.getFeatureModel();
 	}
 
+	@NonNull
 	@Override
 	public FeatureModel<T> getFeatureModel() {
 		return featureModel;
@@ -91,13 +92,22 @@ public final class  Alignment<T> extends RectangularTable<Segment<T>>
 		insertColumn(rows(), list);
 	}
 
+	@NonNull
+	public List<List<Segment<T>>> toCorrespondences() {
+		List<List<Segment<T>>> list = new ArrayList<>();
+		for (int i = 0; i < columns(); i++) {
+			list.add(getColumn(i));
+		}
+		return list;
+	}
+
 	/**
 	 * Generates a human-readable alignments so that aligned segments of
 	 * different sizes will still group into columns by adding padding on the
 	 * shorter of a group:
 	 * {@code
-	 *  th a l  a n _
-	 *  d  a lh a n a
+	 *     th a l  a n _
+	 *     _  a lh a n a
 	 * }
 	 *
 	 * @return a {@link List} where each entry is a single row of the alignment
@@ -126,8 +136,9 @@ public final class  Alignment<T> extends RectangularTable<Segment<T>>
 
 	@NonNull
 	private static List<Integer> findMaxima(Alignment<?> alignment) {
-		List<Integer> maxima = new ArrayList<>(Collections.nCopies(alignment.columns(), 0));
-		for (int j = 0; j < alignment.columns(); j++) {
+		int columns = alignment.columns();
+		List<Integer> maxima = initMaxima(columns);
+		for (int j = 0; j < columns; j++) {
 			for (int i = 0; i < alignment.rows(); i++) {
 				int v = maxima.get(j);
 				Segment<?> segment = alignment.get(i, j);
@@ -139,6 +150,11 @@ public final class  Alignment<T> extends RectangularTable<Segment<T>>
 			}
 		}
 		return maxima;
+	}
+
+	@NonNull
+	private static List<Integer> initMaxima(int columns) {
+		return new ArrayList<>(Collections.nCopies(columns, 0));
 	}
 
 	private static int getPrintableLength(String string) {

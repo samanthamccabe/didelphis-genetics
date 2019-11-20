@@ -80,7 +80,7 @@ public class AlgorithmConfig {
 		if (type.equals("convex")) {
 			List<?> parameters = penaltyConfig.getParameters();
 			return new ConvexGapPenalty<>(
-					factory.apply(gap),
+					factory.toSequence(gap),
 					(Double) parameters.get(0),
 					(Double) parameters.get(1)
 			);

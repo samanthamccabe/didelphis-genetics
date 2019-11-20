@@ -20,29 +20,17 @@
 
 package org.didelphis.genetics.learning;
 
-import io.jenetics.Chromosome;
-import io.jenetics.DoubleChromosome;
-import io.jenetics.DoubleGene;
-import io.jenetics.Gene;
-import io.jenetics.Genotype;
-import io.jenetics.Mutator;
-import io.jenetics.Phenotype;
-import io.jenetics.SinglePointCrossover;
-import io.jenetics.StochasticUniversalSelector;
-import io.jenetics.engine.Engine;
-import io.jenetics.engine.EvolutionResult;
-import io.jenetics.engine.EvolutionStatistics;
 import lombok.NonNull;
 import lombok.ToString;
+
 import org.didelphis.genetic.data.generation.BrownAlignmentGenerator;
 import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.genetics.alignment.algorithm.AlignmentMode;
-import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.NeedlemanWunschAlgorithm;
+import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.common.StringTransformer;
-import org.didelphis.genetics.alignment.common.Utilities;
 import org.didelphis.genetics.alignment.operators.comparators.BrownEtAlComparator;
 import org.didelphis.genetics.alignment.operators.gap.ConstantGapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
@@ -65,10 +53,22 @@ import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.DataTable;
-import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.utilities.Logger;
+
+import io.jenetics.Chromosome;
+import io.jenetics.DoubleChromosome;
+import io.jenetics.DoubleGene;
+import io.jenetics.Gene;
+import io.jenetics.Genotype;
+import io.jenetics.Mutator;
+import io.jenetics.Phenotype;
+import io.jenetics.SinglePointCrossover;
+import io.jenetics.StochasticUniversalSelector;
+import io.jenetics.engine.Engine;
+import io.jenetics.engine.EvolutionResult;
+import io.jenetics.engine.EvolutionStatistics;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -90,13 +90,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.jenetics.engine.EvolutionResult.toBestPhenotype;
-import static io.jenetics.engine.Limits.bySteadyFitness;
-import static java.nio.file.StandardOpenOption.CREATE;
-import static org.didelphis.genetics.alignment.common.Utilities.loadTable;
-import static org.didelphis.genetics.alignment.common.Utilities.toAlignments;
-import static org.didelphis.genetics.alignment.common.Utilities.toPhoneticTable;
-import static org.didelphis.genetics.alignment.common.Utilities.tsvToTable;
+import static io.jenetics.engine.EvolutionResult.*;
+import static io.jenetics.engine.Limits.*;
+import static java.nio.file.StandardOpenOption.*;
+import static org.didelphis.genetics.alignment.common.Utilities.*;
 
 /**
  * Class {@code ModelGenerator}
@@ -108,26 +105,24 @@ public final class ModelGenerator<T> {
 
 	private static final Logger LOG = Logger.create(ModelGenerator.class);
 
-	private static final Pattern SPACE = Pattern.compile("\\s+");
-	private static final String DATE_FORMAT = "yyyy-MM-dd/HH-mm-ss";
-	private static final Pattern EXTENSION = Pattern.compile("\\.[^.]+$");
-
-	private static final double CUTOFF = 1.0;
-	private static final int ITERATIONS = 200;
-	private static final String MATRIX_PATH = "brown.utx";
+	private static final Pattern     SPACE      = Pattern.compile("\\s+");
+	private static final Pattern     EXTENSION  = Pattern.compile("\\.[^.]+$");
+	private static final FileHandler HANDLER    = new DiskFileHandler("UTF-8");
+	private static final double      CUTOFF     = 1.0;
+	private static final int         ITERATIONS = 200;
 
 	private static final Function<String, String> TRANSFORMER
 			= new StringTransformer("Ø >> ⬚");
 	private static final UnaryOperator<String> DELETE_GAP
 			= s -> Pattern.compile("⬚").matcher(s).replaceAll("");
 
-	private final FileHandler handler;
-	private final int features;
-	private final List<String> symbols;
-	private final List<String> modifiers;
-	private final BrownAlignmentGenerator generator;
+	private final FileHandler    handler;
+	private final int            features;
+	private final List<String>   symbols;
+	private final List<String>   modifiers;
 	private final FeatureType<T> featureType;
-	public static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
+
+	private final BrownAlignmentGenerator generator;
 
 	private ModelGenerator(FeatureType<T> featureType, FileHandler handler,
 			BrownAlignmentGenerator generator, int features,
@@ -138,14 +133,6 @@ public final class ModelGenerator<T> {
 		this.features = features;
 		this.symbols = symbols;
 		this.modifiers = modifiers;
-		//		this.table = table;
-
-		//		for (int i = 0; i < table.rows(); i++) {
-		//			for (int j = 0; j < table.columns(); j++) {
-		//				table.set(i,j, '#' +table.get(i,j));
-		//			}
-		//		}
-
 		this.generator = generator;
 	}
 

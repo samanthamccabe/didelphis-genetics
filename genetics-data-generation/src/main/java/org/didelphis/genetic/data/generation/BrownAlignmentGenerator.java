@@ -90,14 +90,14 @@ public final class BrownAlignmentGenerator {
 		stkm = load(correspondencePath);
 		treeMap = new TreeMap<>();
 		scores = new SymmetricalTwoKeyMap<>();
-		
+
 		double sum = StreamSupport.stream(stkm.spliterator(), true)
 				.mapToDouble(BrownAlignmentGenerator::sum)
 				.sum();
 
 		double last = 0.0;
 		for (Triple<String, String, Collection<Correspondence>> triple : stkm) {
-			Collection<Correspondence> collection = triple.getThirdElement();
+			Collection<Correspondence> collection = triple.third();
 			for (Correspondence correspondence : collection) {
 				last = put(correspondence, sum, last);
 				scores.put(correspondence.getLeftSymbol(),
@@ -279,7 +279,7 @@ public final class BrownAlignmentGenerator {
 	}
 
 	private static double sum(Triple<?, ?, Collection<Correspondence>> t) {
-		return t.getThirdElement()
+		return t.third()
 				.parallelStream()
 				.mapToDouble(Correspondence::getScore).sum();
 	}

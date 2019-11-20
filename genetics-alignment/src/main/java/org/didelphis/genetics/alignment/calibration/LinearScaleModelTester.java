@@ -60,7 +60,7 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 	@SuppressWarnings("MagicNumber")
 	public static void main(String[] args) throws IOException {
 
-		// LOAD MODEL 
+		// LOAD MODEL
 		// ================================================================================
 
 		String path = "AT_hybrid_reduced.model";
@@ -75,13 +75,13 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 		SequenceFactory<Integer> factory = new SequenceFactory<>(
 				mapping, FormatterMode.INTELLIGENT);
 
-		BaseModelTester runner = new LinearScaleModelTester(factory);
+		BaseModelTester<Integer> runner = new LinearScaleModelTester<>(factory);
 
 		File nakhDataFile = new File("../data/nakh.tsv");
 //		ColumnTable<Sequence<Integer>> nakhData =
 //				Utilities.toPhoneticTable(nakhDataFile, factory, new StringTransformer(), "CHE", "ING", "BCB");
 
-		// LOAD CONSTRAINTS 
+		// LOAD CONSTRAINTS
 		// ==========================================================================
 //		runner.loadLexicon(new File("../data/training/CHE_BCB.std"), nakhData);
 //		runner.loadLexicon(new File("../data/training/CHE_ING.std"), nakhData);
@@ -90,12 +90,12 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 //		 "ASP_SKT.lex", factory));
 
 
-		// SET UP PARAMETERS 
+		// SET UP PARAMETERS
 		// =========================================================================
 
 		Sequence<Integer> gap = factory.toSequence("_");
 
-		// RUN ALGORITHM 
+		// RUN ALGORITHM
 		// =============================================================================
 		Writer writer = new BufferedWriter(
 				new FileWriter(new File("linear_multiples.csv")));
@@ -145,7 +145,7 @@ public final class LinearScaleModelTester<T> extends BaseModelTester<T> {
 			GapPenalty<Integer> gapPenalty = new ConstantGapPenalty<>(gap, 0.0);
 			Optimization optimization = BaseOptimization.MIN;
 
-			//			AlignmentAlgorithm algorithm = new 
+			//			AlignmentAlgorithm algorithm = new
 			// SingleAlignmentAlgorithm(gapPenalty, 1, sequenceComparator);
 			AlignmentAlgorithm<Integer> algorithm =
 					new NeedlemanWunschAlgorithm<>(
