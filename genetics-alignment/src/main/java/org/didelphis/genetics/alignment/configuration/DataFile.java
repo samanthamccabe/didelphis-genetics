@@ -36,6 +36,7 @@ import java.util.Map;
 public class DataFile {
 	String path;
 	String type;
+	String groupName;
 	Map<String, String> displayNames;
 	Map<String, StringTransformer> transformations;
 	List<List<String>> keys;

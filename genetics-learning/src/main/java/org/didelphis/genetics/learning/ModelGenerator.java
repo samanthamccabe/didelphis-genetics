@@ -55,7 +55,9 @@ import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.DataTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Triple;
-import org.didelphis.utilities.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import io.jenetics.Chromosome;
 import io.jenetics.DoubleChromosome;
@@ -103,7 +105,7 @@ import static org.didelphis.genetics.alignment.common.Utilities.*;
 @ToString
 public final class ModelGenerator<T> {
 
-	private static final Logger LOG = Logger.create(ModelGenerator.class);
+	private static final Logger LOG = LogManager.getLogger(ModelGenerator.class);
 
 	private static final Pattern     SPACE      = Pattern.compile("\\s+");
 	private static final Pattern     EXTENSION  = Pattern.compile("\\.[^.]+$");

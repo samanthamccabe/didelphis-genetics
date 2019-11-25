@@ -43,7 +43,9 @@ import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.DataTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
-import org.didelphis.utilities.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.didelphis.utilities.Splitter;
 
 import org.apache.commons.csv.CSVFormat;
@@ -72,7 +74,7 @@ public final class Utilities {
 	public final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
 
-	private static final Logger LOG = Logger.create(Utilities.class);
+	private static final Logger LOG = LogManager.getLogger(Utilities.class);
 	private static final Regex PIPE     = new Regex("\\s+\\|\\s+");
 	private static final Regex NEWLINES = new Regex("\r\n|\n|\r");
 	private static final Regex BLOCK    = new Regex("(\r\n\r\n)|(\n\n)|(\r\r)");

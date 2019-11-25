@@ -23,7 +23,9 @@ package org.didelphis.genetics.learning;
 import io.jenetics.Phenotype;
 import io.jenetics.engine.EvolutionResult;
 import lombok.ToString;
-import org.didelphis.utilities.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -37,11 +39,10 @@ import java.util.stream.Collectors;
  * @since 0.1.0
  */
 @ToString
-final class StatsTracker
-		implements Consumer<EvolutionResult<?, Double>> {
+final class StatsTracker implements Consumer<EvolutionResult<?, Double>> {
 
-	private static final Logger LOG = Logger.create(StatsTracker.class);
-	
+	private static final Logger LOG = LogManager.getLogger(StatsTracker.class);
+
 	private final int interval;
 	private final BufferedWriter writer;
 	private final DecimalFormat formatter;

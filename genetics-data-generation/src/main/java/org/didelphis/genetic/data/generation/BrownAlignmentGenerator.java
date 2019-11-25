@@ -33,7 +33,9 @@ import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.structures.tuples.Twin;
-import org.didelphis.utilities.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -62,7 +64,7 @@ import static java.lang.Math.toIntExact;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public final class BrownAlignmentGenerator {
 
-	private static final Logger LOG = Logger.create(BrownAlignmentGenerator.class);
+	private static final Logger LOG = LogManager.getLogger(BrownAlignmentGenerator.class);
 
 	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 

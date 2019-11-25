@@ -28,25 +28,22 @@ import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.language.parsing.FormatterMode;
 import org.didelphis.language.phonetic.features.IntegerFeature;
-import org.didelphis.utilities.Logger;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
 @UtilityClass
 public final class Main {
 
-	private static final Logger LOG = Logger.create(Main.class);
+	private static final Logger LOG = LogManager.getLogger(Main.class);
 
 	private static final ObjectMapper OM = new ObjectMapper()
 			.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
 	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
-
-	static {
-		Logger.addAppender(System.out);
-	}
 
 	public static void main(String[] args) throws IOException {
 

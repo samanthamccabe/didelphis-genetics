@@ -40,13 +40,14 @@ import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.FeatureType;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.graph.Arc;
 import org.didelphis.structures.graph.Graph;
 import org.didelphis.structures.graph.GraphUtils;
+import org.didelphis.structures.maps.GeneralMultiMap;
 import org.didelphis.structures.maps.GeneralTwoKeyMap;
 import org.didelphis.structures.maps.GeneralTwoKeyMultiMap;
+import org.didelphis.structures.maps.interfaces.MultiMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMultiMap;
 import org.didelphis.structures.tables.ColumnTable;
@@ -55,7 +56,9 @@ import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.structures.tuples.Twin;
-import org.didelphis.utilities.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -63,10 +66,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.DecimalFormat;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -76,24 +76,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static java.util.regex.Pattern.*;
 
 @ToString
 @EqualsAndHashCode
 public final class Processor<T> {
 
-	private static final Logger LOG = Logger.create(Processor.class);
+	private static final Logger LOG = LogManager.getLogger(Processor.class);
 
-	private static final DecimalFormat QUAD = new DecimalFormat("0000");
+	private static final DecimalFormat QUAD    = new DecimalFormat("0000");
 	private static final DecimalFormat DECIMAL = new DecimalFormat("0.00");
-
-
-	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
-	private static final Pattern     HYPHEN  = compile("-");
-	private static final Pattern     HASH    = compile("#", LITERAL);
+	private static final FileHandler   HANDLER = new DiskFileHandler("UTF-8");
 
 	@Getter
 	private final AlignmentAlgorithm<T>    algorithm;
@@ -111,8 +104,8 @@ public final class Processor<T> {
 			ConfigObject dataConfig,
 			AlgorithmConfig algorithmConfig
 	) {
-		this.qQuantiles = qQuantiles;
 		this.mode = mode;
+		this.qQuantiles = qQuantiles;
 		this.dataConfig = dataConfig;
 
 		List<List<String>> tfList = dataConfig.getTransformations();
@@ -123,9 +116,10 @@ public final class Processor<T> {
 
 	public void process() {
 		SequenceFactory<T> factory = algorithm.getFactory();
-		File outputFolder = new File(dataConfig.getDestinationPath());
+		String destination = dataConfig.getDestinationPath();
 		for (DataFile dataFile : dataConfig.getFiles()) {
 
+			String outPath = destination + "/" + dataFile.getGroupName() + "/";
 			Map<String, String> displayNames = dataFile.getDisplayNames();
 
 			boolean createDistanceTable;
@@ -162,69 +156,92 @@ public final class Processor<T> {
 				UnmappedSymbolFinder<T> finder = new UnmappedSymbolFinder<>(gapSymbol, factory, true);
 				List<Sequence<T>> column = data.getColumn(headerKey);
 				finder.countInSequences(column);
-				System.out.println(displayNames.get(headerKey));
-				finder.write(System.out);
+				LOG.info(displayNames.get(headerKey));
 			}
-
 
 			List<String> langKeys = new ArrayList<>(displayNames.keySet());
 
-			RectangularTable<Double> scores = new RectangularTable<>(
+			Table<Double> scores = new RectangularTable<>(
 					0.0,
 					langKeys.size(),
 					langKeys.size()
 			);
 
 			for (List<String> keys : fileKeys) {
-				Collection<AlignmentResult<T>> results = align(algorithm,
-						keys,
-						data
-				);
+				Collection<AlignmentResult<T>> results = align(algorithm, keys, data);
 
 				// Put the score in the table
 				if (createDistanceTable) {
 					double sum = results.stream()
-							.mapToDouble(AlignmentResult::getScore)
+							.mapToDouble(Processor::getAverageDistance)
 							.sum();
 					double score = sum / results.size();
-					String leftKey = keys.get(0);
-					String rightKey = keys.get(1);
-					int lIndex = langKeys.indexOf(leftKey);
-					int rIndex = langKeys.indexOf(rightKey);
+					int lIndex = langKeys.indexOf(keys.get(0));
+					int rIndex = langKeys.indexOf(keys.get(1));
 					scores.set(lIndex, rIndex, score);
 				}
 
-				writeResults(outputFolder, keys, results);
+				writeResults(outPath, keys, results);
 
-				List<?> something = processResults(keys, results);
+				List<?> something = processResults(outPath, keys, results);
 			}
 
-			List<String> collect = langKeys.stream()
-					.map(displayNames::get)
-					.collect(Collectors.toList());
-
-			String displayTable = formatDistanceTable(collect, scores);
-
-			int x = 0;
+			if (createDistanceTable) {
+				List<String> collect = langKeys.stream()
+						.map(displayNames::get)
+						.collect(Collectors.toList());
+				String displayTable = formatDistanceTable(collect, scores);
+				File tableFile = new File(outPath, "distances.table");
+				try {
+					String absolutePath = tableFile.getAbsolutePath();
+					HANDLER.writeString(absolutePath, displayTable);
+				} catch (IOException e) {
+					LOG.error("Failed to write distance table", e);
+				}
+			}
 		}
 	}
 
-	private List<?> processResults(
-			List<String> keys,
+	private List<?> processResults(String outPath, List<String> keys,
 			Iterable<AlignmentResult<T>> results
 	) {
+
+		LOG.info(String.join(":"), keys);
+
 		TwoKeyMap<Segment<T>, Segment<T>, Double> countMap = getCounts(results);
 		TwoKeyMap<Segment<T>, Segment<T>, Double> freqMap = toFrequency(countMap);
 
-		TwoKeyMultiMap<Segment<T>, Segment<T>, Alignment<T>> corrMap = buildCorrespondences(results);
+		TwoKeyMultiMap<Segment<T>, Segment<T>, Alignment<T>> map
+				= buildCorrespondences(results);
 
-		double firstQuantile = computeQuantile(freqMap, qQuantiles);
+		// Populate multimaps to determine one-to-one and one-to-many relations
+		MultiMap<Segment<T>, Segment<T>> leftRight = new GeneralMultiMap<>();
+		MultiMap<Segment<T>, Segment<T>> rightLeft = new GeneralMultiMap<>();
+		for (Tuple<Segment<T>, Segment<T>> tuple : map.keys()) {
+			leftRight.add(tuple.getLeft(), tuple.getRight());
+			rightLeft.add(tuple.getRight(), tuple.getLeft());
+		}
 
-		String leftKey = keys.get(0);
-		String rightKey = keys.get(1);
+		// List with canonical ordering from most to least frequent
+		List<Twin<Segment<T>>> list = countMap.stream()
+				.sorted((o1, o2) -> Double.compare(o2.third(), o1.third()))
+				.map(t -> new Twin<>(t.first(), t.second()))
+				.collect(Collectors.toList());
 
-		String toGml = toGml(leftKey, rightKey, freqMap, firstQuantile);
+		for (Twin<Segment<T>> segments : list) {
+			Segment<T> left = segments.getLeft();
+			Segment<T> right = segments.getRight();
 
+			if (leftRight.get(left).size() == 1 && rightLeft.get(right).size() == 1) {
+				LOG.info("{} {}", left, right);
+			}
+		}
+
+
+		// Write GML Data
+		writeGMLData(outPath, keys, freqMap);
+
+		// Generate printable score ranking
 		String collect = countMap.stream().map(triple -> {
 			String key1 = triple.first().toString();
 			String key2 = triple.second().toString();
@@ -233,6 +250,46 @@ public final class Processor<T> {
 		}).collect(Collectors.joining("\n"));
 
 		return Collections.emptyList();
+	}
+
+	private void writeGMLData(String outPath, List<String> keys,
+			TwoKeyMap<Segment<T>, Segment<T>, Double> freqMap
+	) {
+		double firstQuantile = computeQuantile(qQuantiles, freqMap);
+		String leftKey = keys.get(0);
+		String rightKey = keys.get(1);
+		String toGml = toGml(firstQuantile, leftKey, rightKey, freqMap);
+		File file = new File(outPath + "/gml/");
+		createFolderIfNotExists(file);
+		String path = String.format("%s/%s-%s.gml", file.getPath(), leftKey, rightKey);
+		try {
+			HANDLER.writeString(path, toGml);
+		} catch (IOException e) {
+			LOG.error("Unable to write graph data to {}", path, e);
+		}
+	}
+
+	private static double getAverageDistance(AlignmentResult<?> r) {
+		return r.getScore() / (r.getAlignments().get(0).size());
+	}
+
+	private static <T> String toGml(double nTile, String lKey, String rKey,
+			TwoKeyMap<Segment<T>, Segment<T>, Double> freqMap
+	) {
+		Graph<Double> graph = new Graph<>();
+		for (Triple<Segment<T>, Segment<T>, Double> triple : freqMap) {
+			String left = triple.first().toString();
+			String right = triple.second().toString();
+			Double count = triple.third();
+
+			// Use greater than because these are inverse log values
+			if (nTile > 0 && count > nTile) continue;
+
+			String leftValue = escape(lKey + " [" + left + "]");
+			String rightValue = escape(rKey + " [" + right + "]");
+			graph.add(leftValue, new DoubleArc(count), rightValue);
+		}
+		return GraphUtils.graphToGML(graph, true);
 	}
 
 	@NonNull
@@ -248,6 +305,7 @@ public final class Processor<T> {
 					List<Segment<T>> column = alignment.getColumn(i);
 					Segment<T> left = column.get(0);
 					Segment<T> right = column.get(1);
+					if (isAnchor(left, right)) continue;
 					if (countMap.contains(left, right)) {
 						double value = countMap.getOrDefault(left, right, 0.0);
 						countMap.put(left, right, value + (1.0 / num));
@@ -258,6 +316,10 @@ public final class Processor<T> {
 			}
 		}
 		return countMap;
+	}
+
+	private static <T> boolean isAnchor(Segment<T> left, Segment<T> right) {
+		return left.getSymbol().equals("#") || right.getSymbol().equals("#");
 	}
 
 	@NonNull
@@ -271,6 +333,7 @@ public final class Processor<T> {
 					List<Segment<T>> column = alignment.getColumn(i);
 					Segment<T> left = column.get(0);
 					Segment<T> right = column.get(1);
+					if (isAnchor(left, right)) continue;
 					corrMap.add(left, right, alignment);
 				}
 			}
@@ -283,53 +346,27 @@ public final class Processor<T> {
 			TwoKeyMap<Segment<T>, Segment<T>, Double> cMap
 	) {
 		double sum = cMap.stream().mapToDouble(Triple::third).sum();
-
 		TwoKeyMap<Segment<T>, Segment<T>, Double> fMap =
 				new GeneralTwoKeyMap<>(TreeMap.class);
-
 		for (Triple<Segment<T>, Segment<T>, Double> t : cMap) {
-			fMap.put(t.first(), t.second(), -1 * Math.log(t.third() / sum));
+			double value = -1 * Math.log(t.third() / sum);
+			fMap.put(t.first(), t.second(), value);
 		}
 		return fMap;
 	}
 
 	private static <T> double computeQuantile(
-			TwoKeyMap<Segment<T>, Segment<T>, Double> fMap, int q) {
+			int q, TwoKeyMap<Segment<T>, Segment<T>, Double> fMap
+	) {
 		double max = fMap.stream()
 				.mapToDouble(Triple::third)
 				.max()
 				.orElse(0.0);
-
 		double min = fMap.stream()
 				.mapToDouble(Triple::third)
 				.min()
 				.orElse(0.0);
-
-		return (q == 0)
-				? 0.0
-				: max - (max - min) / q;
-	}
-
-	private String toGml(
-			String leftKey,
-			String rightKey,
-			TwoKeyMap<Segment<T>, Segment<T>, Double> freqMap,
-			double nTile
-	) {
-		Graph<Double> graph = new Graph<>();
-		for (Triple<Segment<T>, Segment<T>, Double> triple : freqMap) {
-			String left = triple.first().toString();
-			String right = triple.second().toString();
-			Double count = triple.third();
-
-			// Use greater than because these are inverse log values
-			if (count > nTile) continue;
-
-			String leftValue = escape(leftKey + " [" + left + "]");
-			String rightValue = escape(rightKey + " [" + right + "]");
-			graph.add(leftValue, new DoubleArc(count), rightValue);
-		}
-		return GraphUtils.graphToGML(graph, true);
+		return (q == 0) ? 0.0 : max - (max - min) / q;
 	}
 
 	private static String formatDistanceTable(List<String> labels, Table<Double> table) {
@@ -400,7 +437,7 @@ public final class Processor<T> {
 
 	@Nullable
 	private static ColumnTable<String> parseDataFile(
-			@NonNull DataFile data,
+			DataFile data,
 			Formatter form,
 			Collection<String> allKeys
 	) {
@@ -421,17 +458,13 @@ public final class Processor<T> {
 	}
 
 	private static <T> void writeResults(
-			File outputFolder,
+			String outputPath,
 			List<String> keys,
 			Iterable<AlignmentResult<T>> results
 	) {
 
-		if (!outputFolder.exists()) {
-			boolean failed = !outputFolder.mkdirs();
-			if (failed) {
-				LOG.error("Failed to create folder {}", outputFolder);
-			}
-		}
+		File outputFolder = new File(outputPath, "sdm");
+		createFolderIfNotExists(outputFolder);
 
 		DecimalFormat decimalFormat = new DecimalFormat("0.00");
 		String fileName = String.join("-", keys) + ".sdm";
@@ -489,11 +522,20 @@ public final class Processor<T> {
 		}
 	}
 
+	private static void createFolderIfNotExists(File outputFolder) {
+		if (!outputFolder.exists()) {
+			boolean failed = !outputFolder.mkdirs();
+			if (failed) {
+				LOG.error("Failed to create folder {}", outputFolder);
+			}
+		}
+	}
 
 	@NonNull
 	private static BufferedWriter openWriter(File outputFolder, String fileName)
 			throws IOException {
-		return new BufferedWriter(new FileWriter(new File(outputFolder, fileName)));
+		FileWriter writer = new FileWriter(new File(outputFolder, fileName));
+		return new BufferedWriter(writer);
 	}
 
 	@NonNull
@@ -509,82 +551,6 @@ public final class Processor<T> {
 			}
 		}
 		return stringBuilder.toString();
-	}
-
-
-
-	private static <T> void writeAlignments(String rootPath,
-			Iterable<Tuple<String, Collection<AlignmentResult<T>>>> alignments) {
-		for (Tuple<String, Collection<AlignmentResult<T>>> entry : alignments) {
-			String key = entry.getLeft();
-			StringBuilder sb1 = new StringBuilder();
-			StringBuilder sb2 = new StringBuilder();
-			sb1.append(HYPHEN.matcher(key).replaceAll("\t"));
-			sb1.append('\n');
-			for (AlignmentResult<T> result : entry.getRight()) {
-				Iterator<Alignment<T>> list = result.getAlignments().iterator();
-				List<String> charSequences = list.hasNext()
-						? Alignment.buildPrettyAlignments(list.next())
-						: Collections.emptyList();
-				for (CharSequence sequence : charSequences) {
-					String normal = Normalizer.normalize(sequence, Normalizer.Form.NFC);
-					String str = HASH.matcher(normal)
-							.replaceAll("").trim();
-					sb1.append(str);
-					sb1.append('\t');
-				}
-				String stackedSequences = charSequences.stream()
-						.map(q -> Normalizer.normalize(q, Normalizer.Form.NFC))
-						.map(q -> HASH.matcher(q).replaceAll("").trim())
-						.collect(Collectors.joining("\r", "\"", "\""));
-				sb1.append(stackedSequences);
-				sb1.append('\n');
-
-				//				ObjectNode node = new ObjectNode(OM.getNodeFactory());
-				//				node.put("left",result.getLeft().toString());
-				//				node.put("right",result.getRight().toString());
-				//				List<Object> objects = new ArrayList<>();
-				//				for (Alignment<T> alignment : result.getAlignments()) {
-				//					objects.add(alignment.getPrettyTable().split("\n"));
-				//				}
-				//				List<Object> table = new ArrayList<>();
-				//				Iterator<Collection<Double>> it = result.getTable().rowIterator();
-				//				while (it.hasNext()) {
-				//					table.add(it.next());
-				//				}
-				//				node.putPOJO("alignments",objects);
-				//				node.putPOJO("table", table);
-				//				try {
-				//					String value = OM
-				//							.writerWithDefaultPrettyPrinter()
-				//							.writeValueAsString(node);
-				//					sb2.append(value);
-				//				} catch (JsonProcessingException e) {
-				//					LOG.error("{}", e);
-				//				}
-			}
-
-			File file1 = new File(rootPath + "alignments_" + key + ".csv");
-			//			File file2 = new File(rootPath + "alignments_" + key + ".json");
-			Path path = file1.toPath();
-			try {
-				Files.createDirectories(path.getParent());
-			} catch (IOException e) {
-				LOG.error("{}", e);
-			}
-
-			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file1))) {
-				writer.write(sb1.toString());
-			} catch (IOException e) {
-				LOG.error("{}", e);
-			}
-
-			//			try (BufferedWriter writer = new BufferedWriter(new FileWriter(file2))) {
-			//				writer.write(sb2.toString());
-			//			} catch (IOException e) {
-			//				LOG.error("{}", e);
-			//			}
-		}
 	}
 
 	@NonNull
@@ -616,35 +582,7 @@ public final class Processor<T> {
 		return alignments;
 	}
 
-	private static <E> void add(TwoKeyMap<E, E, Integer> map, E s1, E s2) {
-		if (map.contains(s1, s2)) {
-			Integer value = map.get(s1, s2);
-			if (value != null) {
-				map.put(s1, s2, value + 1);
-				return;
-			}
-		}
-		map.put(s1, s2, 1);
-	}
-
-	private static <T> Sequence<T> lookBack(List<Segment<T>> segments, int i, Segment<T> gap) {
-		List<Segment<T>> collect = segments.subList(0, i)
-				.stream()
-				.filter(segment -> !segment.equals(gap))
-				.collect(Collectors.toList());
-		return new BasicSequence<>(collect, gap.getFeatureModel());
-	}
-
-	private static <T> Sequence<T> lookForward(List<Segment<T>> segments, int i, Segment<T> gap) {
-		List<Segment<T>> collect = segments.subList(i+1, segments.size())
-				.stream()
-				.filter(segment -> !segment.equals(gap))
-				.collect(Collectors.toList());
-		return new BasicSequence<>(collect, gap.getFeatureModel());
-	}
-
 	public static class DoubleArc implements Arc<Double> {
-
 
 		private final DecimalFormat format = new DecimalFormat("0.000");
 		private final Double value;

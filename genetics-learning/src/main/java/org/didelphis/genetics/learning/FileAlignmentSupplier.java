@@ -21,7 +21,9 @@
 package org.didelphis.genetics.learning;
 
 import lombok.ToString;
-import org.didelphis.utilities.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.didelphis.utilities.Templates;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,11 +42,11 @@ import java.util.function.Supplier;
  */
 @ToString
 public class FileAlignmentSupplier implements Supplier<List<String>> {
-	
-	private static final Logger LOG = Logger.create(FileAlignmentSupplier.class);
-	
+
+	private static final Logger LOG = LogManager.getLogger(FileAlignmentSupplier.class);
+
 	private final BufferedReader reader;
-	
+
 	public FileAlignmentSupplier(String filePath) {
 		BufferedReader reader = getReader(filePath);
 		if (reader == null) {
@@ -56,7 +58,7 @@ public class FileAlignmentSupplier implements Supplier<List<String>> {
 		}
 		this.reader = reader;
 	}
-	
+
 	@Override
 	public @Nullable List<String> get() {
 		try {
@@ -67,7 +69,7 @@ public class FileAlignmentSupplier implements Supplier<List<String>> {
 		}
 		return null;
 	}
-	
+
 	private static BufferedReader getReader(String path) {
 		try {
 			File file = new File(path);

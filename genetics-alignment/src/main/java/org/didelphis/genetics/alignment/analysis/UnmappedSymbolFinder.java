@@ -41,7 +41,9 @@ import org.didelphis.language.phonetic.segments.UndefinedSegment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tuples.Couple;
-import org.didelphis.utilities.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -59,7 +61,7 @@ import java.util.Set;
 @EqualsAndHashCode
 public final class UnmappedSymbolFinder<T> {
 
-	private static final Logger LOG = Logger.create(Main.class);
+	private static final Logger LOG = LogManager.getLogger(Main.class);
 
 	private final String gap;
 	private final SequenceFactory<T> factory;
