@@ -41,9 +41,8 @@ import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.BasicSequence;
+import org.didelphis.language.phonetic.sequences.PhoneticSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.Suppliers;
 import org.didelphis.structures.maps.GeneralTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.didelphis.structures.tuples.Triple;
@@ -75,6 +74,9 @@ public abstract class AbstractCalibrator<T, P> {
 	List<Twin<Integer>> correlatedFeatures;
 	Map<String, List<List<Alignment<T>>>> trainingData;
 
+	Segment<T> lMerge;
+	Segment<T> rMerge;
+
 	protected AbstractCalibrator(
 			FileHandler handler,
 			Sequence<T> gap,
@@ -90,6 +92,9 @@ public abstract class AbstractCalibrator<T, P> {
 
 		correlatedFeatures = new ArrayList<>();
 		trainingData = new HashMap<>();
+
+		lMerge = factory.toSegment("<");
+		rMerge = factory.toSegment(">");
 	}
 
 	@NonNull
@@ -164,7 +169,8 @@ public abstract class AbstractCalibrator<T, P> {
 				}
 
 				List<Sequence<T>> sequences = getSequences(baseAlignment);
-				AlignmentResult<T> result = algorithm.apply(sequences.get(0),
+				AlignmentResult<T> result = algorithm.apply(
+						sequences.get(0),
 						sequences.get(1)
 				);
 				writer.write(matches(alignments, result) ? "1," : "0,");
@@ -173,8 +179,6 @@ public abstract class AbstractCalibrator<T, P> {
 				for (CharSequence sequence : list) {
 					writer.write(sequence + ",");
 				}
-				// TODO: fill this if we are ever going to use it
-//				writer.write("\"" + result.getTable().formattedTable() + "\"");
 				writer.write("\n");
 			}
 		} catch (IOException e) {
@@ -226,12 +230,12 @@ public abstract class AbstractCalibrator<T, P> {
 				.sum();
 		for (String path : paths) {
 			TwoKeyMap<Segment<T>, Segment<T>, Double> corrMap = initMap();
-			for (List<Alignment<T>> alignments : trainingData.get(path)) {
+			List<List<Alignment<T>>> get = trainingData.get(path);
+			for (List<Alignment<T>> alignments : get) {
 				// Only retrieve the first alignment to create the sequences;
 				// Any second entry that exists should create the same sequence
 				List<Sequence<T>> sequences = getSequences(alignments.get(0));
-				AlignmentResult<T> result = algorithm.apply(
-						sequences.get(0),
+				AlignmentResult<T> result = algorithm.apply(sequences.get(0),
 						sequences.get(1)
 				);
 
@@ -252,7 +256,8 @@ public abstract class AbstractCalibrator<T, P> {
 
 			for (List<Alignment<T>> alignments : trainingData.get(path)) {
 				List<Sequence<T>> sequences = getSequences(alignments.get(0));
-				AlignmentResult<T> result2 = rlAlgorithm.apply(sequences.get(0),
+				AlignmentResult<T> result2 = rlAlgorithm.apply(
+						sequences.get(0),
 						sequences.get(1)
 				);
 				if (matches(alignments, result2)) {
@@ -318,9 +323,11 @@ public abstract class AbstractCalibrator<T, P> {
 		for (int i = 0; i < alignment.rows(); i++) {
 			List<Segment<T>> list = alignment.getRow(i)
 					.stream()
+					.filter(segment -> !segment.equals(lMerge))
+					.filter(segment -> !segment.equals(rMerge))
 					.filter(segment -> !segment.equals(gap.get(0)))
 					.collect(Collectors.toList());
-			sequences.add(new BasicSequence<>(list, featureModel));
+			sequences.add(new PhoneticSequence<>(list, featureModel));
 		}
 		return sequences;
 	}

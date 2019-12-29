@@ -36,26 +36,23 @@ import org.didelphis.language.parsing.ParseException;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.BasicSequence;
+import org.didelphis.language.phonetic.sequences.PhoneticSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tables.ColumnTable;
 import org.didelphis.structures.tables.DataTable;
 import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Tuple;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.didelphis.utilities.Splitter;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.csv.QuoteMode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
-import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,7 +75,7 @@ public final class Utilities {
 	private static final Regex PIPE     = new Regex("\\s+\\|\\s+");
 	private static final Regex NEWLINES = new Regex("\r\n|\n|\r");
 	private static final Regex BLOCK    = new Regex("(\r\n\r\n)|(\n\n)|(\r\r)");
-	private static final Regex COMMENT  = new Regex("%[^\n\r]*(\r\n|\n|\r)");
+	private static final Regex COMMENT  = new Regex("%.*(\\r|\\r?\\n)");
 
 	private final Pattern SPACE = Pattern.compile("\\s+");
 	private final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader();
@@ -162,7 +159,7 @@ public final class Utilities {
 				if (indices.contains(j)) {
 					String word = table.get(i, j);
 					String s = transformer.apply(word);
-					Sequence<T> segments = new BasicSequence<>(model);
+					Sequence<T> segments = new PhoneticSequence<>(model);
 					for (String s1: SPACE.split(s)) {
 						segments.add(factory.toSequence(s1));
 					}
@@ -298,14 +295,16 @@ public final class Utilities {
 
 		// Each block should represent a single alignment or set of equivalent
 		// alignments:
+		// 0 0 0   0 0 0
 		// a a b | a a b
-		// a - b | - a b
+		// a _ b | _ a b
 		// These are not *necessarily* equivalent in all cases - under a global
 		// alignment they could be equivalent, but would not be so under a
 		// local alignment where gaps at the beginning and end of a sequence do
 		// not incur a cost
 		for (String block : BLOCK.split(fileData)) {
-			block = COMMENT.replace(block,"").trim();
+			block = COMMENT.replace(block,"$1").trim();
+//			block = block.replaceAll("%.*(\n|\n?\n)","");
 
 			if (block.isEmpty()) continue;
 
@@ -331,7 +330,11 @@ public final class Utilities {
 			List<Alignment<T>> alignments = new ArrayList<>();
 			for (int i = 0; i < blockWidth; i++) {
 				Collection<String> strings = new ArrayList<>();
-				for (int j = 0; j <  size; j++) {
+
+				// TODO: add annotations to the alignment
+				String annotations = lists.get(0).get(i).trim();
+
+				for (int j = 1; j <  lists.size(); j++) {
 					String item = lists.get(j).get(i).trim();
 					if (item.startsWith("#")) {
 						strings.add(item);
@@ -362,7 +365,7 @@ public final class Utilities {
 		List<Sequence<T>> sequences = new ArrayList<>();
 		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
 		for (String string : list) {
-			Sequence<T> sequence = new BasicSequence<>(model);
+			Sequence<T> sequence = new PhoneticSequence<>(model);
 			for (String s : string.split("\\s+")) {
 				sequence.add(factory.toSegment(s));
 			}

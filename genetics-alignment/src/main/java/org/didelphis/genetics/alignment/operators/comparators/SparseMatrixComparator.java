@@ -23,6 +23,7 @@ package org.didelphis.genetics.alignment.operators.comparators;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
+
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;
@@ -31,11 +32,6 @@ import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.maps.GeneralTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.didelphis.structures.tuples.Triple;
-
-import javax.swing.table.TableRowSorter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @ToString
 @EqualsAndHashCode
@@ -75,6 +71,11 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 
 		double score = sequenceComparator.apply(left, right, i, j);
 
+		if (isBoundary(lSymbol, rSymbol)) {
+			cache.put(lSymbol,rSymbol, score);
+			return score;
+		}
+
 		FeatureArray<T> lFeatures = lSegment.getFeatures();
 		FeatureArray<T> rFeatures = rSegment.getFeatures();
 
@@ -99,5 +100,9 @@ public final class SparseMatrixComparator<T> implements SequenceComparator<T> {
 
 		cache.put(lSymbol,rSymbol, score);
 		return score;
+	}
+
+	private boolean isBoundary(String lSymbol, String rSymbol) {
+		return lSymbol.equals("-") || lSymbol.equals("=") || rSymbol.equals("-") || rSymbol.equals("=");
 	}
 }

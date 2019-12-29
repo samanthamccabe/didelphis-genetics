@@ -21,18 +21,19 @@
 package org.didelphis.genetics.alignment.algorithm;
 
 import lombok.NonNull;
+
+import org.didelphis.genetics.alignment.Alignment;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
+import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.BasicSequence;
+import org.didelphis.language.phonetic.sequences.PhoneticSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
-import org.didelphis.genetics.alignment.Alignment;
-import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -126,9 +127,9 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 			List<Alignment<T>> alignments =
 					new ArrayList<>(leftColumn.size());
 			for (int i = 0; i < leftColumn.size(); i++) {
-				Sequence<T> left = new BasicSequence<>(leftColumn.get(i));
+				Sequence<T> left = new PhoneticSequence<>(leftColumn.get(i));
 				Sequence<T> right =
-						new BasicSequence<>(rightColumn.get(i));
+						new PhoneticSequence<>(rightColumn.get(i));
 
 				Alignment<T> alignment;
 				if (!left.isEmpty() && !right.isEmpty()) {
@@ -162,11 +163,11 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 		// We could probably just use the current segments and not need indices
 		// matrix isn't needed
 
-		Sequence<T> g = new BasicSequence<>(getGapPenalty().getGap());
+		Sequence<T> g = new PhoneticSequence<>(getGapPenalty().getGap());
 
 		// Length-1 sequences
-		Sequence<T> l = new BasicSequence<>(left.get(i));
-		Sequence<T> r = new BasicSequence<>(right.get(j));
+		Sequence<T> l = new PhoneticSequence<>(left.get(i));
+		Sequence<T> r = new PhoneticSequence<>(right.get(j));
 
 		Alignment<T> insert = build(matrix.get(i - 1, j    ), l, g);
 		Alignment<T> delete = build(matrix.get(i,     j - 1), g, r);
@@ -190,7 +191,7 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 
 		NavigableMap<Double, Alignment<T>> candidates = new TreeMap<>();
 
-		Sequence<T> gap = new BasicSequence<>(getGapPenalty().getGap());
+		Sequence<T> gap = new PhoneticSequence<>(getGapPenalty().getGap());
 
 		for (int g = 0; g <= arity; g++) {
 			for (int h = 0; h <= arity; h++) {
@@ -235,7 +236,7 @@ public class SingleAlignmentAlgorithm<T> extends AbstractAlignmentAlgorithm<T> {
 			int h
 	) {
 
-		Sequence<T> gap = new BasicSequence<>(getGapPenalty().getGap());
+		Sequence<T> gap = new PhoneticSequence<>(getGapPenalty().getGap());
 
 		List<Sequence<T>> sequenceList = new ArrayList<>();
 		int ixL = i - g;

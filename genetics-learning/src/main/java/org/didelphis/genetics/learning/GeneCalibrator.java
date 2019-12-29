@@ -75,8 +75,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.jenetics.engine.EvolutionResult.toBestGenotype;
-import static io.jenetics.engine.Limits.bySteadyFitness;
+import static io.jenetics.engine.EvolutionResult.*;
+import static io.jenetics.engine.Limits.*;
 
 /**
  * Class {@code OptimizationEngine}
@@ -94,6 +94,7 @@ public final class GeneCalibrator<T>
 
 	private static final double FIXED_WEIGHT = 1.10;
 	private static final int FIXED_POSITION = 1;
+	private static final double Z = 0.000000001;
 
 	long startTime;
 	FeatureModel<T> featureModel;
@@ -110,10 +111,11 @@ public final class GeneCalibrator<T>
 		boolean useReinforcement = false;
 
 		// -----------------------------------------------
+		String dataPath  = "/git/didelphis-genetics-data/";
+		String modelPath = dataPath + "model/AT_extended_x.model";
+		String sdmPath   = dataPath + "sdm/";
+
 		FeatureType<Integer> type = IntegerFeature.INSTANCE;
-		String dataPath = "/projects/data/";
-		String modelPath = dataPath + "AT_extended_x.model";
-		String sdmPath = dataPath + "training/sdm/";
 		FormatterMode mode = FormatterMode.INTELLIGENT;
 
 		FileHandler handler = new DiskFileHandler("UTF-8");
@@ -140,14 +142,16 @@ public final class GeneCalibrator<T>
 		calibrator.addCorrelation("con", "eje");
 		calibrator.addCorrelation("con", "rel");
 
-//		calibrator.addCorrelation("frn", "bck");
-//		calibrator.addCorrelation("frn", "hgt");
-//		calibrator.addCorrelation("hgt", "bck");
-//		calibrator.addCorrelation("hgt", "low");
-//		calibrator.addCorrelation("bck", "low");
+		calibrator.addCorrelation("frn", "bck");
+		calibrator.addCorrelation("frn", "hgt");
+		calibrator.addCorrelation("hgt", "bck");
+		calibrator.addCorrelation("hgt", "low");
+		calibrator.addCorrelation("bck", "low");
 
 		// Load all SDM training data
-		for (File file : new File(sdmPath).listFiles()) {
+		File[] files = new File(sdmPath).listFiles();
+		assert files != null : "Files under " + sdmPath + " cannot be read.";
+		for (File file : files) {
 			try {
 				calibrator.addSDM(file.getAbsolutePath());
 			} catch (RuntimeException e) {
@@ -166,8 +170,9 @@ public final class GeneCalibrator<T>
 
 		double fitness = calibrator.fitness(genotype);
 
-		System.out.printf("│ %s | %s │%n", DOUBLE_FORMAT_LONG.format(fitness).trim(), toParameterString(genotype, DOUBLE_FORMAT_LONG)
-		);
+		System.out.printf("│ %s | %s │%n",
+				DOUBLE_FORMAT_LONG.format(fitness).trim(),
+				toParameterString(genotype, DOUBLE_FORMAT_LONG));
 	}
 
 	public GeneCalibrator(
@@ -195,13 +200,14 @@ public final class GeneCalibrator<T>
 
 		int fSize = getCorrelatedFeatures().size();
 
+		double rf = isUseReinforcement() ? 20 : 0.000001;
 		Engine<DoubleGene, Double> engine = Engine.builder(
 				this::fitness,
-				DoubleChromosome.of( -2,  2,      2), // Gaps
-				DoubleChromosome.of(  0,  1,   size), // Main Features
-				DoubleChromosome.of( -3,  3,  fSize), // Correlated Features
-				DoubleChromosome.of(  0, 0.000001, 4), // Context Re-weighting
-				DoubleChromosome.of(  0, isUseReinforcement() ? 20 : 0.000001,      1)  // Reinforcement weight
+				DoubleChromosome.of( -2,  2,     2), // Gaps
+				DoubleChromosome.of(  0,  1,  size), // Main Features
+				DoubleChromosome.of( -3,  3, fSize), // Correlated Features
+				DoubleChromosome.of(  0,  Z,     4), // Context Re-weighting
+				DoubleChromosome.of(  0, rf,     1)  // Reinforcement weight
 		)
 				.maximizing()
 				.populationSize(300)
@@ -221,6 +227,7 @@ public final class GeneCalibrator<T>
 	 *  - gap symbol
 	 *  - training file or files
 	 *  - Selector mode
+	 *
 	 *  - Population size
 	 *  - Number of generations
 	 */

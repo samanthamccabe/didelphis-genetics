@@ -25,8 +25,10 @@ import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
 import org.didelphis.genetics.alignment.common.StringTransformer;
+import org.didelphis.language.automata.Regex;
 import org.didelphis.language.parsing.FormatterMode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +36,23 @@ import java.util.Map;
 @Data
 @FieldDefaults (level = AccessLevel.PRIVATE)
 public class DataFile {
+
 	String path;
 	String type;
 	String groupName;
+
+	List<Regex>         exclusions;
 	Map<String, String> displayNames;
+	List<List<String>>  keys;
+
 	Map<String, StringTransformer> transformations;
-	List<List<String>> keys;
+
+	public void setExclusions(List<String> list) {
+		exclusions = new ArrayList<>();
+		for (String regex : list) {
+			exclusions.add(new Regex(regex));
+		}
+	}
 
 	public void setTransformations(Map<String, List<List<String>>> map) {
 		transformations = new HashMap<>();

@@ -59,7 +59,6 @@ import org.didelphis.structures.tuples.Twin;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedWriter;
@@ -74,6 +73,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -156,7 +156,7 @@ public final class Processor<T> {
 				UnmappedSymbolFinder<T> finder = new UnmappedSymbolFinder<>(gapSymbol, factory, true);
 				List<Sequence<T>> column = data.getColumn(headerKey);
 				finder.countInSequences(column);
-				LOG.info(displayNames.get(headerKey));
+				LOG.debug("Including language key: {}", displayNames.get(headerKey));
 			}
 
 			List<String> langKeys = new ArrayList<>(displayNames.keySet());
@@ -172,16 +172,16 @@ public final class Processor<T> {
 
 				// Put the score in the table
 				if (createDistanceTable) {
-					double sum = results.stream()
-							.mapToDouble(Processor::getAverageDistance)
-							.sum();
-					double score = sum / results.size();
-					int lIndex = langKeys.indexOf(keys.get(0));
-					int rIndex = langKeys.indexOf(keys.get(1));
+					double score  = getWeightedScore(results);
+					int    lIndex = langKeys.indexOf(keys.get(0));
+					int    rIndex = langKeys.indexOf(keys.get(1));
 					scores.set(lIndex, rIndex, score);
 				}
 
-				writeResults(outPath, keys, results);
+				List<String> collect = keys.stream()
+						.map(displayNames::get)
+						.collect(Collectors.toList());
+				writeResults(outPath, collect, results);
 
 				List<?> something = processResults(outPath, keys, results);
 			}
@@ -206,7 +206,7 @@ public final class Processor<T> {
 			Iterable<AlignmentResult<T>> results
 	) {
 
-		LOG.info(String.join(":"), keys);
+		LOG.debug("Processing results for {}", String.join(":", keys));
 
 		TwoKeyMap<Segment<T>, Segment<T>, Double> countMap = getCounts(results);
 		TwoKeyMap<Segment<T>, Segment<T>, Double> freqMap = toFrequency(countMap);
@@ -233,10 +233,9 @@ public final class Processor<T> {
 			Segment<T> right = segments.getRight();
 
 			if (leftRight.get(left).size() == 1 && rightLeft.get(right).size() == 1) {
-				LOG.info("{} {}", left, right);
+				LOG.debug("1-to-1 correspondence pair: {} {}", left, right);
 			}
 		}
-
 
 		// Write GML Data
 		writeGMLData(outPath, keys, freqMap);
@@ -269,8 +268,23 @@ public final class Processor<T> {
 		}
 	}
 
+
+	private static <T> double getAverageScore(Collection<AlignmentResult<T>> results) {
+		double sum = results.stream()
+				.mapToDouble(Processor::getAverageDistance)
+				.sum();
+		return sum / results.size();
+	}
+
+	private static <T> double getWeightedScore(Collection<AlignmentResult<T>> results) {
+		double sum = results.stream()
+				.mapToDouble(Processor::getAverageDistance)
+				.sum();
+		return 10 * sum / Math.pow(results.size(), 3.0 / 2.0);
+	}
+
 	private static double getAverageDistance(AlignmentResult<?> r) {
-		return r.getScore() / (r.getAlignments().get(0).size());
+		return r.getScore() / (r.getAlignments().get(0).columns());
 	}
 
 	private static <T> String toGml(double nTile, String lKey, String rKey,
@@ -349,6 +363,7 @@ public final class Processor<T> {
 		TwoKeyMap<Segment<T>, Segment<T>, Double> fMap =
 				new GeneralTwoKeyMap<>(TreeMap.class);
 		for (Triple<Segment<T>, Segment<T>, Double> t : cMap) {
+			@SuppressWarnings ("NonReproducibleMathCall")
 			double value = -1 * Math.log(t.third() / sum);
 			fMap.put(t.first(), t.second(), value);
 		}
@@ -381,7 +396,6 @@ public final class Processor<T> {
 					labels.size(), table.rows());
 			size = Math.min(labels.size(), table.rows());
 		}
-
 
 		for (int i = 0; i < labels.size() - 1; i++) {
 			String label = labels.get(i);
@@ -460,36 +474,43 @@ public final class Processor<T> {
 	private static <T> void writeResults(
 			String outputPath,
 			List<String> keys,
-			Iterable<AlignmentResult<T>> results
+			Collection<AlignmentResult<T>> results
 	) {
 
 		File outputFolder = new File(outputPath, "sdm");
 		createFolderIfNotExists(outputFolder);
 
 		DecimalFormat decimalFormat = new DecimalFormat("0.00");
-		String fileName = String.join("-", keys) + ".sdm";
+		String fileName = String.join("-", keys).replaceAll("\\s+","") + ".sdm";
 		try(BufferedWriter writer = openWriter(outputFolder, fileName)) {
 
-			writer.write("%% "+fileName+"\n");
+			writer.write("% "+fileName+"\n");
 			writer.write(keys.get(0) + "\n");
 			writer.write(keys.get(1) + "\n");
-			writer.write("\n");
+			writer.write("\n\n");
+
+			writer.write("%  Average Score: " + getAverageScore(results) + "\n");
+			writer.write("% Weighted Score: " + getWeightedScore(results) + "\n\n");
 
 			for (AlignmentResult<T> result : results) {
-				Collection<String> leftList = new ArrayList<>();
+				Collection<String> metaList  = new ArrayList<>();
+				Collection<String> leftList  = new ArrayList<>();
 				Collection<String> rightList = new ArrayList<>();
 				for (Alignment<T> alignment : result.getAlignments()) {
 					List<String> charSequences = Alignment.buildPrettyAlignments(alignment);
-					leftList.add(charSequences.get(0));
-					rightList.add(charSequences.get(1));
+					metaList.add(charSequences.get(0));
+					leftList.add(charSequences.get(1));
+					rightList.add(charSequences.get(2));
 				}
 
-				String leftGroup = String.join(" | ", leftList);
+				String metaGroup  = String.join(" | ", metaList);
+				String leftGroup  = String.join(" | ", leftList);
 				String rightGroup = String.join(" | ", rightList);
 
 				Sequence<T> left  = result.getLeft();
 				Sequence<T> right = result.getRight();
 
+				writer.write(metaGroup + "\n");
 				writer.write(leftGroup + "\n");
 				writer.write(rightGroup + "\n");
 				writer.write("\n");
@@ -498,16 +519,18 @@ public final class Processor<T> {
 				// Write alignment table in SDM comment block
 				String collect1 = right.stream()
 						.map(Segment::getSymbol)
+						.map(FormatterMode.COMPOSITION::normalize)
 						.map((String s) -> pad(s, 5))
 						.collect(Collectors.joining(" "));
-				writer.write("%      " + collect1 + "\n");
+				writer.write("%%      " + collect1 + "\n");
 				Table<Double> table = result.getTable();
 				for (int i = 0; i < table.rows(); i++) {
-					writer.write("% ");
+					writer.write("%% ");
 					writer.write(pad(left.get(i).getSymbol(), -5));
 					List<Double> row = table.getRow(i);
 					String collect = row.stream()
 							.map(decimalFormat::format)
+							.map(FormatterMode.COMPOSITION::normalize)
 							.map((String string) -> pad(string, 5))
 							.collect(Collectors.joining(" "));
 					writer.write(collect);
@@ -562,8 +585,8 @@ public final class Processor<T> {
 		String k1 = keyList.get(0);
 		String k2 = keyList.get(1);
 
-		List<Sequence<T>> d1 = data.getColumn(k1);
-		List<Sequence<T>> d2 = data.getColumn(k2);
+		List<Sequence<T>> d1 = Objects.requireNonNull(data.getColumn(k1));
+		List<Sequence<T>> d2 = Objects.requireNonNull(data.getColumn(k2));
 
 		Collection<AlignmentResult<T>> alignments = new ArrayList<>();
 		Iterator<Sequence<T>> it1 = d1.iterator();

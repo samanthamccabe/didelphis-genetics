@@ -32,9 +32,8 @@ import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.BasicSequence;
+import org.didelphis.language.phonetic.sequences.PhoneticSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
-import org.didelphis.structures.tables.Table;
 import org.didelphis.structures.tuples.Twin;
 
 import java.util.ArrayList;
@@ -45,9 +44,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.didelphis.genetics.alignment.algorithm.Operation.DEL;
-import static org.didelphis.genetics.alignment.algorithm.Operation.INS;
-import static org.didelphis.genetics.alignment.algorithm.Operation.SUB;
+import static org.didelphis.genetics.alignment.algorithm.Operation.*;
 
 /**
  * Class {@code NeedlemanWunsch}
@@ -89,8 +86,9 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 		AlignmentTable<T> table = new AlignmentTable<>(left, right);
 		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
-		Sequence<T> w = new BasicSequence<>(model);
-		Sequence<T> z = new BasicSequence<>(model);
+
+		Sequence<T> w = new PhoneticSequence<>(model);
+		Sequence<T> z = new PhoneticSequence<>(model);
 
 		populateTable(table);
 		trace(table, w, z);
@@ -135,27 +133,10 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 		Sequence<T> gap = gapPenalty.getGap();
 
+		Sequence<T> dash = factory.toSequence("-");
+
 		int i = table.rows() - 1;
 		int j = table.cols() - 1;
-
-		if (alignmentMode == AlignmentMode.LOCAL) {
-			double max = optimization.defaultValue();
-			int iMax = i;
-			int jMax = j;
-			Table<Double> scores = table.getScores();
-			for (int p = 0; p <= i; p++) {
-				for (int q = 0; q <= j; q++) {
-					double v = scores.get(p, q);
-					if (v > max) {
-						max = v;
-						iMax = p;
-						jMax = q;
-					}
-				}
-			}
-			i = iMax;
-			j = jMax;
-		}
 
 		// Leaving these in for now; Recursive tracing is probably needed
 		// in order to find multiple paths
@@ -165,12 +146,13 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 			double sub = get(table, i - 1, j - 1);
 			double del = get(table, i - 1, j);
 			double ins = get(table, i, j - 1);
+
 			if (i > 0 && check(del, ins, sub)) {
 				// Del
 				w.add(left.get(i));
 				z.add(gap);
 				i--;
-			} else if (j > 0 && check(ins, sub, del)) {
+			} else if (j > 0 && check(ins, del, sub)) {
 				// Ins
 				w.add(gap);
 				z.add(right.get(j));
@@ -210,6 +192,36 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 		for (int i = 1; i < m; i++) {
 			for (int j = 1; j < n; j++) {
+
+				// Directly overriding behavior in this manner has some useful
+				// effects but it will probably be better to handle this in the
+				// normal comparator so as no to introduce singularities or
+				// create models with a final output score of zero
+				/*
+				Segment<T> lS = table.getLeft().get(i);
+				Segment<T> rS = table.getRight().get(j);
+				boolean lDash = lS.getSymbol().equals("-");
+				boolean rDash = rS.getSymbol().equals("-");
+
+				if (lDash && rDash) {
+					table.setScore(i, j, 0);
+					table.setOperations(i, j, Collections.singleton(SUB));
+					continue;
+				}
+
+				if (lDash) {
+					table.setScore(i, j, table.getScore(i - 1, j));
+					table.setOperations(i, j, Collections.singleton(DEL));
+					continue;
+				}
+
+				if (rDash) {
+					table.setScore(i, j, table.getScore(i, j - 1));
+					table.setOperations(i, j, Collections.singleton(INS));
+					continue;
+				}
+				*/
+
 				Map<Operation, Double> ops = new EnumMap<>(Operation.class);
 				ops.put(SUB, sub(table, i, j));
 				ops.put(DEL, del(table, i, j));
