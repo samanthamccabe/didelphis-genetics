@@ -43,29 +43,21 @@ import java.util.Set;
 public final class Alignment<T> extends RectangularTable<Segment<T>>
 		implements ModelBearer<T> {
 
-	private final List<Integer> metatheticAlignment;
-
 	private final FeatureModel<T> featureModel;
 
 	public Alignment(FeatureModel<T> featureModel) {
 		super((Segment<T>) null, 0, 0);
 		this.featureModel = featureModel;
-		metatheticAlignment = new ArrayList<>();
 	}
 
 	public Alignment(int n, FeatureModel<T> featureModel) {
 		super((Segment<T>) null, n, 0);
 		this.featureModel = featureModel;
-		metatheticAlignment = new ArrayList<>();
-		for (int i = 0; i < n; i++) {
-			metatheticAlignment.add(null);
-		}
 	}
 
 	public Alignment(Alignment<T> alignment) {
 		super(alignment);
 		featureModel = alignment.featureModel;
-		metatheticAlignment = new ArrayList<>(alignment.metatheticAlignment);
 	}
 
 	public Alignment(List<Sequence<T>> list, FeatureModel<T> featureModel) {
@@ -80,19 +72,11 @@ public final class Alignment<T> extends RectangularTable<Segment<T>>
 			}
 		}
 		this.featureModel = featureModel;
-		metatheticAlignment = new ArrayList<>();
-		for (int i = 0; i < columns(); i++) {
-			metatheticAlignment.add(null);
-		}
 	}
 
 	public Alignment(Sequence<T> left, Sequence<T> right) {
 		super(Arrays.asList(left, right), 2, left.size());
 		featureModel = left.getFeatureModel();
-		metatheticAlignment = new ArrayList<>();
-		for (int i = 0; i < columns(); i++) {
-			metatheticAlignment.add(null);
-		}
 	}
 
 	@NonNull
@@ -148,14 +132,14 @@ public final class Alignment<T> extends RectangularTable<Segment<T>>
 			}
 		}
 
-		StringBuilder sb = new StringBuilder();
-		for (int j = 1; j < columns; j++) {
-			sb.append(boundaryIndices.contains(j) ? ":" : "0");
-			for (int i = 0; i < maxima.get(j); i++) {
-				sb.append(" ");
-			}
-		}
-		builders.add(sb.toString());
+//		StringBuilder sb = new StringBuilder();
+//		for (int j = 1; j < columns; j++) {
+//			sb.append(boundaryIndices.contains(j) ? ":" : "0");
+//			for (int i = 0; i < maxima.get(j); i++) {
+//				sb.append(" ");
+//			}
+//		}
+//		builders.add(sb.toString());
 
 		for (int i = 0; i < alignment.rows(); i++) {
 			StringBuilder builder = new StringBuilder();

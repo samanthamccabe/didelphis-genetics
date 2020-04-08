@@ -24,6 +24,7 @@ package org.didelphis.genetics.alignment.operators.gap;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
+
 import org.didelphis.language.phonetic.sequences.Sequence;
 
 @ToString

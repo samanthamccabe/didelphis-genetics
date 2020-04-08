@@ -25,7 +25,6 @@ import lombok.NonNull;
 import org.didelphis.genetics.alignment.AlignmentResult;
 import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
-import org.didelphis.genetics.alignment.operators.comparators.ReinforcementComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.sequences.Sequence;

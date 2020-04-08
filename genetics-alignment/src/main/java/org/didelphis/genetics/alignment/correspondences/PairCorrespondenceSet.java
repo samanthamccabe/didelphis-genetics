@@ -26,6 +26,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
@@ -38,13 +39,13 @@ import java.util.List;
 @EqualsAndHashCode
 public class PairCorrespondenceSet<T>
 		implements Iterable<PairCorrespondenceSet.CorrespondenceEntry<T>> {
-	
+
 	private final List<CorrespondenceEntry<T>> list;
-	
+
 	public PairCorrespondenceSet() {
 		list = new ArrayList<>();
 	}
-	
+
 	@NonNull
 	@Override
 	public Iterator<CorrespondenceEntry<T>> iterator() {
@@ -66,7 +67,7 @@ public class PairCorrespondenceSet<T>
 		entry.setContextPair(pair);
 		list.add(entry);
 	}
-	
+
 	@Data
 	@FieldDefaults(level = AccessLevel.PRIVATE)
 	public static final class CorrespondenceEntry<T> {
@@ -75,6 +76,6 @@ public class PairCorrespondenceSet<T>
 		Segment<T> left;
 		Segment<T> right;
 		ContextPair<T> contextPair;
-		
+
 	}
 }

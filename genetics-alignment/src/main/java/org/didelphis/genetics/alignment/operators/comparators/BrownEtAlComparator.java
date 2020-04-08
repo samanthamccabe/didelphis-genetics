@@ -21,6 +21,7 @@
 package org.didelphis.genetics.alignment.operators.comparators;
 
 import lombok.NonNull;
+
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;

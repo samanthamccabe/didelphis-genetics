@@ -32,6 +32,7 @@ import org.didelphis.language.phonetic.features.BinaryFeature;
 import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModelLoader;
 import org.didelphis.language.phonetic.sequences.Sequence;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -41,8 +42,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Class {@code NeedlemanWunchAlgorithmTestBasic}
@@ -181,12 +181,10 @@ public class NeedlemanWunchAlgorithmTestBasic {
 
 	@Test
 	void getAlignment_04() {
-		AlignmentResult<Boolean> result = simpleAlgorithm.apply(factory.toSequence(
-				"#baba"), factory.toSequence("#ababb"));
-
-		Assertions.assertFalse(result.getAlignments().isEmpty());
-		String expected = "# _ b a b a \t# a b a b b \t";
-		assertEquals(expected, result.getAlignments().get(0).toString());
+		AlignmentResult<Boolean> result = simpleAlgorithm.apply(factory.toSequence("#baba"), factory.toSequence("#ababb"));
+		assertFalse(result.getAlignments().isEmpty());
+		String expected = "_ b a b a \na b a b b ";
+		assertEquals(expected, String.join("\n",Alignment.buildPrettyAlignments(result.getAlignments().get(0))));
 	}
 
 	@Test

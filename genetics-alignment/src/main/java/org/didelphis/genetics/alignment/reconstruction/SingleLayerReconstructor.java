@@ -20,10 +20,10 @@
 
 package org.didelphis.genetics.alignment.reconstruction;
 
+import org.didelphis.genetics.alignment.correspondences.ContextSet;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
-import org.didelphis.genetics.alignment.correspondences.ContextSet;
 
 import java.util.ArrayList;
 import java.util.Collection;

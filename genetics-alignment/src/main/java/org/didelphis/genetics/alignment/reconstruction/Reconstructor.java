@@ -20,8 +20,8 @@
 
 package org.didelphis.genetics.alignment.reconstruction;
 
-import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.genetics.alignment.correspondences.ContextSet;
+import org.didelphis.language.phonetic.features.FeatureArray;
 
 @FunctionalInterface
 public interface Reconstructor<T> {

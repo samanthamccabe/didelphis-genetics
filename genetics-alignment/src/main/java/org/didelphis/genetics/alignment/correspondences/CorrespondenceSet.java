@@ -20,8 +20,8 @@
 
 package org.didelphis.genetics.alignment.correspondences;
 
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.language.phonetic.segments.Segment;
 
 import java.util.HashMap;
 import java.util.List;

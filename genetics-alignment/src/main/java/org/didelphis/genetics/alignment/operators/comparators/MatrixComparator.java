@@ -23,6 +23,7 @@ package org.didelphis.genetics.alignment.operators.comparators;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
+
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.features.FeatureType;

@@ -22,25 +22,15 @@ package org.didelphis.genetics.alignment.algorithm;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
 import org.didelphis.genetics.alignment.Alignment;
-import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
-import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
-import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.structures.tables.RectangularTable;
 import org.didelphis.structures.tables.Table;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
 
-import static org.didelphis.genetics.alignment.algorithm.Operation.DEL;
-import static org.didelphis.genetics.alignment.algorithm.Operation.INS;
-import static org.didelphis.genetics.alignment.algorithm.Operation.SUB;
+import static org.didelphis.genetics.alignment.algorithm.Operation.*;
 
 @ToString
 @EqualsAndHashCode

@@ -20,10 +20,10 @@
 
 package org.didelphis.genetics.learning;
 
-import io.jenetics.Phenotype;
-import io.jenetics.engine.EvolutionResult;
 import lombok.ToString;
 
+import io.jenetics.Phenotype;
+import io.jenetics.engine.EvolutionResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

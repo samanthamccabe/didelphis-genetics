@@ -48,6 +48,9 @@ import org.didelphis.structures.maps.interfaces.TwoKeyMap;
 import org.didelphis.structures.tuples.Triple;
 import org.didelphis.structures.tuples.Twin;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -63,6 +66,8 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode
 @FieldDefaults (level = AccessLevel.PRIVATE, makeFinal = true)
 public abstract class AbstractCalibrator<T, P> {
+
+	private static final Logger LOG = LogManager.getLogger(AbstractCalibrator.class);
 
 	@Getter boolean useReinforcement;
 
@@ -141,13 +146,13 @@ public abstract class AbstractCalibrator<T, P> {
 		trainingData.put(filePath, Utilities.loadSDM(fileData, factory));
 	}
 
-	public double fitness(@NonNull P parameters) {
+	public double fitness(@NonNull P parameters, double sampleRate) {
 		Set<String> filePaths = trainingData.keySet();
 		AlignmentAlgorithm<T> algorithm = toAlgorithm(parameters);
 
 		double reinforcementWeight = getReinforcementWeight(parameters);
 
-		return evaluate(filePaths, algorithm, reinforcementWeight);
+		return evaluate(filePaths, algorithm, sampleRate, reinforcementWeight);
 	}
 
 	public void writeBestAlignments(
@@ -221,21 +226,47 @@ public abstract class AbstractCalibrator<T, P> {
 	private double evaluate(
 			@NonNull Iterable<String> paths,
 			@NonNull AlignmentAlgorithm<T> algorithm,
+			double fraction,
 			double reinforcementWeight
 	) {
+
+		Map<String, List<List<Alignment<T>>>> data = new HashMap<>();
+
+		for (String path : paths) {
+			List<List<Alignment<T>>> list = trainingData.get(path)
+					.stream()
+					.filter((alignments) -> Math.random() < fraction)
+					.collect(Collectors.toList());
+			data.put(path, list);
+		}
+
 		double correct = 0.0;
-		double total = trainingData.values()
+		double total = data.values()
 				.stream()
 				.mapToDouble(List::size)
 				.sum();
+
 		for (String path : paths) {
 			TwoKeyMap<Segment<T>, Segment<T>, Double> corrMap = initMap();
-			List<List<Alignment<T>>> get = trainingData.get(path);
+			List<List<Alignment<T>>> get = data.get(path);
+			int i = 0;
 			for (List<Alignment<T>> alignments : get) {
+				i++;
 				// Only retrieve the first alignment to create the sequences;
 				// Any second entry that exists should create the same sequence
-				List<Sequence<T>> sequences = getSequences(alignments.get(0));
-				AlignmentResult<T> result = algorithm.apply(sequences.get(0),
+				// TODO: Though it might be worth checking it for integrity
+				Alignment<T> alignment = alignments.get(0);
+				List<Sequence<T>> sequences = getSequences(alignment);
+
+				if (sequences.size() < 2) {
+					List<String> list = Alignment.buildPrettyAlignments(alignment);
+					String join = String.join("\n\t\t", list);
+					LOG.error("Data was found with incorrect format:\n\tPath: {}\n\tEntry: {}\n\tAlignment:{}", path, i, join);
+					continue;
+				}
+
+				AlignmentResult<T> result = algorithm.apply(
+						sequences.get(0),
 						sequences.get(1)
 				);
 

@@ -22,9 +22,10 @@ package org.didelphis.genetics.learning;
 
 import lombok.ToString;
 
+import org.didelphis.utilities.Templates;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.didelphis.utilities.Templates;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;

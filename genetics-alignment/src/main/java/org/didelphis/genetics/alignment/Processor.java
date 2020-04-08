@@ -69,12 +69,14 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -87,6 +89,9 @@ public final class Processor<T> {
 	private static final DecimalFormat QUAD    = new DecimalFormat("0000");
 	private static final DecimalFormat DECIMAL = new DecimalFormat("0.00");
 	private static final FileHandler   HANDLER = new DiskFileHandler("UTF-8");
+
+	private static final BiFunction<Segment<?>, Double, Double> UPDATE
+			= (key, v) -> (v == null) ? 1 : v + 1;
 
 	@Getter
 	private final AlignmentAlgorithm<T>    algorithm;
@@ -155,17 +160,48 @@ public final class Processor<T> {
 			for (String headerKey : data.getKeys()) {
 				UnmappedSymbolFinder<T> finder = new UnmappedSymbolFinder<>(gapSymbol, factory, true);
 				List<Sequence<T>> column = data.getColumn(headerKey);
+				if (column == null) continue;
 				finder.countInSequences(column);
 				LOG.debug("Including language key: {}", displayNames.get(headerKey));
 			}
 
 			List<String> langKeys = new ArrayList<>(displayNames.keySet());
-
 			Table<Double> scores = new RectangularTable<>(
 					0.0,
 					langKeys.size(),
 					langKeys.size()
 			);
+
+			// Alternative (multiple) alignment method
+			data.rowIterator().forEachRemaining(row -> {
+				List<Sequence<T>> sequences = new ArrayList<>(row);
+
+				List<AlignmentResult<T>> results = new ArrayList<>();
+
+				for (List<String> keys : fileKeys) {
+					String k1 = keys.get(0);
+					String k2 = keys.get(1);
+
+					List<String> keyList = data.getKeys();
+
+					Sequence<T> q1 = sequences.get(keyList.indexOf(k1));
+					Sequence<T> q2 = sequences.get(keyList.indexOf(k2));
+
+					AlignmentResult<T> result = algorithm.apply(q1, q2);
+					results.add(result);
+				}
+
+				// FileKeys will still give the association for the result pairs
+				int i = 0;
+
+				List<Alignment<T>> alignments = results.stream()
+						.map(AlignmentResult::getAlignments)
+						.map(list -> list.get(0))
+						.collect(Collectors.toList());
+
+
+
+			});
 
 			for (List<String> keys : fileKeys) {
 				Collection<AlignmentResult<T>> results = align(algorithm, keys, data);
@@ -209,7 +245,7 @@ public final class Processor<T> {
 		LOG.debug("Processing results for {}", String.join(":", keys));
 
 		TwoKeyMap<Segment<T>, Segment<T>, Double> countMap = getCounts(results);
-		TwoKeyMap<Segment<T>, Segment<T>, Double> freqMap = toFrequency(countMap);
+		TwoKeyMap<Segment<T>, Segment<T>, Double> freqMap = toLogFrequency(countMap, results);
 
 		TwoKeyMultiMap<Segment<T>, Segment<T>, Alignment<T>> map
 				= buildCorrespondences(results);
@@ -356,16 +392,53 @@ public final class Processor<T> {
 	}
 
 	@NonNull
-	private static <T> TwoKeyMap<Segment<T>, Segment<T>, Double> toFrequency(
-			TwoKeyMap<Segment<T>, Segment<T>, Double> cMap
+	private static <T> TwoKeyMap<Segment<T>, Segment<T>, Double> toLogFrequency(
+			TwoKeyMap<Segment<T>, Segment<T>, Double> cMap,
+			Iterable<AlignmentResult<T>> results
 	) {
+
+		// Count the # of times a segment appears in its original language
+		Map<Segment<T>, Double> lFreq = new HashMap<>();
+		Map<Segment<T>, Double> rFreq = new HashMap<>();
+		for (AlignmentResult<T> result : results) {
+			result.getLeft().forEach(g -> lFreq.compute(g, UPDATE));
+			result.getRight().forEach(g -> rFreq.compute(g, UPDATE));
+		}
+
+		double lTotal = lFreq.values().stream().mapToDouble(x -> x).sum();
+		double rTotal = rFreq.values().stream().mapToDouble(x -> x).sum();
+
+		for (Segment<T> segment : lFreq.keySet()) {
+			lFreq.computeIfPresent(segment, (key, value) -> value / lTotal);
+		}
+
+		for (Segment<T> segment : rFreq.keySet()) {
+			rFreq.computeIfPresent(segment, (key, value) -> value / rTotal);
+		}
+
+		// Count the total number of correspondences
 		double sum = cMap.stream().mapToDouble(Triple::third).sum();
+
+		double leftDefault = 1.0 / lTotal;
+		double rightDefault = 1.0 / rTotal;
+
 		TwoKeyMap<Segment<T>, Segment<T>, Double> fMap =
 				new GeneralTwoKeyMap<>(TreeMap.class);
 		for (Triple<Segment<T>, Segment<T>, Double> t : cMap) {
+
+			Segment<T> left = t.first();
+			Segment<T> right = t.second();
+
+			double fLeft = lFreq.getOrDefault(left, leftDefault);
+			double fRight = rFreq.getOrDefault(right, rightDefault);
+
+			double frequency = t.third() / sum;
+
+//			double a = frequency * (1 - 1 / (1/fLeft + 1/fRight));
+
 			@SuppressWarnings ("NonReproducibleMathCall")
-			double value = -1 * Math.log(t.third() / sum);
-			fMap.put(t.first(), t.second(), value);
+			double value = -1 * Math.log(frequency);
+			fMap.put(left, right, value);
 		}
 		return fMap;
 	}

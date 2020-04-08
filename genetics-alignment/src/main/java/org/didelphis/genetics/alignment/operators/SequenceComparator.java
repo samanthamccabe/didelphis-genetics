@@ -21,6 +21,7 @@
 package org.didelphis.genetics.alignment.operators;
 
 import lombok.NonNull;
+
 import org.didelphis.language.phonetic.sequences.Sequence;
 
 @FunctionalInterface

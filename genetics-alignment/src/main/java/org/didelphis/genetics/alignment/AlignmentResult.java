@@ -22,6 +22,7 @@ package org.didelphis.genetics.alignment;
 
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 
@@ -29,7 +30,9 @@ import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.Table;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class {@code AlignmentResult}
@@ -40,12 +43,14 @@ import java.util.List;
 @FieldDefaults (makeFinal = true, level = AccessLevel.PRIVATE)
 @ToString
 @EqualsAndHashCode
+@Getter
 public class AlignmentResult<T> {
 
-	Sequence<T> left;
-	Sequence<T> right;
-	Table<Double> table;
+	Sequence<T>        left;
+	Sequence<T>        right;
+	Table<Double>      table;
 	List<Alignment<T>> alignments;
+	Map<String,String> metadata;
 
 	public AlignmentResult(
 			Sequence<T> left,
@@ -57,6 +62,7 @@ public class AlignmentResult<T> {
 		this.right = right;
 		this.table = table;
 		alignments = Collections.singletonList(alignment);
+		metadata = new HashMap<>();
 	}
 
 	public AlignmentResult(
@@ -69,22 +75,7 @@ public class AlignmentResult<T> {
 		this.right = right;
 		this.table = table;
 		this.alignments = alignments;
-	}
-
-	public List<Alignment<T>> getAlignments() {
-		return alignments;
-	}
-
-	public Table<Double> getTable() {
-		return table;
-	}
-
-	public Sequence<T> getRight() {
-		return right;
-	}
-
-	public Sequence<T> getLeft() {
-		return left;
+		metadata = new HashMap<>();
 	}
 
 	public double getScore() {

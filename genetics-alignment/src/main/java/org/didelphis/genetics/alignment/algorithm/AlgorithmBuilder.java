@@ -30,7 +30,6 @@ import org.didelphis.genetics.alignment.algorithm.optimization.BaseOptimization;
 import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.SimpleComparator;
-import org.didelphis.genetics.alignment.operators.comparators.SparseMatrixComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.genetics.alignment.operators.gap.NullGapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;

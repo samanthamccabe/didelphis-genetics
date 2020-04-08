@@ -22,6 +22,7 @@ package org.didelphis.genetics.alignment.calibration;
 
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
 import org.didelphis.genetics.alignment.AlignmentSet;
 import org.didelphis.genetics.alignment.constraints.Constraint;
 import org.didelphis.language.phonetic.SequenceFactory;
@@ -30,7 +31,11 @@ import org.didelphis.structures.tables.ColumnTable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @ToString

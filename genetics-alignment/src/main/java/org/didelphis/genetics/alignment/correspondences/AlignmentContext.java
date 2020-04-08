@@ -21,8 +21,9 @@
 package org.didelphis.genetics.alignment.correspondences;
 
 import lombok.NonNull;
-import org.didelphis.language.phonetic.sequences.Sequence;
+
 import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tuples.Twin;
 
 import java.util.ArrayList;
@@ -30,9 +31,9 @@ import java.util.Collection;
 import java.util.List;
 
 public class AlignmentContext<T> extends Twin<Alignment<T>> {
-	
+
 	private static final int HASH_ID = 0x732a970b;
-	
+
 	public AlignmentContext(Alignment<T> pre, Alignment<T> post) {
 		super(pre, post);
 	}

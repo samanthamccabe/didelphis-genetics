@@ -23,6 +23,7 @@ package org.didelphis.genetic.data.generation;
 import lombok.AccessLevel;
 import lombok.ToString;
 import lombok.experimental.FieldDefaults;
+
 import org.didelphis.io.DiskFileHandler;
 import org.didelphis.io.FileHandler;
 import org.didelphis.structures.maps.GeneralMultiMap;
@@ -55,10 +56,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.random;
-import static java.lang.Math.round;
-import static java.lang.Math.toIntExact;
+import static java.lang.Math.*;
 
 @ToString
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)

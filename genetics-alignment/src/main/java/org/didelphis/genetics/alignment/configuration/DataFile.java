@@ -41,6 +41,9 @@ public class DataFile {
 	String type;
 	String groupName;
 
+	String idColumn;
+	String glossColumn;
+
 	List<Regex>         exclusions;
 	Map<String, String> displayNames;
 	List<List<String>>  keys;

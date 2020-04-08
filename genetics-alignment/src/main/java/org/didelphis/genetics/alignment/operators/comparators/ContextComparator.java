@@ -21,49 +21,79 @@
 package org.didelphis.genetics.alignment.operators.comparators;
 
 import lombok.NonNull;
+import lombok.ToString;
 
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
+import org.didelphis.language.phonetic.features.FeatureArray;
+import org.didelphis.language.phonetic.features.FeatureType;
+import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 
+import java.util.List;
+
+@ToString
 public final class ContextComparator<T> implements SequenceComparator<T> {
 
-	private final SequenceComparator<T> comparator;
-	private final double p1;
-	private final double p2;
-	private final double p3;
-	private final double p4;
+	private final FeatureType<? super T> type;
 
-	public ContextComparator(SequenceComparator<T> comparator, double p1, double p2, double p3, double p4) {
+	private final int          fSize;
+	private final List<Double> list;
 
-		this.comparator = comparator;
-		this.p1 = p1;
-		this.p2 = p2;
-		this.p3 = p3;
-		this.p4 = p4;
+	public ContextComparator(
+			FeatureType<? super T> type, List<Double> list
+	) {
+		this.type = type;
+		this.list = list;
+
+		fSize = list.size() / 6;
 	}
 
 	@Override
 	public double apply(
 			@NonNull Sequence<T> left, @NonNull Sequence<T> right, int i, int j
 	) {
-		double score = comparator.apply(left, right, i, j);
+		double score = 0.0;
 
-		if (i - 1 >= 0) {
-			score += comparator.apply(left, right, i - 1, j) * p1;
+		score += p(0, left, right, i-1, j);
+		score += p(1, left, right, i,   j);
+		score += p(2, left, right, i+1, j);
+		score += p(3, left, right, i,   j-1);
+		score += p(4, left, right, i,   j);
+		score += p(5, left, right, i,   j+1);
+
+		return score;
+	}
+
+	private double p(
+			int block,
+			@NonNull Sequence<T> left,
+			@NonNull Sequence<T> right,
+			int i,
+			int j
+	) {
+		double score = 0.0;
+
+		if (i < 0 || j < 0 || i >= left.size() || j >= right.size()) {
+			return  score;
 		}
 
-		if (i + 1 < left.size()) {
-			score += comparator.apply(left, right, i + 1, j) * p2;
-		}
+		Segment<T> lS = left.get(i);
+		Segment<T> rS = right.get(j);
 
-		if (j - 1 >= 0) {
-			score += comparator.apply(left, right, i, j - 1) * p3;
-		}
+		int start = block * fSize;
+		int end   = (block + 1) * fSize;
 
-		if (j + 1 < right.size()) {
-			score += comparator.apply(left, right, i, j) + 1 * p4;
-		}
+		List<Double> weights = list.subList(start, end);
 
+		FeatureArray<T> lFeatures = lS.getFeatures();
+		FeatureArray<T> rFeatures = rS.getFeatures();
+		for (int k = 0; k < weights.size(); k++) {
+			T lF = lFeatures.get(k);
+			T rF = rFeatures.get(k);
+			Double d = type.difference(lF, rF);
+			Double w = weights.get(k);
+			score += w * d;
+		}
 		return score;
 	}
 }

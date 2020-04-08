@@ -23,6 +23,7 @@ package org.didelphis.genetics.alignment.algorithm;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
+
 import org.didelphis.genetics.alignment.algorithm.optimization.Optimization;
 import org.didelphis.genetics.alignment.operators.SequenceComparator;
 import org.didelphis.genetics.alignment.operators.gap.GapPenalty;

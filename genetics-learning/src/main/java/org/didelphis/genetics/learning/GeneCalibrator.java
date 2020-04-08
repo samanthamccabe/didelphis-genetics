@@ -92,8 +92,8 @@ public final class GeneCalibrator<T>
 	private static final NumberFormat DOUBLE_FORMAT = new DecimalFormat("0.000");
 	private static final NumberFormat DOUBLE_FORMAT_LONG = new DecimalFormat(" 0.00000;-0.00000");
 
-	private static final double FIXED_WEIGHT = 1.10;
-	private static final int FIXED_POSITION = 1;
+	private static final double FIXED_WEIGHT = Double.NaN;
+	private static final int FIXED_POSITION = 0;
 	private static final double Z = 0.000000001;
 
 	long startTime;
@@ -168,7 +168,7 @@ public final class GeneCalibrator<T>
 			calibrator.writeBestAlignments(path, fileName + ".csv", algorithm);
 		}
 
-		double fitness = calibrator.fitness(genotype);
+		double fitness = calibrator.fitness(genotype, 1.0);
 
 		System.out.printf("│ %s | %s │%n",
 				DOUBLE_FORMAT_LONG.format(fitness).trim(),
@@ -198,25 +198,26 @@ public final class GeneCalibrator<T>
 				? specification.size()
 				: specification.size() - 1;
 
-		int fSize = getCorrelatedFeatures().size();
+//		int fSize = getCorrelatedFeatures().size();
+//		double rf = isUseReinforcement() ? 20 : 0.000001;
 
-		double rf = isUseReinforcement() ? 20 : 0.000001;
 		Engine<DoubleGene, Double> engine = Engine.builder(
-				this::fitness,
-				DoubleChromosome.of( -2,  2,     2), // Gaps
-				DoubleChromosome.of(  0,  1,  size), // Main Features
-				DoubleChromosome.of( -3,  3, fSize), // Correlated Features
-				DoubleChromosome.of(  0,  Z,     4), // Context Re-weighting
-				DoubleChromosome.of(  0, rf,     1)  // Reinforcement weight
+				(Genotype<DoubleGene> genotype) -> fitness(genotype, 0.33),
+				DoubleChromosome.of(  -5, 5,        2), // Gaps
+				DoubleChromosome.of(  -3, 3, size * 6) // Main Features
+
+//				DoubleChromosome.of( -3,  3, fSize), // Correlated Features
+//				DoubleChromosome.of(  0,  Z,     4), // Context Re-weighting
+//				DoubleChromosome.of(  0, rf,     1)  // Reinforcement weight
 		)
 				.maximizing()
-				.populationSize(300)
+				.populationSize(500)
 				.selector(new EliteSelector<>())
-				.alterers(new GaussianMutator<>())
+				.alterers(new GaussianMutator<>(0.3))
 				.build();
 
 		return engine.stream()
-				.limit(bySteadyFitness(100))
+				.limit(bySteadyFitness(200))
 				.peek(this::print)
 				.collect(toBestGenotype());
 	}
@@ -245,23 +246,19 @@ public final class GeneCalibrator<T>
 		);
 
 		List<Double> listB = toList(parameters, 1);
-		List<Double> listC = toList(parameters, 2);
-		TwoKeyMap<Integer, Integer, Double> sparseWeights = toSparseWeights(listC);
-		SequenceComparator<T> comparator = getSparseComparator(listB, sparseWeights);
+//		List<Double> listC = toList(parameters, 2);
+//		TwoKeyMap<Integer, Integer, Double> sparseWeights = toSparseWeights(listC);
+//		SequenceComparator<T> comparator = getSparseComparator(listB, sparseWeights);
 
-		Chromosome<DoubleGene> chromosome = parameters.getChromosome(3);
+//		Chromosome<DoubleGene> chromosome = parameters.getChromosome(3);
 		ContextComparator<T> contextComparator = new ContextComparator<>(
-				comparator,
-				chromosome.getGene(0).doubleValue(),
-				chromosome.getGene(1).doubleValue(),
-				chromosome.getGene(2).doubleValue(),
-				chromosome.getGene(3).doubleValue()
+				featureModel.getFeatureType(), listB
 		);
 
 		return new NeedlemanWunschAlgorithm<>(
 				BaseOptimization.MIN,
 				AlignmentMode.GLOBAL,
-				comparator,
+				contextComparator,
 				gapPenalty,
 				getFactory()
 		);

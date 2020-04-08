@@ -295,7 +295,6 @@ public final class Utilities {
 
 		// Each block should represent a single alignment or set of equivalent
 		// alignments:
-		// 0 0 0   0 0 0
 		// a a b | a a b
 		// a _ b | _ a b
 		// These are not *necessarily* equivalent in all cases - under a global
@@ -304,7 +303,6 @@ public final class Utilities {
 		// not incur a cost
 		for (String block : BLOCK.split(fileData)) {
 			block = COMMENT.replace(block,"$1").trim();
-//			block = block.replaceAll("%.*(\n|\n?\n)","");
 
 			if (block.isEmpty()) continue;
 
@@ -331,10 +329,7 @@ public final class Utilities {
 			for (int i = 0; i < blockWidth; i++) {
 				Collection<String> strings = new ArrayList<>();
 
-				// TODO: add annotations to the alignment
-				String annotations = lists.get(0).get(i).trim();
-
-				for (int j = 1; j <  lists.size(); j++) {
+				for (int j = 0; j <  lists.size(); j++) {
 					String item = lists.get(j).get(i).trim();
 					if (item.startsWith("#")) {
 						strings.add(item);
@@ -367,6 +362,9 @@ public final class Utilities {
 		for (String string : list) {
 			Sequence<T> sequence = new PhoneticSequence<>(model);
 			for (String s : string.split("\\s+")) {
+				if (s.equals("<") || s.equals(">")){
+					s = "░";
+				}
 				sequence.add(factory.toSegment(s));
 			}
 			sequences.add(sequence);

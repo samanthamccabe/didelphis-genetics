@@ -20,6 +20,9 @@
 
 package org.didelphis.genetics.alignment.constraints;
 
+import org.didelphis.genetics.alignment.Alignment;
+import org.didelphis.genetics.alignment.AlignmentSet;
+import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.features.FeatureArray;
 import org.didelphis.language.phonetic.model.FeatureMapping;
@@ -27,9 +30,6 @@ import org.didelphis.language.phonetic.segments.Segment;
 import org.didelphis.language.phonetic.segments.StandardSegment;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tables.ColumnTable;
-import org.didelphis.genetics.alignment.Alignment;
-import org.didelphis.genetics.alignment.algorithm.AlignmentAlgorithm;
-import org.didelphis.genetics.alignment.AlignmentSet;
 
 import java.io.IOException;
 import java.util.List;
