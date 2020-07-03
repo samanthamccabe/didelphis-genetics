@@ -87,7 +87,6 @@ public final class Processor<T> {
 	private static final Logger LOG = LogManager.getLogger(Processor.class);
 
 	private static final DecimalFormat QUAD    = new DecimalFormat("0000");
-	private static final DecimalFormat DECIMAL = new DecimalFormat("0.00");
 	private static final FileHandler   HANDLER = new DiskFileHandler("UTF-8");
 
 	private static final BiFunction<Segment<?>, Double, Double> UPDATE
@@ -212,6 +211,7 @@ public final class Processor<T> {
 					int    lIndex = langKeys.indexOf(keys.get(0));
 					int    rIndex = langKeys.indexOf(keys.get(1));
 					scores.set(lIndex, rIndex, score);
+					scores.set(rIndex, lIndex, score);
 				}
 
 				List<String> collect = keys.stream()
@@ -226,7 +226,7 @@ public final class Processor<T> {
 				List<String> collect = langKeys.stream()
 						.map(displayNames::get)
 						.collect(Collectors.toList());
-				String displayTable = formatDistanceTable(collect, scores);
+				String displayTable = Utilities.formatDistanceTable(collect, scores);
 				File tableFile = new File(outPath, "distances.table");
 				try {
 					String absolutePath = tableFile.getAbsolutePath();
@@ -316,11 +316,11 @@ public final class Processor<T> {
 		double sum = results.stream()
 				.mapToDouble(Processor::getAverageDistance)
 				.sum();
-		return 10 * sum / Math.pow(results.size(), 3.0 / 2.0);
+		return 10 * sum / results.size();
 	}
 
 	private static double getAverageDistance(AlignmentResult<?> r) {
-		return r.getScore() / (r.getAlignments().get(0).columns());
+		return r.getScore() / r.getAlignments().get(0).columns();
 	}
 
 	private static <T> String toGml(double nTile, String lKey, String rKey,
@@ -360,7 +360,7 @@ public final class Processor<T> {
 						double value = countMap.getOrDefault(left, right, 0.0);
 						countMap.put(left, right, value + (1.0 / num));
 					} else {
-						countMap.put(left, right, (1.0 / num));
+						countMap.put(left, right, 1.0 / num);
 					}
 				}
 			}
@@ -457,39 +457,6 @@ public final class Processor<T> {
 		return (q == 0) ? 0.0 : max - (max - min) / q;
 	}
 
-	private static String formatDistanceTable(List<String> labels, Table<Double> table) {
-		StringBuilder sb = new StringBuilder();
-
-		int size;
-		if (labels.size() == table.rows()) {
-			size = labels.size();
-		} else {
-			LOG.error("Number of labels ({}) does not match the number of " +
-					"rows ({}); proceeding with the smaller value.",
-					labels.size(), table.rows());
-			size = Math.min(labels.size(), table.rows());
-		}
-
-		for (int i = 0; i < labels.size() - 1; i++) {
-			String label = labels.get(i);
-			sb.append("\t");
-			sb.append(label);
-		}
-		sb.append("\n");
-
-		for (int i = 1; i < size; i++) {
-			sb.append(labels.get(i));
-			for (double value : table.getRow(i)) {
-				sb.append("\t");
-				if (value != 0.0) {
-					sb.append(DECIMAL.format(value));
-				}
-			}
-			sb.append("\n");
-		}
-		return sb.toString();
-	}
-
 	private static String escape(String string) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < string.length(); i++) {
@@ -571,9 +538,9 @@ public final class Processor<T> {
 				Collection<String> rightList = new ArrayList<>();
 				for (Alignment<T> alignment : result.getAlignments()) {
 					List<String> charSequences = Alignment.buildPrettyAlignments(alignment);
-					metaList.add(charSequences.get(0));
-					leftList.add(charSequences.get(1));
-					rightList.add(charSequences.get(2));
+//					metaList.add(charSequences.get(0));
+					leftList.add(charSequences.get(0));
+					rightList.add(charSequences.get(1));
 				}
 
 				String metaGroup  = String.join(" | ", metaList);

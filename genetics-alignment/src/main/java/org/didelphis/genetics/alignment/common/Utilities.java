@@ -66,16 +66,16 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @UtilityClass
-public final class Utilities {
+public class Utilities {
 
 	public final NumberFormat FORMAT_SHORT = new DecimalFormat("0.000");
 	public final NumberFormat FORMAT_LONG = new DecimalFormat("0.00000");
 
-	private static final Logger LOG = LogManager.getLogger(Utilities.class);
-	private static final Regex PIPE     = new Regex("\\s+\\|\\s+");
-	private static final Regex NEWLINES = new Regex("\r\n|\n|\r");
-	private static final Regex BLOCK    = new Regex("(\r\n\r\n)|(\n\n)|(\r\r)");
-	private static final Regex COMMENT  = new Regex("%.*(\\r|\\r?\\n)");
+	private final Logger LOG      = LogManager.getLogger(Utilities.class);
+	private final Regex  PIPE     = new Regex("\\s+\\|\\s+");
+	private final Regex  NEWLINES = new Regex("\r\n|\n|\r");
+	private final Regex  BLOCK    = new Regex("(\r\n\r\n)|(\n\n)|(\r\r)");
+	private final Regex  COMMENT  = new Regex("%.*(\\r|\\r?\\n)");
 
 	private final Pattern SPACE = Pattern.compile("\\s+");
 	private final CSVFormat CSV_FORMAT = CSVFormat.DEFAULT.withFirstRecordAsHeader();
@@ -329,8 +329,8 @@ public final class Utilities {
 			for (int i = 0; i < blockWidth; i++) {
 				Collection<String> strings = new ArrayList<>();
 
-				for (int j = 0; j <  lists.size(); j++) {
-					String item = lists.get(j).get(i).trim();
+				for (List<String> list : lists) {
+					String item = list.get(i).trim();
 					if (item.startsWith("#")) {
 						strings.add(item);
 					} else {
@@ -344,7 +344,7 @@ public final class Utilities {
 		return alignmentSet;
 	}
 
-	public static @NonNull <T> Alignment<T> toAlignment(
+	public @NonNull <T> Alignment<T> toAlignment(
 			@NonNull Iterable<String> list,
 			@NonNull SequenceFactory<T> factory
 	) {
@@ -353,7 +353,7 @@ public final class Utilities {
 		return new Alignment<>(sequences, model);
 	}
 
-	public static @NonNull <T> List<Sequence<T>> toSequences(
+	public @NonNull <T> List<Sequence<T>> toSequences(
 			@NonNull Iterable<String> list,
 			@NonNull SequenceFactory<T> factory
 	) {
@@ -372,8 +372,42 @@ public final class Utilities {
 		return sequences;
 	}
 
+	public String formatDistanceTable(List<String> labels, Table<Double> table) {
+		StringBuilder sb = new StringBuilder();
+
+		int size;
+		if (labels.size() == table.rows()) {
+			size = labels.size();
+		} else {
+			LOG.error("Number of labels ({}) does not match the number of " +
+					"rows ({}); proceeding with the smaller value.",
+								labels.size(), table.rows());
+			size = Math.min(labels.size(), table.rows());
+		}
+
+		sb.append("_\t"); // header for the row labels
+		for (int i = 0; i < labels.size() - 1; i++) {
+			String label = labels.get(i);
+			sb.append('\t');
+			sb.append(label);
+		}
+		sb.append('\n');
+
+		for (int i = 0; i < size; i++) {
+			sb.append(labels.get(i));
+			for (double value : table.getRow(i)) {
+				sb.append('\t');
+				if (value != 0.0) {
+					sb.append(FORMAT_SHORT.format(value));
+				}
+			}
+			sb.append('\n');
+		}
+		return sb.toString();
+	}
+
 	@NonNull
-	private static ColumnTable<String> loadTable(
+	private ColumnTable<String> loadTable(
 			@NonNull String path,
 			@NonNull Formatter norm,
 			@NonNull Collection<String> keys,

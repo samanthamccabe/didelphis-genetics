@@ -102,6 +102,11 @@ class UtilitiesTest {
 	}
 
 	@Test
+	void formatDistanceTable() {
+
+	}
+
+	@Test
 	void loadSDM() throws IOException {
 		String read = handler.read("test.sdm");
 

@@ -37,15 +37,15 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 
 @UtilityClass
-public final class Main {
+public class Main {
 
-	private static final Logger LOG = LogManager.getLogger(Main.class);
+	private final Logger LOG = LogManager.getLogger(Main.class);
 
-	private static final ObjectMapper OM = new ObjectMapper()
+	private final ObjectMapper OM      = new ObjectMapper()
 			.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-	private static final FileHandler HANDLER = new DiskFileHandler("UTF-8");
+	private final FileHandler  HANDLER = new DiskFileHandler("UTF-8");
 
-	public static void main(String[] args) throws IOException {
+	public void main(String[] args) throws IOException {
 
 		if (args.length == 0) {
 			LOG.error("You must provide a JSON configuration");
