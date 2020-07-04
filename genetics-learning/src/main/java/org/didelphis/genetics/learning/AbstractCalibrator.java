@@ -41,7 +41,7 @@ import org.didelphis.language.phonetic.model.FeatureMapping;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.model.FeatureSpecification;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.PhoneticSequence;
+import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.maps.GeneralTwoKeyMap;
 import org.didelphis.structures.maps.interfaces.TwoKeyMap;
@@ -358,7 +358,7 @@ public abstract class AbstractCalibrator<T, P> {
 					.filter(segment -> !segment.equals(rMerge))
 					.filter(segment -> !segment.equals(gap.get(0)))
 					.collect(Collectors.toList());
-			sequences.add(new PhoneticSequence<>(list, featureModel));
+			sequences.add(new BasicSequence<>(list, featureModel));
 		}
 		return sequences;
 	}

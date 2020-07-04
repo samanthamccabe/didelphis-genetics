@@ -36,7 +36,7 @@ import org.didelphis.language.parsing.ParseException;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.PhoneticSequence;
+import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.maps.SymmetricalTwoKeyMap;
 import org.didelphis.structures.tables.ColumnTable;
@@ -159,7 +159,7 @@ public class Utilities {
 				if (indices.contains(j)) {
 					String word = table.get(i, j);
 					String s = transformer.apply(word);
-					Sequence<T> segments = new PhoneticSequence<>(model);
+					Sequence<T> segments = new BasicSequence<>(model);
 					for (String s1: SPACE.split(s)) {
 						segments.add(factory.toSequence(s1));
 					}
@@ -360,7 +360,7 @@ public class Utilities {
 		List<Sequence<T>> sequences = new ArrayList<>();
 		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
 		for (String string : list) {
-			Sequence<T> sequence = new PhoneticSequence<>(model);
+			Sequence<T> sequence = new BasicSequence<>(model);
 			for (String s : string.split("\\s+")) {
 				if (s.equals("<") || s.equals(">")){
 					s = "░";

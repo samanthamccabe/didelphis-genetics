@@ -23,7 +23,7 @@ package org.didelphis.genetics.alignment.correspondences;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.PhoneticSequence;
+import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tuples.Tuple;
 import org.didelphis.structures.tuples.Twin;
@@ -43,7 +43,7 @@ public class EnvironmentMap<T> {
 		// Populate data structure
 		for (Sequence<T> sequence : column) {
 			Sequence<T> head = factory.toSequence("");
-			Sequence<T> tail = new PhoneticSequence<>(sequence);
+			Sequence<T> tail = new BasicSequence<>(sequence);
 			while (!tail.isEmpty()) {
 				Segment<T> segment = tail.remove(0);
 				// segment is defensively copied inside
@@ -58,8 +58,8 @@ public class EnvironmentMap<T> {
 	}
 
 	public final void add(Segment<T> segment, Sequence<T> head, Sequence<T> tail) {
-		PhoneticSequence<T> nHead = new PhoneticSequence<>(head);
-		PhoneticSequence<T> nTail = new PhoneticSequence<>(tail);
+		BasicSequence<T> nHead = new BasicSequence<>(head);
+		BasicSequence<T> nTail = new BasicSequence<>(tail);
 		Twin<Sequence<T>> tuple = new Twin<>(nHead, nTail);
 		if (environments.containsKey(segment)) {
 			Environment<T> tuples = environments.get(segment);

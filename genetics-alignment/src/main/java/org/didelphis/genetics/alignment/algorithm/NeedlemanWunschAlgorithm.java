@@ -32,7 +32,7 @@ import org.didelphis.genetics.alignment.operators.gap.GapPenalty;
 import org.didelphis.language.phonetic.SequenceFactory;
 import org.didelphis.language.phonetic.model.FeatureModel;
 import org.didelphis.language.phonetic.segments.Segment;
-import org.didelphis.language.phonetic.sequences.PhoneticSequence;
+import org.didelphis.language.phonetic.sequences.BasicSequence;
 import org.didelphis.language.phonetic.sequences.Sequence;
 import org.didelphis.structures.tuples.Twin;
 
@@ -87,8 +87,8 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 		AlignmentTable<T> table = new AlignmentTable<>(left, right);
 		FeatureModel<T> model = factory.getFeatureMapping().getFeatureModel();
 
-		Sequence<T> w = new PhoneticSequence<>(model);
-		Sequence<T> z = new PhoneticSequence<>(model);
+		Sequence<T> w = new BasicSequence<>(model);
+		Sequence<T> z = new BasicSequence<>(model);
 
 		populateTable(table);
 		trace(table, w, z);
