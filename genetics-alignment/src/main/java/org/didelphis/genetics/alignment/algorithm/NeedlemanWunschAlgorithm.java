@@ -133,7 +133,7 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 
 		Sequence<T> gap = gapPenalty.getGap();
 
-		Sequence<T> dash = factory.toSequence("-");
+		Segment<T> dash = factory.toSegment("-");
 
 		int i = table.rows() - 1;
 		int j = table.cols() - 1;
@@ -143,6 +143,34 @@ public class NeedlemanWunschAlgorithm<T> implements AlignmentAlgorithm<T> {
 		Sequence<T> right = table.getRight();
 		Sequence<T> left = table.getLeft();
 		while (i > 0 || j > 0) {
+
+			Segment<T> gR = right.get(j);
+			Segment<T> gL = left.get(i);
+
+			if (gR.equals(dash) && gL.equals(dash)) {
+				w.add(left.get(i));
+				z.add(right.get(j));
+				i--;
+				j--;
+				continue;
+			}
+
+			if (gR.equals(dash)) {
+				// Ins
+				w.add(gap);
+				z.add(right.get(j));
+				j--;
+				continue;
+			}
+
+			if (gL.equals(dash)) {
+				// Del
+				w.add(left.get(i));
+				z.add(gap);
+				i--;
+				continue;
+			}
+
 			double sub = get(table, i - 1, j - 1);
 			double del = get(table, i - 1, j);
 			double ins = get(table, i, j - 1);

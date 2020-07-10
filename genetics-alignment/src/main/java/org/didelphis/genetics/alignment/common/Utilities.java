@@ -159,6 +159,9 @@ public class Utilities {
 				if (indices.contains(j)) {
 					String word = table.get(i, j);
 					String s = transformer.apply(word);
+					if (LOG.isTraceEnabled() && !s.equals(word)) {
+						LOG.trace("Changed {} -> {}", word, s);
+					}
 					Sequence<T> segments = new BasicSequence<>(model);
 					for (String s1: SPACE.split(s)) {
 						segments.add(factory.toSequence(s1));
@@ -385,8 +388,7 @@ public class Utilities {
 			size = Math.min(labels.size(), table.rows());
 		}
 
-		sb.append("_\t"); // header for the row labels
-		for (int i = 0; i < labels.size() - 1; i++) {
+		for (int i = 0; i < labels.size(); i++) {
 			String label = labels.get(i);
 			sb.append('\t');
 			sb.append(label);
@@ -397,9 +399,7 @@ public class Utilities {
 			sb.append(labels.get(i));
 			for (double value : table.getRow(i)) {
 				sb.append('\t');
-				if (value != 0.0) {
-					sb.append(FORMAT_SHORT.format(value));
-				}
+				sb.append(FORMAT_SHORT.format(value));
 			}
 			sb.append('\n');
 		}

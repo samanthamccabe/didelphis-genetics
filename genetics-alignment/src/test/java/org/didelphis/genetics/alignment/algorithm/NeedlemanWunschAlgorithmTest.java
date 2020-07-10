@@ -143,4 +143,34 @@ class NeedlemanWunschAlgorithmTest {
 		Alignment<Boolean> received = result.getAlignments().get(0);
 		assertEquals(expected, Alignment.buildPrettyAlignments(received));
 	}
+
+	@Test
+	void getAlignment_dashes() {
+		FeatureModelLoader<Boolean> loader = BinaryFeature.INSTANCE.emptyLoader();
+		SequenceFactory<Boolean> factory = new SequenceFactory<>(
+				loader.getFeatureMapping(), FormatterMode.NONE);
+		SequenceComparator<Boolean> comparator = (left, right, i, j) ->
+				Objects.equals(left.get(i),right.get(j)) ? 0 : 1;
+
+		Sequence<Boolean> segments = factory.toSequence("_");
+		GapPenalty<Boolean> gapPenalty = new NullGapPenalty<>(segments);
+		AlignmentAlgorithm<Boolean> algorithm = new NeedlemanWunschAlgorithm<>(
+				BaseOptimization.MIN,
+				AlignmentMode.GLOBAL,
+				comparator,
+				gapPenalty,
+				factory
+		);
+
+		AlignmentResult<Boolean> result = algorithm.apply(
+				factory.toSequence("#b-aba"),
+				factory.toSequence("#ababb"));
+
+		assertFalse(result.getAlignments().isEmpty());
+//		assertEquals(2.0, result.getScore());
+
+		List<String> expected = Arrays.asList("_ b - a b a ", "a b _ a b b ");
+		Alignment<Boolean> received = result.getAlignments().get(0);
+		assertEquals(expected, Alignment.buildPrettyAlignments(received));
+	}
 }

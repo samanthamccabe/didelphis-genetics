@@ -36,7 +36,7 @@
 
     <properties>
         <didelphis-genetics.version>0.4.0-SNAPSHOT</didelphis-genetics.version>
-        <didelphis-common.version>0.4.0-SNAPSHOT</didelphis-common.version>
+        <didelphis-common.version>0.5.0-SNAPSHOT</didelphis-common.version>
         <nd4j-common.version>1.0.0-beta5</nd4j-common.version>
     </properties>
 

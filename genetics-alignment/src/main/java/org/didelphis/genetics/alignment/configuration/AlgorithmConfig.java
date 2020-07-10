@@ -89,20 +89,21 @@ public class AlgorithmConfig {
 	}
 
 	public <T> SequenceComparator<T> buildComparator(SequenceFactory<T> factory) {
+
+		FeatureMapping<T> mapping     = factory.getFeatureMapping();
+		FeatureModel<T>   model       = mapping.getFeatureModel();
+		FeatureType<T>    featureType = model.getFeatureType();
+		List<?>           parameters  = comparatorConfig.getParameters();
+
+		FeatureSpecification spec    = model.getSpecification();
+		Map<String, Integer> indices = spec.getFeatureIndices();
+
 		String type = comparatorConfig.getType();
 		if (type.equals("sparse")) {
-			FeatureMapping<T> mapping = factory.getFeatureMapping();
-			FeatureModel<T> model = mapping.getFeatureModel();
-			FeatureType<T> featureType = model.getFeatureType();
-
-			List<?> parameters = comparatorConfig.getParameters();
 
 			@SuppressWarnings ("unchecked")
 			List<Double> list = (List<Double>) parameters.get(0);
 			@SuppressWarnings ("unchecked") Map<String, Double> map = (Map<String, Double>) parameters.get(1);
-
-			FeatureSpecification spec = model.getSpecification();
-			Map<String, Integer> indices = spec.getFeatureIndices();
 
 			TwoKeyMap<Integer, Integer, Double> sparseWeights = new GeneralTwoKeyMap<>();
 			for (Map.Entry<String, Double> entry : map.entrySet()) {
@@ -117,6 +118,10 @@ public class AlgorithmConfig {
 					new LinearWeightComparator<>(featureType, list),
 					sparseWeights
 			);
+		} else if (type.equals("linear")) {
+			@SuppressWarnings ("unchecked")
+			List<Double> list = (List<Double>) parameters.get(0);
+			return new LinearWeightComparator<>(featureType, list);
 		}
 		throw new IllegalArgumentException("Unrecognized penalty type "+ type);
 	}

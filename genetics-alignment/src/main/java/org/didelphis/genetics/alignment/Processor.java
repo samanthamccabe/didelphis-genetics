@@ -186,8 +186,10 @@ public final class Processor<T> {
 					Sequence<T> q1 = sequences.get(keyList.indexOf(k1));
 					Sequence<T> q2 = sequences.get(keyList.indexOf(k2));
 
-					AlignmentResult<T> result = algorithm.apply(q1, q2);
-					results.add(result);
+					if (q1.size() > 1 && q2.size() > 1) {
+						AlignmentResult<T> result = algorithm.apply(q1, q2);
+						results.add(result);
+					}
 				}
 
 				// FileKeys will still give the association for the result pairs
@@ -473,7 +475,7 @@ public final class Processor<T> {
 	}
 
 	@NonNull
-	private static <T> AlignmentAlgorithm<T> buildAlgorithm(
+	public static <T> AlignmentAlgorithm<T> buildAlgorithm(
 			FeatureType<T> type,
 			AlgorithmConfig config
 	) {
@@ -490,7 +492,7 @@ public final class Processor<T> {
 	}
 
 	@Nullable
-	private static ColumnTable<String> parseDataFile(
+	public static ColumnTable<String> parseDataFile(
 			DataFile data,
 			Formatter form,
 			Collection<String> allKeys
@@ -511,7 +513,7 @@ public final class Processor<T> {
 		return table;
 	}
 
-	private static <T> void writeResults(
+	public static <T> void writeResults(
 			String outputPath,
 			List<String> keys,
 			Collection<AlignmentResult<T>> results

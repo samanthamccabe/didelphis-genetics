@@ -120,8 +120,13 @@ public final class UnmappedSymbolFinder<T> {
 	public void countStringInTable(ColumnTable<String> table) {
 		for (String key : table.getKeys()) {
 			for (String segments : table.getColumn(key)) {
-				for (int i = 0; i < segments.length(); i++) {
-					update(segments.substring(i, i+1));
+				try {
+					Sequence<T> sequence = factory.toSequence(segments);
+					for (Segment<T> segment : sequence) {
+						update(segment);
+					}
+				} catch (ParseException e) {
+					LOG.error(e);
 				}
 			}
 		}
@@ -161,7 +166,7 @@ public final class UnmappedSymbolFinder<T> {
 				.forEach(couple -> {
 					String symbol = couple.getLeft();
 					Integer count = couple.getRight();
-					String flag = (isMapped.get(symbol) ? "" : "\t!!!");
+					String flag = isMapped.getOrDefault(symbol, false) ? "" : "\t!!!";
 					String s = " " + symbol + "\t" + count + flag +"\n";
 					try {
 						out.write(s.getBytes());
