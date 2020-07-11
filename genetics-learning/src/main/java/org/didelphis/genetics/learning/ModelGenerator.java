@@ -218,7 +218,7 @@ public final class ModelGenerator<T> {
 		System.out.println(stats);
 		System.out.println(best);
 
-		Genotype<DoubleGene> genotype = best.getGenotype();
+		Genotype<DoubleGene> genotype = best.genotype();
 		String inputPath = trainingPath + dataSetName;
 		String outputPath = trainingPath + dataSetFolder ;
 //		ColumnTable<String> table = loadTable(inputPath, TRANSFORMER);
@@ -428,8 +428,8 @@ public final class ModelGenerator<T> {
 
 		BrownEtAlComparator<T> comparator = new BrownEtAlComparator<>(scores);
 
-		Chromosome<G> ch = genotype.getChromosome(0);
-		double gap1 = featureType.doubleValue(ch.getGene(0).getAllele());
+		Chromosome<G> ch = genotype.get(0);
+		double gap1 = featureType.doubleValue(ch.get(0).allele());
 		//		Integer gap2 = chromosome.getGene(1).getAllele();
 		GapPenalty<T> penalty = new ConstantGapPenalty<>(
 				factory.toSequence("⬚"), gap1);
@@ -444,11 +444,11 @@ public final class ModelGenerator<T> {
 	private static <T, G extends Gene<T, G>> List<T> toFeatureBits(
 			FeatureType<T> featureType, Genotype<G> genotype
 	) {
-		Chromosome<G> features = genotype.getChromosome(0);
+		Chromosome<G> features = genotype.get(0);
 		return features.stream()
 				// TODO: fix this
 				.map(integerGene -> featureType.parseValue(
-						String.valueOf(integerGene.getAllele())))
+						String.valueOf(integerGene.allele())))
 				.collect(Collectors.toList());
 	}
 

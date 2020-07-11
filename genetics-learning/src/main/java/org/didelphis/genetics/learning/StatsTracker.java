@@ -56,20 +56,20 @@ final class StatsTracker implements Consumer<EvolutionResult<?, Double>> {
 			writer.write("Generation\t'Maximum Fitness'\t'Mean Fitness'\t'Minimum Fitness'\n");
 			writer.flush();
 		} catch (IOException e) {
-			LOG.error("{}",e);
+			LOG.error(e);
 		}
 	}
 
 	@Override
 	public void accept(EvolutionResult<?, Double> result) {
 		try {
-		if (interval < 1 || result.getGeneration() % interval == 0) {
-			Double minimum = result.getWorstFitness();
-			Double maximum = result.getBestFitness();
-			Double average = result.getPopulation().parallelStream()
-					.collect(Collectors.averagingDouble(
-							Phenotype::getFitness));
-				writer.write(result.getGeneration()+"\t");
+		if (interval < 1 || result.generation() % interval == 0) {
+			Double minimum = result.worstFitness();
+			Double maximum = result.bestFitness();
+			Double average = result.population()
+					.parallelStream()
+					.collect(Collectors.averagingDouble(Phenotype::fitness));
+				writer.write(result.generation()+"\t");
 				writer.write(formatter.format(maximum)+ '\t');
 				writer.write(formatter.format(average)+ '\t');
 				writer.write(formatter.format(minimum)+ '\t');
@@ -77,7 +77,7 @@ final class StatsTracker implements Consumer<EvolutionResult<?, Double>> {
 				writer.flush();
 			}
 		} catch (IOException e) {
-			LOG.error("{}",e);
+			LOG.error(e);
 		}
 	}
 }

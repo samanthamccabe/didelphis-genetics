@@ -266,9 +266,7 @@ public final class GeneCalibrator<T>
 
 	@Override
 	public double getReinforcementWeight(@NonNull Genotype<DoubleGene> parameter) {
-		return parameter.getChromosome(parameter.length() - 1)
-				.getGene(0)
-				.doubleValue();
+		return parameter.get(parameter.length() - 1).get(0).doubleValue();
 	}
 
 	@NonNull

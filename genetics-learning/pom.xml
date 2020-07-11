@@ -35,7 +35,7 @@
         <dependency>
             <groupId>io.jenetics</groupId>
             <artifactId>jenetics</artifactId>
-            <version>5.2.0</version>
+            <version>6.0.1</version>
         </dependency>
 
         <dependency>
@@ -49,19 +49,6 @@
             <artifactId>genetics-data-generation</artifactId>
             <version>${didelphis-genetics.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-core</artifactId>
-            <version>1.0.0-beta5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-native-platform</artifactId>
-            <version>1.0.0-beta5</version>
-        </dependency>
-
     </dependencies>
 
 </project>

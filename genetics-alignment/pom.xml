@@ -58,11 +58,6 @@
             <artifactId>commons-csv</artifactId>
             <version>1.7</version>
         </dependency>
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-native</artifactId>
-            <version>${nd4j-common.version}</version>
-        </dependency>
     </dependencies>
 
 </project>
